@@ -5,7 +5,12 @@ class feedbackrequest:
 
 	def __init__(self, _id, feedback_source, customer, protocol, country,  Site,
 				 			 document_class, document_date, document_classification,
+<<<<<<< HEAD
 				             name, language, document_rejected, attribute_auxillary_list
+=======
+				             name, language, document_rejected
+				# , attribute_auxillary_list
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
 				 ):
 		"""
 		:param _id:  ID of the document translation request
@@ -26,5 +31,9 @@ class feedbackrequest:
 		self.name = name
 		self.language = language
 		self.document_rejected = document_rejected
+<<<<<<< HEAD
 		self.attribute_auxillary_list = attribute_auxillary_list
+=======
+		#self.attribute_auxillary_list = attribute_auxillary_list
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
 

@@ -11,12 +11,31 @@ from .db import db_context
 from ..consts import Consts as consts
 logger = logging.getLogger(consts.LOGGING_NAME)
 
+<<<<<<< HEAD
 from .models.processing import Processing
 from .models.documentProcess import DocumentProcess
 from .models.documentattributes import Documentattributes
 from .models.documentfeedback import Documentfeedback
 from .models.metric import Metric
 from .status import StatusEnum
+=======
+# Import all models for table creation
+
+from .models.processing import Processing
+#from .models.documenttranslate import DocumentTranslate
+from .models.documentProcess import DocumentProcess
+from .models.documentattributes import Documentattributes
+from .models.documentfeedback import Documentfeedback
+
+from .models.metric import Metric
+#from .models.translationmetric import TranslationMetric
+#from .models.formattingmetric import FormattingMetric
+#from .models.metadata import IQMetadata
+#from .models.supportingdoc import SupportingDoc
+
+from .status import StatusEnum
+#from ..messaging.models.translation_request import TranslationRequest
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
 from ..messaging.models.ocr_request import ocrrequest
 from ..messaging.models.classification_request import classificationRequest
 from ..messaging.models.attributeextraction_request import attributeextractionRequest
@@ -25,6 +44,10 @@ from ..messaging.models.finalization_request import finalizationRequest
 
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
 
 from . import *
 
@@ -76,6 +99,7 @@ def get_root_dir():
 def received_triagecomplete_event(id, IQVXMLPath, message_publisher):
     resource = get_doc_resource_by_id(id)
 
+<<<<<<< HEAD
     resource.Percent_complete = '30'
     resource.status = StatusEnum.OCR_STARTED
     resource.last_updated = datetime.utcnow()
@@ -238,6 +262,142 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     return resource.as_dict()
 
 
+=======
+    #resource.deconstructed_xliff_path = xliff_path
+    resource.status = StatusEnum.OCR_STARTED
+    resource.last_updated = datetime.utcnow()
+    db_context.session.commit()
+
+    # Start translation request
+    OCR_req_msg = ocrrequest(
+        id,
+        #resource.source_lang_short,
+        #resource.target_lang_short,
+        IQVXMLPath
+    )
+
+    message_publisher.send_obj(OCR_req_msg)
+
+    return resource.as_dict()
+
+def received_ocrcomplete_event(id, IQVXMLPath, message_publisher):
+    resource = get_doc_resource_by_id(id)
+
+    #resource.deconstructed_xliff_path = xliff_path
+    resource.status = StatusEnum.CLASSIFICATION_STARTED
+    resource.last_updated = datetime.utcnow()
+    db_context.session.commit()
+
+    # Start translation request
+    classification_req_msg = classificationRequest(
+        id,
+        #resource.source_lang_short,
+        #resource.target_lang_short,
+        IQVXMLPath
+    )
+
+    message_publisher.send_obj(classification_req_msg)
+
+    return resource.as_dict()
+
+def received_classificationcomplete_event(id, IQVXMLPath, message_publisher):
+    resource = get_doc_resource_by_id(id)
+
+    #resource.deconstructed_xliff_path = xliff_path
+    resource.status = StatusEnum.ATTRIBUTEEXTRACTION_STARTED
+    resource.last_updated = datetime.utcnow()
+    db_context.session.commit()
+
+    # Start translation request
+    attributeextraction_req_msg = attributeextractionRequest(
+        id,
+        #resource.source_lang_short,
+        #resource.target_lang_short,
+        IQVXMLPath
+    )
+
+    message_publisher.send_obj(attributeextraction_req_msg)
+
+    return resource.as_dict()
+
+def received_attributeextractioncomplete_event(id, IQVXMLPath, message_publisher):
+    resource = get_doc_resource_by_id(id)
+
+    #resource.deconstructed_xliff_path = xliff_path
+    resource.status = StatusEnum.FINALIZATION_STARTED
+    resource.last_updated = datetime.utcnow()
+    db_context.session.commit()
+
+    # Start translation request
+    finalization_req_msg = finalizationRequest(
+        id,
+        #resource.source_lang_short,
+        #resource.target_lang_short,
+        IQVXMLPath
+    )
+
+    message_publisher.send_obj(finalization_req_msg)
+
+    return resource.as_dict()
+
+def received_finalizationcomplete_event(id, finalattributes, message_publisher):
+    resource = get_doc_resource_by_id(id)
+
+    #resource.deconstructed_xliff_path = xliff_path
+    resource.status = StatusEnum.PROCESS_COMPLETED
+    resource.last_updated = datetime.utcnow()
+    db_context.session.commit()
+
+    # Start translation request
+    # finalization_req_msg = finalizationRequest(
+    #     id,
+    #     #resource.source_lang_short,
+    #     #resource.target_lang_short,
+    #     IQVXMLPath
+    # )
+    #
+    # message_publisher.send_obj(finalization_req_msg)
+    attributes = Documentattributes()
+    attributes.id = finalattributes['id']
+    attributes.document_composite_confidence  = finalattributes['document_composite_confidence']
+    attributes.customer  = finalattributes['customer']
+    attributes.protocol = finalattributes['protocol']
+    attributes.country = finalattributes['country']
+    attributes.site = finalattributes['site']
+    attributes.document_class = finalattributes['document_class']
+    attributes.document_date = finalattributes['document_date']
+    attributes.document_date_confidence = finalattributes['document_date_confidence']
+    attributes.document_date_type = finalattributes['document_date_type']
+    attributes.document_classification = finalattributes['document_classification']
+    attributes.document_classification_confidence = finalattributes['document_classification_confidence']
+    attributes.name = finalattributes['name']
+    attributes.name_confidence = finalattributes['name_confidence']
+    attributes.document_subclassification  = finalattributes['document_subclassification']
+    attributes.document_subclassification_confidence  = finalattributes['document_subclassification_confidence']
+    attributes.subject  = finalattributes['subject']
+    attributes.subject_confidence  = finalattributes['subject_confidence']
+    attributes.language  = finalattributes['language']
+    attributes.language_confidence  = finalattributes['language_confidence']
+    attributes.alcoac_check_composite_score  = finalattributes['alcoac_check_composite_score']
+    attributes.alcoac_check_composite_score_confidence  = finalattributes['alcoac_check_composite_score_confidence']
+    attributes.alcoal_check_error = finalattributes['alcoac_check_error']
+
+
+    #attributes.blinded = ''
+    attributes.datetimecreated = ' '
+    attributes.document_rejected = ' '
+    attributes.priority = ' '
+    attributes.received_date = ' '
+    attributes.site_personnel_list = ' '
+    attributes.tmf_environment = ' '
+    attributes.tmf_ibr =  ' '
+
+    db_context.session.add(attributes)
+    db_context.session.commit()
+
+    return resource.as_dict()
+
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
 def received_documentprocessing_error_event(errorDict):
     resource = get_doc_resource_by_id(errorDict['id'])
 
@@ -259,6 +419,7 @@ def received_documentprocessing_error_event(errorDict):
 
 
 def save_doc_feedback(_id, feedbackdata):
+<<<<<<< HEAD
 
     recordfound = get_doc_resource_by_id(_id)
 
@@ -266,6 +427,11 @@ def save_doc_feedback(_id, feedbackdata):
 
     #feedbackdata = json.load(file)
     resource.p_id = str(int((datetime.now().timestamp()) * 1000000))
+=======
+    resource = Documentfeedback()
+
+    #feedbackdata = json.load(file)
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
     resource.id = feedbackdata['id']
     resource.feedback_source = feedbackdata['feedback_source']
     resource.customer        = feedbackdata['customer']
@@ -278,7 +444,11 @@ def save_doc_feedback(_id, feedbackdata):
     resource.name            = feedbackdata['name']
     resource.language = feedbackdata['language']
     resource.document_rejected = feedbackdata['document_rejected']
+<<<<<<< HEAD
     resource.attribute_auxillary_list = str(feedbackdata['attribute_auxillary_list'])
+=======
+    #resource.attribute_auxillary_list = feedbackdata['attribute_auxillary_list']
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
 
 
     db_context.session.add(resource)
@@ -289,17 +459,96 @@ def save_doc_feedback(_id, feedbackdata):
 
 
 
+<<<<<<< HEAD
 def save_doc_processing(request, _id, doc_path):
     resource = DocumentProcess.from_post_request(request, _id, doc_path)
 
     resource.document_file_path = doc_path
     resource.Percent_complete = '0'
+=======
+def save_doc_translate(request, _id, doc_path):
+    resource = DocumentProcess.from_post_request(request, _id, doc_path)
+
+    # validate params
+    # lang_pairs = get_valid_lang_pairs(get_langs_uri)
+    # is_valid_pair = any(filter(lambda lp: lp['source_lang_short'] == resource.source_lang_short and
+    #                                 lp['target_lang_short'] == resource.target_lang_short,
+    #                                 lang_pairs))
+    #
+    # if not is_valid_pair:
+    #     raise ValueError("Source language ('{}') and Target language ('{}') must be supported language pairs.".format(resource.source_lang_short, resource.target_lang_short))
+
+    resource.document_file_path = doc_path
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
     resource.status = StatusEnum.TRIAGE_STARTED
     db_context.session.add(resource)
     db_context.session.commit()
 
     return resource.as_dict()
 
+<<<<<<< HEAD
+=======
+# def get_valid_lang_pairs(get_langs_uri):
+#     resp = requests.get(get_langs_uri, verify=False)
+#     return json.loads(resp.content)
+#
+#
+# def save_xliff_request(_id, xliff_path):
+#     resource = get_doc_resource_by_id(_id)
+#
+#     resource.last_updated = datetime.utcnow()
+#     resource.is_processing = True
+#     resource.status = StatusEnum.RECONSTRUCTION_STARTED
+#     resource.edited_xliff_path = xliff_path
+#     db_context.session.commit()
+#
+#     return resource.as_dict()
+#
+# def received_deconstruction_event(id, xliff_path, message_publisher):
+#     resource = get_doc_resource_by_id(id)
+#
+#     resource.deconstructed_xliff_path = xliff_path
+#     resource.status = StatusEnum.TRANSLATION_STARTED
+#     resource.last_updated = datetime.utcnow()
+#     db_context.session.commit()
+#
+#     # Start translation request
+#     translation_req_msg = TranslationRequest(
+#         id,
+#         resource.source_lang_short,
+#         resource.target_lang_short,
+#         xliff_path
+#     )
+#
+#     message_publisher.send_obj(translation_req_msg)
+#
+#     return resource.as_dict()
+#
+# def received_translated_complete_event(id, xliff_path, metrics_dict):
+#     resource = get_doc_resource_by_id(id)
+#
+#     # Update translation xliff_location
+#     resource.is_processing = False
+#     resource.translated_xliff_path = xliff_path
+#     resource.status = StatusEnum.TRANSLATION_COMPLETED
+#     resource.last_updated = datetime.utcnow()
+#
+#     # Update metrics
+#     for k, v in metrics_dict.items():
+#         upsert_translation_metric(resource.id, k, v)
+#
+#     db_context.session.commit()
+#
+# def received_reconstruction_complete_event(id, docPath):
+#     resource = get_doc_resource_by_id(id)
+#
+#     # Update translation xliff_location
+#     resource.is_processing = False
+#     resource.formatted_doc_path = docPath
+#     resource.status = StatusEnum.RECONSTRUCTION_COMPLETED
+#     resource.last_updated = datetime.utcnow()
+#     db_context.session.commit()
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
 
 def received_formatting_error_event(errorDict):
     resource = get_doc_resource_by_id(errorDict['id'])
@@ -320,6 +569,7 @@ def received_formatting_error_event(errorDict):
     logger.warn('A formatting error has occured for id: {}'.format(errorDict['id']), extra=errorDict)
 
 
+<<<<<<< HEAD
 
 def get_doc_processing_by_id(id, full_mapping=False):
     resource_dict = get_doc_resource_by_id(id).as_dict()
@@ -342,6 +592,21 @@ def get_doc_attributes_by_id(id):
     Returns the DTO by id.
     Raises LookupError if no id is found.
     """
+=======
+# def get_xliff_location_by_id(id):
+#     """
+#     Returns xliff path of corresponding resource
+#     """
+#     resource = get_doc_resource_by_id(id)
+#     return resource.deconstructed_xliff_path
+#
+# def get_translated_xliff_location_by_id(id):
+#     """
+#     Returns xliff path of corresponding resource
+#     """
+#     resource = get_doc_resource_by_id(id)
+#     return resource.translated_xliff_path
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
 
     resource = Documentattributes.query.filter(Documentattributes.id.like(str(id))).first()
 
@@ -356,8 +621,39 @@ def get_doc_status_processing_by_id(id, full_mapping=True):
     if not full_mapping:
         return resource_dict
 
+<<<<<<< HEAD
     return resource_dict
 
+=======
+    # resource_dict['metrics'] = get_metrics_dict(id)
+    # resource_dict['metadata'] = get_metadata_dict(id)['metadata']
+
+    return resource_dict
+
+def get_doc_processed_by_id(id, full_mapping=False):
+    resource_dict = get_doc_attributes_by_id(id).as_dict()
+
+    if not full_mapping:
+        return resource_dict
+
+    # resource_dict['metrics'] = get_metrics_dict(id)
+    # resource_dict['metadata'] = get_metadata_dict(id)['metadata']
+
+    return resource_dict
+
+def get_doc_attributes_by_id(id):
+    """
+    Returns the DTO by id.
+    Raises LookupError if no id is found.
+    """
+
+    resource = Documentattributes.query.filter(Documentattributes.id.like(str(id))).first()
+
+    if resource == None:
+        raise LookupError("No resource was found in DB for ID: {}".format(id))
+
+    return resource
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
 
 def get_doc_resource_by_id(id):
     """
@@ -368,10 +664,15 @@ def get_doc_resource_by_id(id):
     resource = DocumentProcess.query.filter(DocumentProcess.id.like(str(id))).first()
 
     if resource == None:
+<<<<<<< HEAD
         logger.error("No document resource was found in DB for ID: {}".format(id))
         raise LookupError("No document resource was found in DB for ID: {}".format(id))
     #else:
     #    logger.info("Resource found")
+=======
+        raise LookupError("No document resource was found in DB for ID: {}".format(id))
+
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
     return resource
 
 def upsert_processing_metric(doc_processing_id, property_name, val):
@@ -395,9 +696,15 @@ def upsert_processing_metric(doc_processing_id, property_name, val):
     db_context.session.add(metric)
     db_context.session.commit()
 
+<<<<<<< HEAD
 def get_metrics_dict(doc_processing_id):
     doc_processing_resource = get_doc_resource_by_id(doc_processing_id)
     metric = Metric.query.filter(Metric.document_processing_id == doc_processing_resource.p_id).first()
+=======
+def get_metrics_dict(doc_translate_id):
+    doc_trans_resource = get_doc_resource_by_id(doc_translate_id)
+    metric = Metric.query.filter(Metric.document_processing_id == doc_trans_resource.p_id).first()
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
     #m_dict = {'DocumentProcessing_metrics': [], 'formatting_metrics': []
     m_dict = {'DocumentProcessing_metrics': []}
 
@@ -412,19 +719,30 @@ def get_metrics_dict(doc_processing_id):
 
     return m_dict    
 
+<<<<<<< HEAD
 # def upsert_metadata(doc_processing_id, name, value):
 #     doc_processing_resource = get_doc_resource_by_id(doc_processing_id)
+=======
+# def upsert_metadata(doc_translate_id, name, value):
+#     doc_trans_resource = get_doc_resource_by_id(doc_translate_id)
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
 #
 #     # Make sure name doesn't already exist
 #     metadata = IQMetadata.query.filter(IQMetadata.name==name).first()
 #     if not metadata:
 #         # Create
+<<<<<<< HEAD
 #         metadata = IQMetadata(doc_processing_id, name, value)
 #         doc_processing_resource.iq_metadata.append(metadata)
+=======
+#         metadata = IQMetadata(doc_translate_id, name, value)
+#         doc_trans_resource.iq_metadata.append(metadata)
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
 #     else:
 #         # Update
 #         metadata.value = value
 #
+<<<<<<< HEAD
 #     db_context.session.add(doc_processing_resource)
 #     db_context.session.commit()
 
@@ -440,6 +758,60 @@ def upsert_attributevalue(doc_processing_id, namekey, value):
 def get_attributevalue(doc_processing_id, keydict):
         doc_processing_resource = get_doc_attributes_by_id(doc_processing_id)
         #metadata = IQMetadata.query.filter(IQMetadata.document_processing_id == doc_processing_resource.p_id)
+=======
+#     db_context.session.add(doc_trans_resource)
+#     db_context.session.commit()
+
+def upsert_attributevalue(doc_translate_id, namekey, value):
+    doc_trans_resource = get_doc_attributes_by_id(doc_translate_id)
+
+    if doc_trans_resource == None:
+        raise LookupError("No resource was found in DB for ID: {}".format(id))
+    else:
+        setattr(doc_trans_resource, namekey, value)
+        db_context.session.commit()
+
+def get_attributevalue(doc_translate_id, keydict):
+        doc_trans_resource = get_doc_attributes_by_id(doc_translate_id)
+        #metadata = IQMetadata.query.filter(IQMetadata.document_translate_id == doc_trans_resource.p_id)
+
+        m_dict = {'metadata': []}
+        if doc_trans_resource == None:
+            raise LookupError("No resource was found in DB for ID: {}".format(id))
+            return m_dict
+
+        # m_dict = {'metadata': []}
+        # if metadata == None:
+        #     return m_dict
+        else:
+            for m in keydict:
+
+                m_dict['metadata'].append({'name': m.name, 'val': getattr(doc_trans_resource,name)})
+
+            return m_dict
+
+    # # Make sure name doesn't already exist
+    # metadata = IQMetadata.query.filter(IQMetadata.name==name).first()
+    #
+    #
+    # if not metadata:
+    #     # Create
+    #     metadata = IQMetadata(doc_translate_id, name, value)
+    #     doc_trans_resource.iq_metadata.append(metadata)
+    # else:
+    #     # Update
+    #     metadata.value = value
+
+def get_attribute_dict(doc_translate_id):
+    doc_trans_resource = get_doc_resource_by_id(doc_translate_id)
+    #metadata = IQMetadata.query.filter(IQMetadata.document_translate_id==doc_trans_resource.p_id)
+
+    if doc_trans_resource == None:
+        raise LookupError("No resource was found in DB for ID: {}".format(id))
+
+    return doc_trans_resource
+
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
 
         m_dict = {'metadata': []}
         if doc_processing_resource == None:
@@ -456,6 +828,7 @@ def get_attributevalue(doc_processing_id, keydict):
 
             return m_dict
 
+<<<<<<< HEAD
     # # Make sure name doesn't already exist
     # metadata = IQMetadata.query.filter(IQMetadata.name==name).first()
     #
@@ -491,3 +864,31 @@ def get_metadata_dict(doc_processing_id):
 
     return m_dict
 
+=======
+# def add_supporting_doc(doc_trans_id, file_path, description):
+#     doc_trans_resource = get_doc_resource_by_id(doc_trans_id)
+#     supporting_doc = SupportingDoc(doc_trans_resource.p_id, file_path, description)
+#
+#     doc_trans_resource.supporting_docs.append(supporting_doc)
+#
+#     db_context.session.add(doc_trans_resource)
+#     db_context.session.commit()
+#
+#     return supporting_doc.as_dict()
+#
+# def get_supporting_docs(doc_translate_id):
+#     doc_trans_resource = get_doc_resource_by_id(doc_translate_id)
+#     supporting_docs = SupportingDoc.query.filter(SupportingDoc.document_translate_id==doc_trans_resource.p_id)
+#
+#     return {'supporting_docs': [s.as_dict() for s in supporting_docs]}
+
+
+# def delete_doctranslate_request(doc_translate_id):
+#     doc_trans_resource = get_doc_resource_by_id(doc_translate_id)
+#     doc_trans_resource.is_deleted = True
+#     doc_trans_resource.last_updated = datetime.utcnow()
+#
+#     db_context.session.commit()
+#
+#     return get_doc_translate_by_id(doc_translate_id, full_mapping=True)
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8

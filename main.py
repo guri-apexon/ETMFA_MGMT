@@ -7,9 +7,12 @@ from gevent.pywsgi import WSGIServer
 import gevent
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     import os
     os.environ["PATH"] += os.pathsep + 'C:/Users/q1019814/oracle/instantclient_19_3/'
 
+=======
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
     parser = argparse.ArgumentParser(description='eTMFA Service deployment script.')
 
     level_opts = list(app_config.keys())
@@ -18,7 +21,11 @@ if __name__ == '__main__':
                         default='development')
     parser.add_argument('--port', type=int,
                         help='Port for eTMFA Service api to reside on',
+<<<<<<< HEAD
                         default=9002)
+=======
+                        default=8204)
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
     parser.add_argument('--key', type=str,
                     help='SSL key file',
                     default=None)

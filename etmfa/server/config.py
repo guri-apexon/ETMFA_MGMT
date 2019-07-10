@@ -15,6 +15,7 @@ class Config(object):
 class DevelopmentConfig(Config):
     """Configurations for Development."""
     DEBUG = True
+<<<<<<< HEAD
     SQLALCHEMY_DATABASE_URI = "oracle+cx_oracle://TMF_CLASSIFY:tMfA3lod@moruorldb113vd:1521/TMFMLDEV"
     #SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:root@localhost:3306/test'
 
@@ -24,6 +25,11 @@ class DevelopmentConfig(Config):
     LOGSTASH_HOST = 'morsetmfml01d'
     LOGSTASH_PORT = 5959
 
+=======
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:root@localhost:3306/test'
+    MESSAGE_BROKER_ADDR = "amqp://guest:guest@morsetmfml01d:5672"
+    MESSAGE_BROKER_EXCHANGE = 'eTMFA'
+>>>>>>> f358b797bf9629368279861b4828b78985d499f8
 
 class TestConfig(Config):
     """Configurations for Testing."""

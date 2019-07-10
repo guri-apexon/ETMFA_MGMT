@@ -7,169 +7,200 @@ import werkzeug
 from ..api import api
 
 from ...db import (
+    create_processing_config,
+    get_processing_config,
     get_root_dir,
     save_doc_translate,
-    save_xliff_request,
-    get_xliff_location_by_id,
+    save_doc_feedback,
+    get_doc_resource_by_id,
     get_doc_translate_by_id,
-    get_translated_xliff_location_by_id,
+    get_doc_processed_by_id,
     get_metrics_dict,
     get_metadata_dict,
-    upsert_metadata,
-    add_supporting_doc,
-    get_supporting_docs,
-    delete_doctranslate_request,
-    get_valid_lang_pairs,
+    upsert_attributevalue,
+    get_attributevalue,
+    get_attribute_dict
     )
 
 from ...consts import Consts as consts
 
-from ...db.models.documenttranslate import DocumentTranslate
 
 from ...messaging.messagepublisher import MessagePublisher
-from ...messaging.models.formatting_deconstruction_request import FormattingDeconstructionRequest
-from ...messaging.models.formatting_reconstruction_request import FormattingReconstructionRequest
-from ...messaging.models.translation_xliff_update import TranslationXliffUpdate
+from ...messaging.models.Triage_Request import TriageRequest
+from ...messaging.models.feedback_request import feedbackrequest
 
 from .serializers import *
 
-ns = api.namespace('Document Translate', path='/v1/docTranslate', description='REST endpoints for document translation workflows.')
+ns = api.namespace('eTMFA', path='/v1/eTMFA', description='REST endpoints for eTMFA workflows.')
+
+document_feedback = api.model('Document feedback definition', {
+    #'processing_dir': fields.String(required=True, description='Processing directory for intermediate files.'),
+    'id': fields.String(required=True, description='The unique identifier (UUID) of a document processing job.'),
+    'feedback_source': fields.String(required=True, description='Feedback source for the processed document'),
+    'customer': fields.String(required=True, description='Customer'),
+    'protocol': fields.String(required=True, description='protocol'),
+    'country': fields.String(required=True,  description='country'),
+    'site': fields.String(required=True, description='site'),
+    'document_class': fields.String(required=True, description='document class'),
+    'document_date': fields.String(required=True, description='date string yyyymmdd'),
+    'document_classification': fields.String(required=True, description='document classification'),
+    'name': fields.String(required=True, description='name'),
+    'language': fields.String(required=True, description='language'),
+    'document_rejected': fields.String(required=True, description='document rejected'),
+    #'attribute_auxillary_list': fields.List(fields.Nested(kv_pair_model)),
+})
 
 @ns.route('/')
 @ns.response(500, 'Server error')
 class DocumentTranslationAPI(Resource):
-    @ns.expect(document_translate_object_post)
-    @ns.marshal_with(document_translate_object_get)
+    @ns.expect(eTMFA_object_post)
+    @ns.marshal_with(eTMFA_object_get)
     @ns.response(201, 'Document translation resource created.')
     def post(self):
-        """Create document translation REST object and returns document translation API object """
+        """Create document Processing REST object and returns document Processing API object """
 
         # Generate processing dir
-        args = document_translate_object_post.parse_args()
+        args = eTMFA_object_post.parse_args()
 
         # Generate ID
         _id = uuid.uuid4()
+        _id = str(_id)
         path = build_processing_dir(_id)
 
         # get save path and output path
         processing_dir = build_processing_dir(_id)
         file = args['file']
-        file_path = os.path.join(processing_dir, file.filename)
+        file_path  = os.path.join(processing_dir, file.filename)
 
         # Save doc
         file.save(file_path)
 
-        # Generate DTO and save
-        get_lang_pairs_uri = current_app.config['GET_LANGUAGES_ADDR']
-        saved_resource = save_doc_translate(args, _id, file_path, get_lang_pairs_uri)
+        customer = args['Customer']
+        protocol = args['Protocol']
+        country  = args['Country']
+        site     = args['Site']
+        document_class = args['Document_Class']
+        tmf_ibr = args['TMF_IBR']
+        blinded = args['Blinded']
+        tmf_environment = args['TMF_Environment']
+        received_date = args['Received_Date']
+        site_personnel_list = args['site_personnel_list']
+        priority = args['Priority']
 
-        # Send async FormattingDeconstructionRequest
+
+        saved_resource = save_doc_translate(args, _id, file_path)
+        #############
+        print("checking if document written to database")
+        resource = get_doc_resource_by_id(_id)
+        if resource != None:
+            print("record written to database", _id)
+        else:
+            print("record not written to database")
+        ################################
+
         BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
         EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
 
-        msg_f = FormattingDeconstructionRequest(saved_resource['id'], file.filename, file_path,
-            saved_resource['source_lang_short'], saved_resource['target_lang_short'])
+        msg_f = TriageRequest(_id, file, file_path, customer, protocol, country, site, document_class,
+                              tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority)
+        #############
+        print("checking if document written to database")
+        resource = get_doc_resource_by_id(_id)
+        if resource != None:
+            print("record written to database : check before publishing", _id)
+        else:
+            print("record not written to database")
+        ################################
         MessagePublisher(BROKER_ADDR, EXCHANGE, logging.getLogger(consts.LOGGING_NAME)).send_obj(msg_f)
-
-
-        # Return response object 
+        #############
+        print("checking if document written to database")
+        resource = get_doc_resource_by_id(_id)
+        if resource != None:
+            print("record written to database : checking after publishing", _id)
+        else:
+            print("record not written to database")
+        ################################
+        # Return response object
         return get_doc_translate_by_id(_id, full_mapping=True)
 
-@ns.route('/<string:id>/metadata')
+#@ns.route('/<string:id>/', endpoint = 'update_attribute_key')
+@ns.route('/<string:id>/ update attribute/key')
 @ns.response(404, 'Document translation resource not found.')
 @ns.response(500, 'Server error')
 class DocumentTranslationAPI(Resource):
     @ns.expect(metadata_post)
-    @ns.marshal_with(metadata_post)
+    @ns.marshal_with(eTMFA_attributes_get)
     @ns.response(201, 'Document translate resource returned OK')
-    def post(self, id):
-        """Create metadata dictionary object on the original translation resource."""
-        md = request.json
-        for m in md['metadata']:
-            upsert_metadata(id, m['name'], m['val'])
-
-        return get_metadata_dict(id)
-
-    @ns.expect(metadata_post)
-    @ns.marshal_with(metadata_post)
-    @ns.response(201, 'Document translate resource retu rned OK')
     def patch(self, id):
+        """"Update document attributes with key value """
         md = request.json
         for m in md['metadata']:
-            upsert_metadata(id, m['name'], m['val'])
-        
-        return get_metadata_dict(id)
+            #upsert_metadata(id, m['name'], m['val'])
+            upsert_attributevalue(id, m['name'], m['val'])
+        return get_attribute_dict(id)
 
-    @ns.marshal_with(metadata_post)
-    @ns.response(201, 'Document translate resource retu rned OK')
-    def get(self, id):
-        return get_metadata_dict(id)
+#
+# @ns.route('/<string:id>/get_attribute/key')
+# @ns.response(404, 'Document translation resource not found.')
+# @ns.response(500, 'Server error')
+# class DocumentTranslationAPI(Resource):
+#     @ns.expect(metadata_get)
+#     @ns.marshal_with(metadata_post)
+#     @ns.response(201, 'Document translate resource returned OK')
+#     def get(self, id):
+#         md = request.json
+#         return get_attributevalue(id, md)
+#
 
-@ns.route('/<string:id>', endpoint='resource_get_ep')
-@ns.response(404, 'Document translation resource not found.')
+
+
+@ns.route('/<string:id>/ Document_processing_status')
+@ns.response(404, 'Document Processing resource not found.')
 @ns.response(500, 'Server error')
 class DocumentTranslationAPI(Resource):
-    @ns.marshal_with(document_translate_object_get)
-    @ns.response(200, 'Document translate resource returned OK')
+    @ns.marshal_with(eTMFA_object_get)
+    @ns.response(200, 'Document procesing resource returned OK')
     def get(self, id):
-        """Get the document translation object without metadata. This includes any locations of processed documents"""
+        """Get document processing object status. This includes any locations of processed documents"""
         try:
             return get_doc_translate_by_id(id, full_mapping=True)
         except ValueError as error:
-            return abort(404, 'No document translation resource exists for this id.')
-
-    @ns.marshal_with(document_translate_object_get)
-    @ns.response(204, 'Marked Document translation resource as deleted.')
-    def delete(self, id):
-        """(Soft) Delete the document translation object and metadata."""
-
-        return delete_doctranslate_request(id)
+            return abort(404, 'No document processing resource exists for this id.')
 
 
-@ns.route('/<string:id>/formattedDoc', endpoint='formatted_doc_ep')
-@ns.response(404, 'Document translation resource not found.')
+#
+@ns.route('/<string:id>/  Feedback Loop')
+@ns.response(200, 'Document processing resource returned OK')
+@ns.response(404, 'Document processing resource not found.')
 @ns.response(500, 'Server error')
 class DocumentTranslationAPI(Resource):
-    @ns.response(200, 'Document returned OK', headers={'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})
-    # @api.header('Content-Type', 'octet-stream', required=True)
-    def get(self, id):
-        """Returns a file of the formatted, translated document if processing is complete."""
-        
-        resource = get_doc_translate_by_id(id)
-        if resource == None or resource['is_processing'] or not resource['formatted_doc_path']:
-            return abort(404, 'The formatted, translated document does not exist or has not yet finished processing.')
-
-        if resource['is_processing'] == False and resource['edited_xliff_path'] and not resource['formatted_doc_path']:
-            return abort(500, 'An error has occurred during document reconstruction. See error log.')
-
-        path, file_name = os.path.split(resource['formatted_doc_path'])
-        return send_from_directory(path, file_name)
-
-@ns.route('/<string:id>/xliff', endpoint='xliff_ep')
-@ns.response(200, 'Document translate resource returned OK')
-@ns.response(404, 'Document translation resource not found.')
-@ns.response(500, 'Server error')
-class DocumentTranslationAPI(Resource):
-    @ns.expect(document_translate_object_put)
-    @ns.marshal_with(document_translate_object_get)
+    #@ns.expect(document_processing_object_put)
+    @ns.expect(document_feedback)
+    @ns.marshal_with(document_processing_object_put_get)
     def put(self, id):
-        """
-        Update REST object XLIFF and triggers another re-formatting
-        """
-        # Generate processing dir
-        args = document_translate_object_put.parse_args()
-        
-        # Generate ID
-        path = build_processing_dir(id)
+        """Feedback attributes to document processed"""
+        #args = document_processing_object_put.parse_args()
 
-        # get save path and output path
-        processing_dir = build_processing_dir(id)
-        file = args['file']
-        file_path = os.path.join(processing_dir, file.filename)
-        file.save(file_path)
 
-        # Generate DTO and save
-        saved_resource = save_xliff_request(id, file_path)
+
+        # format data for finalisation service to update IQVDocument
+        feedbackdata = request.json
+        id_fb = feedbackdata['id']
+        feedback_source = feedbackdata['feedback_source']
+        customer = feedbackdata['customer']
+        protocol = feedbackdata['protocol']
+        country = feedbackdata['country']
+        site = feedbackdata['site']
+        document_class = feedbackdata['document_class']
+        document_date = feedbackdata['document_date']
+        document_classification = feedbackdata['document_classification']
+        name = feedbackdata['name']
+        language = feedbackdata['language']
+        document_rejected = feedbackdata['document_rejected']
+        #attribute_auxillary_list = feedbackdata['attribute_auxillary_list']
+
+        saved_resource = save_doc_feedback(id, feedbackdata)
+
 
         # Send async FormattingDeconstructionRequest
         BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
@@ -177,82 +208,86 @@ class DocumentTranslationAPI(Resource):
 
 
         message_publisher = MessagePublisher(BROKER_ADDR, EXCHANGE, logging.getLogger(consts.LOGGING_NAME))
-        
-        # Send FormattingReconstructionRequest
-        reconstruction_req_msg = FormattingReconstructionRequest(
-            id,
-            file_path
-        )
-        message_publisher.send_obj(reconstruction_req_msg)
 
-        # Send XLIFF updated msg
-        if args['cache']:
-            xliff_update_msg = TranslationXliffUpdate(id, file_path)
-            message_publisher.send_obj(xliff_update_msg)
+        # Send FeedbackRequest
+        feedback_req_msg = feedbackrequest(
+            id_fb,
+            feedback_source,
+            customer,
+            protocol,
+            country,
+            site,
+            document_class,
+            document_date,
+            document_classification,
+            name,
+            language,
+            document_rejected
+            #attribute_auxillary_list
+        )
+        message_publisher.send_obj(feedback_req_msg)
+
 
         return saved_resource
 
-    def get(self, id):
-        """Returns a file of the translated XLIFF file if processing is complete."""
-        xliff_path = get_translated_xliff_location_by_id(id)
-        if xliff_path == None:
-            return abort(404, 'The XLIFF file does not exist for this resource.')
-        path, file_name = os.path.split(xliff_path)
-
-        return send_from_directory(path, file_name)
-
-
-@ns.route('/<string:id>/metrics')
-@ns.response(200, 'Document translate resource returned OK')
-@ns.response(404, 'Document translation resource not found.')
+#
+@ns.route('/<string:id>/  Document_Metrics')
+@ns.response(200, 'Document processing resource returned OK')
+@ns.response(404, 'Document processing resource not found.')
 @ns.response(500, 'Server error')
 class DocumentTranslationAPI(Resource):
     @ns.marshal_with(metrics)
     def get(self, id):
-        """Returns a file of the translated XLIFF file if processing is complete."""
+        """Returns metrics of document processed"""
         metrics = get_metrics_dict(id)
         return metrics
 
 
-@ns.route('/languagePairs')
-class LanguagesAPI(Resource):
-    @api.marshal_list_with(language_pair)
-    def get(self):
-        """Get a list of valid language pairs for translation input"""
-        translation_microservice_addr = current_app.config['GET_LANGUAGES_ADDR']
-        return get_valid_lang_pairs(translation_microservice_addr)
-
-
-@ns.route('/<string:id>/supportingDocs')
+@ns.route('/<string:id>/ Retrieve_document_attributes')
+@ns.response(200, 'Document processing resource returned OK')
+@ns.response(404, 'Document processing resource not found.')
 @ns.response(500, 'Server error')
 class DocumentTranslationAPI(Resource):
-    @ns.expect(supporting_docs_post)
-    @api.marshal_with(supporting_docs_get)
-    @ns.response(201, 'Supporting document saved.')
-    def post(self, id):
-        """Upload any supporting document through the stages of external translation or formatting steps.
-         This will assist in improving the translation and formatting efforts in the future. """
-
-        # Generate processing dir
-        args = supporting_docs_post.parse_args()
-        path = build_processing_dir(id)
-
-        # get save path and output path
-        processing_dir = build_processing_dir(id)
-        file = args['file']
-        file_path = os.path.join(processing_dir, file.filename)
-
-        # Save doc
-        file.save(file_path)
-
-        # Save to table
-        return add_supporting_doc(id, file_path, args['description']), 201
-
-    @api.marshal_list_with(supporting_docs_get)
+    @ns.marshal_with(eTMFA_attributes_get)
     def get(self, id):
-        """Get list of supporting documents saved. Get the list of documents that have been uploaded to save for archival and learning purposes."""
+        """Get the document processing object attributes"""
+        try:
+            #return get_doc_translate_by_id(id, full_mapping=True)
+            return get_doc_processed_by_id(id, full_mapping=True)
+        except ValueError as error:
+            return abort(404, 'No document resource exists for this id.')
 
-        return get_supporting_docs(id)['supporting_docs']
+#
+# @ns.route('/<string:id>/supportingDocs')
+# @ns.response(500, 'Server error')
+# class DocumentTranslationAPI(Resource):
+#     @ns.expect(supporting_docs_post)
+#     @api.marshal_with(supporting_docs_get)
+#     @ns.response(201, 'Supporting document saved.')
+#     def post(self, id):
+#         """Upload any supporting document through the stages of external translation or formatting steps.
+#          This will assist in improving the translation and formatting efforts in the future. """
+#
+#         # Generate processing dir
+#         args = supporting_docs_post.parse_args()
+#         path = build_processing_dir(id)
+#
+#         # get save path and output path
+#         processing_dir = build_processing_dir(id)
+#         file = args['file']
+#         file_path = os.path.join(processing_dir, file.filename)
+#
+#         # Save doc
+#         file.save(file_path)
+#
+#         # Save to table
+#         return add_supporting_doc(id, file_path, args['description']), 201
+#
+#     @api.marshal_list_with(supporting_docs_get)
+#     def get(self, id):
+#         """Get list of supporting documents saved. Get the list of documents that have been uploaded to save for archival and learning purposes."""
+#
+#         return get_supporting_docs(id)['supporting_docs']
 
 
 
@@ -260,8 +295,10 @@ class DocumentTranslationAPI(Resource):
 
 def build_processing_dir(ID):
     PROCESSING_DIR = get_root_dir()
-    path = os.path.join(PROCESSING_DIR, str(ID) + "\\")
+    #PROCESSING_DIR = "C:\\Users\\q1019814\\Desktop\\TestingMS"
 
+    path = os.path.join(PROCESSING_DIR, str(ID) + "/")
+    print("printing path of document",path)
     if not os.path.isdir(path):
         os.makedirs(path)
 
