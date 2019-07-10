@@ -1,17 +1,18 @@
 import os, logging, sys
-from flask import Blueprint
+from flask import Blueprint, request, g
 from flask import Flask
 from flask_cors import CORS, cross_origin
 from flask_restplus import Api
 from werkzeug.contrib.fixers import ProxyFix
 
+
 # local imports
 from .config import app_config
 from ..db import init_db
-from .loggingconfig import configure_logging
-
+from .loggingconfig import initialize_logger
+from ..consts import Consts
 # api
-from .namespaces.doctranslationapi import ns as doctranslation_namespace
+from .namespaces.docprocessingapi import ns as docprocessing_namespace
 from .namespaces.processingadminapi import ns as processing_namespace
 from .api import api, specs_url
 
@@ -35,7 +36,9 @@ def create_app(config_name, ssl_enabled=False):
     load_app_config(config_name)
 
     # register centralized logger
-    logger = configure_logging(app)
+    #logger = configure_logging(app)
+    initialize_logger(app)
+    logger = logging.getLogger(Consts.LOGGING_NAME)
 
     # register database instance
     init_db(app)
@@ -44,13 +47,22 @@ def create_app(config_name, ssl_enabled=False):
     cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     # register API
-    api_blueprint = Blueprint('api', __name__, url_prefix='/api')
+    api_blueprint = Blueprint('api', __name__, url_prefix='/etmfa/api')
+
+    @api_blueprint.before_request
+    def saveAidocId():
+        body = request.get_json()
+        if body and body.get("id"):
+            g.aidocid = body.get("id")
+        else:
+            g.aidocid = request.args.get("id")
+
     api.init_app(api_blueprint)
     app.register_blueprint(api_blueprint)
 
     # register API endpoints
-    api.add_namespace(doctranslation_namespace)
-    api.add_namespace(processing_namespace)
+    api.add_namespace(docprocessing_namespace)
+    #api.add_namespace(processing_namespace)
 
     # message listeners
     MSG_BROKER_ADDR = app.config['MESSAGE_BROKER_ADDR']
@@ -63,7 +75,7 @@ def create_app(config_name, ssl_enabled=False):
         # https for swagger docs
         Api.specs_url = specs_url
 
-    logging.info('Translation Management Service (TMS) application start-up: complete. SSL: {}'.format(str(ssl_enabled)))
+    logger.info('eTMFA application start-up: complete. SSL: {}'.format(str(ssl_enabled)))
 
     return app
 

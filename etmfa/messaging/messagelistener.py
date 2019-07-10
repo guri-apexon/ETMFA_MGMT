@@ -2,7 +2,7 @@ import json
 
 from kombu import Connection, Exchange, Queue
 from kombu.mixins import ConsumerMixin
-
+from ..consts import Globals
 from .messagepublisher import MessagePublisher
 
 
@@ -45,6 +45,11 @@ class MessageListener(ConsumerMixin):
     
     def _on_message(self, body, message):
         queue_name = message.delivery_info['routing_key']
+        try:
+            message_body = json.loads(body)
+            Globals.THREAD_LOCAL.aidocid = message_body.get('id')
+        except:
+            self.logger.error("Could not parse message on queue: {}, body: {}".format(queue_name, body))
 
         self.logger.info("Received message on queue: {}".format(queue_name))
 

@@ -1,13 +1,14 @@
 from ...db import db_context
 
 class Processing(db_context.Model):
-	__tablename__ = "tms_processing"
+	__tablename__ = "etmfa_processing"
 
 	id = db_context.Column(db_context.Integer, primary_key=True)
-	processing_dir = db_context.Column(db_context.String())
+	processing_dir = db_context.Column(db_context.String(1000))
 
 
-	def __init__(self, processing_dir):
+	def __init__(self, id, processing_dir):
+		self.id = id
 		self.processing_dir = processing_dir
 
 	def __repr__(self):

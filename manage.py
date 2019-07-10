@@ -3,12 +3,12 @@ import os, argparse
 from flask_migrate import Migrate, MigrateCommand
 from flask_script import Manager
 
-from tms.db.db import db_context
-from tms.server import app, load_app_config
-from tms.server.config import app_config
+from etmfa.db.db import db_context
+from etmfa.server import app, load_app_config
+from etmfa.server.config import app_config
 
 
-MIGRATION_DIR = os.path.join('tms', 'db', 'migrations')
+MIGRATION_DIR = os.path.join('etmfa', 'db', 'migrations')
 
 
 migrate = Migrate(app, db_context, directory=MIGRATION_DIR)

@@ -1,16 +1,31 @@
 from ..db import db_context
-from .documenttranslate import DocumentTranslate
+from .documentProcess import DocumentProcess
 
 class Metric(db_context.Model):
-	__tablename__ = "tms_metrics"
+	__tablename__ = "eTMFA_metrics"
 
-	id = db_context.Column(db_context.Integer(), primary_key=True)
-	document_translate_id = db_context.Column(db_context.ForeignKey(DocumentTranslate.p_id), nullable=False)	
+	id = db_context.Column(db_context.String(50), primary_key=True)
+	#document_processing_id          = db_context.Column(db_context.ForeignKey(DocumentProcess.id), nullable=False)
+	triage_start_time               = db_context.Column(db_context.String(200))
+	triage_end_time                 = db_context.Column(db_context.String(200))
+	triage_proc_time             = db_context.Column(db_context.String(200))
+	digitizer_start_time            = db_context.Column(db_context.String(200))
+	digitizer_end_time              = db_context.Column(db_context.String(200))
+	digitizer_proc_time          = db_context.Column(db_context.String(200))
+	classification_start_time       = db_context.Column(db_context.String(200))
+	classification_end_time         = db_context.Column(db_context.String(200))
+	classification_proc_time     = db_context.Column(db_context.String(200))
+	attributeextraction_start_time  = db_context.Column(db_context.String(200))
+	attributeextraction_end_time    = db_context.Column(db_context.String(200))
+	attributeextraction_proc_time= db_context.Column(db_context.String(200))
+	finalization_start_time         = db_context.Column(db_context.String(200))
+	finalization_end_time           = db_context.Column(db_context.String(200))
+	finalization_process_time       = db_context.Column(db_context.String(200))
 
-	metric = db_context.relationship(DocumentTranslate, backref='metrics', lazy=False)
+	#metric = db_context.relationship(DocumentProcess, backref='metrics', lazy=False)
 
-	def __init__(self, document_translate_id):
-		self.document_translate_id = document_translate_id
+	def __init__(self, document_processing_id):
+		self.document_processing_id = document_processing_id
 
 	def __repr__(self):
 		return '<Metric. Metrics ID: {}>'.format(self.id)

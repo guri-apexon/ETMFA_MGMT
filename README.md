@@ -29,8 +29,8 @@ The eTMFA Management Service (<em>eTMF-MS</em>) provides a series of endpoints f
     * `python setup.py`
 4. Run the development server
     * `python ./main.py`
-        * This starts a web interface for uploading files to translate.
-        * Interact with the Open API Documentation at **http://localhost:8204/api/**
+        * This starts a web interface for uploading files to process.
+        * Interact with the Open API Documentation at **'http://morsetmfml01d:9001/etmfa/api/v1/documents/' **
 
 ### Production (single node)
 1. Given the application python package

@@ -1,2 +1,2 @@
-recursive-include tms *.py
+recursive-include etmfa *.py
 include README.md

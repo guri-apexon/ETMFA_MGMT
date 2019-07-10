@@ -9,17 +9,21 @@ class Config(object):
     SWAGGER_UI_DOC_EXPANSION = "RESTPLUS_SWAGGER_UI_DOC_EXPANSION"
     MESSAGE_BROKER_ADDR = "amqp://guest:guest@localhost"
     MESSAGE_BROKER_EXCHANGE = 'TMS'
-    GET_LANGUAGES_ADDR = 'http://localhost:8204/api/translate/languagePairs'
     LOGSTASH_HOST = 'usadc-vstmswd02'
     LOGSTASH_PORT = 5004
 
 class DevelopmentConfig(Config):
     """Configurations for Development."""
     DEBUG = True
-    params = quote("SERVER=.;DATABASE=TMSDEV;Integrated Security=True;DRIVER={SQL Server};")
-    SQLALCHEMY_DATABASE_URI = "mssql+pyodbc:///?odbc_connect={}".format(params)
-    MESSAGE_BROKER_ADDR = "amqp://guest:guest@localhost"
-    GET_LANGUAGES_ADDR = 'http://usadc-vstmsad01:8204/api/translate/languagePairs'
+    SQLALCHEMY_DATABASE_URI = "oracle+cx_oracle://TMF_CLASSIFY:tMfA3lod@moruorldb113vd:1521/TMFMLDEV"
+    #SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:root@localhost:3306/test'
+
+    MESSAGE_BROKER_ADDR = "amqp://guest:guest@morsetmfml01d:5672"
+    #MESSAGE_BROKER_ADDR = "amqp://guest:guest@localhost:5672"
+    MESSAGE_BROKER_EXCHANGE = 'eTMFA'
+    LOGSTASH_HOST = 'morsetmfml01d'
+    LOGSTASH_PORT = 5959
+
 
 class TestConfig(Config):
     """Configurations for Testing."""
@@ -37,7 +41,6 @@ class SVTConfig(Config):
     SQLALCHEMY_DATABASE_URI = "mssql+pyodbc:///?odbc_connect={}".format(params)
     MESSAGE_BROKER_ADDR = "amqp://guest:guest@MORSSTMSW001"
     LOGSTASH_HOST = 'USADC-VSTMSTW01'
-    GET_LANGUAGES_ADDR = 'https://morsstmsw002:8204/api/translate/languagePairs'
 
 
 class StagingConfig(Config):
@@ -46,7 +49,6 @@ class StagingConfig(Config):
     params = quote("SERVER=USADC-VSSQLA0\SSQL03;DATABASE=TMSDEV;UID=APP_TMSDEV;PWD=app$tmsdev;DRIVER={SQL Server};")
     SQLALCHEMY_DATABASE_URI = "mssql+pyodbc:///?odbc_connect={}".format(params)
     MESSAGE_BROKER_ADDR = "amqp://guest:guest@usadc-vstmsad01"
-    GET_LANGUAGES_ADDR = 'http://usadc-vstmsad01:8204/api/translate/languagePairs'
 
 class UATConfig(Config):
     """Configurations for UAT."""
@@ -55,7 +57,6 @@ class UATConfig(Config):
     SQLALCHEMY_DATABASE_URI = "mssql+pyodbc:///?odbc_connect={}".format(params)
     MESSAGE_BROKER_ADDR = "amqp://guest:guest@dcmor1stmsuw01"
     LOGSTASH_HOST = 'USADC-VSTMSTW01'
-    GET_LANGUAGES_ADDR = 'https://dcmor1stmsuw02:8204/api/translate/languagePairs'
 
 class ProductionConfig(Config):
     """Configurations for Production."""
@@ -64,7 +65,6 @@ class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = "mssql+pyodbc:///?odbc_connect={}".format(params)
     MESSAGE_BROKER_ADDR = 'dcmor1stmsuw01'
     LOGSTASH_HOST = 'dcmor1stmsuw01'
-    GET_LANGUAGES_ADDR = 'https://dcmor1stmsua01:8204/api/translate/languagePairs'
 
 
 app_config = {
