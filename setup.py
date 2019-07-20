@@ -35,7 +35,7 @@ setup(
     install_requires=[
 	    "flask_restplus",
 		"flask_migrate==2.5.2",
-        	"flask-sqlalchemy>=1.0",
+        "flask-sqlalchemy>=1.0",
 		"alembic>=0.7",
 		"flask>=0.9",
 		"SQLAlchemy>=0.8.0",
