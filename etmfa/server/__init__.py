@@ -61,11 +61,7 @@ def create_app(config_name, ssl_enabled=False):
     app.register_blueprint(api_blueprint)
 
     # register API endpoints
-<<<<<<< HEAD
     api.add_namespace(docprocessing_namespace)
-=======
-    api.add_namespace(doctranslation_namespace)
->>>>>>> f358b797bf9629368279861b4828b78985d499f8
     #api.add_namespace(processing_namespace)
 
     # message listeners
@@ -79,11 +75,7 @@ def create_app(config_name, ssl_enabled=False):
         # https for swagger docs
         Api.specs_url = specs_url
 
-<<<<<<< HEAD
     logger.info('eTMFA application start-up: complete. SSL: {}'.format(str(ssl_enabled)))
-=======
-    logging.info('eTMFA application start-up: complete. SSL: {}'.format(str(ssl_enabled)))
->>>>>>> f358b797bf9629368279861b4828b78985d499f8
 
     return app
 

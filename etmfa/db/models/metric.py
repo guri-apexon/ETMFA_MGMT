@@ -1,14 +1,9 @@
 from ..db import db_context
-<<<<<<< HEAD
-=======
-#from .documenttranslate import DocumentTranslate
->>>>>>> f358b797bf9629368279861b4828b78985d499f8
 from .documentProcess import DocumentProcess
 
 class Metric(db_context.Model):
 	__tablename__ = "eTMFA_metrics"
 
-<<<<<<< HEAD
 	id = db_context.Column(db_context.String(50), primary_key=True)
 	#document_processing_id          = db_context.Column(db_context.ForeignKey(DocumentProcess.id), nullable=False)
 	triage_start_time               = db_context.Column(db_context.String(200))
@@ -28,15 +23,9 @@ class Metric(db_context.Model):
 	finalization_process_time       = db_context.Column(db_context.String(200))
 
 	#metric = db_context.relationship(DocumentProcess, backref='metrics', lazy=False)
-=======
-	id = db_context.Column(db_context.Integer(), primary_key=True)
-	document_processing_id = db_context.Column(db_context.ForeignKey(DocumentProcess.p_id), nullable=False)
 
-	metric = db_context.relationship(DocumentProcess, backref='metrics', lazy=False)
->>>>>>> f358b797bf9629368279861b4828b78985d499f8
-
-	def __init__(self, document_processing_id):
-		self.document_processing_id = document_processing_id
+	def __init__(self, id):
+		self.id = id
 
 	def __repr__(self):
 		return '<Metric. Metrics ID: {}>'.format(self.id)

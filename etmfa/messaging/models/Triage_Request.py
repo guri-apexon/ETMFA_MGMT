@@ -13,7 +13,6 @@ class TriageRequest:
 		:targetLang:  Short identifier for document target language
 		"""
 
-<<<<<<< HEAD
 		self.id = str(_id)
 		self.filename = filename
 		self.filepath = filepath
@@ -28,20 +27,4 @@ class TriageRequest:
 		self.received_date = received_date
 		self.site_personnel_list = site_personnel_list
 		self.priority = priority
-=======
-		self.id       = str(_id)
-		#self.fileName = filename
-		self.filePath = filepath
-		self.Customer = customer
-		self.Protocol = protocol
-		self.Country  = country
-		self.Site     = site
-		self.Document_Class = document_class
-		self.TMF_IBR = tmf_ibr
-		self.Blinded = blinded
-		self.TMF_Environment     = tmf_environment
-		self.Received_Date       = received_date
-		self.site_personnel_list = site_personnel_list
-		self.Priority = priority
->>>>>>> f358b797bf9629368279861b4828b78985d499f8
 

@@ -18,6 +18,7 @@ from ...db import (
     get_doc_resource_by_id,
     get_doc_processing_by_id,
     get_doc_processed_by_id,
+    get_doc_proc_metrics_by_id,
     get_doc_status_processing_by_id,
     get_metrics_dict,
     get_metadata_dict,
@@ -227,11 +228,13 @@ class DocumentprocessingAPI(Resource):
 @ns.response(404, 'Document processing resource not found.')
 @ns.response(500, 'Server error')
 class DocumentprocessingAPI(Resource):
-    @ns.marshal_with(metrics)
+    @ns.marshal_with(eTMFA_metrics_get)
     def get(self, id):
         """Returns metrics of document processed"""
-        metrics = get_metrics_dict(id)
-        return metrics
+        try:
+            return get_doc_proc_metrics_by_id(id, full_mapping=True)
+        except ValueError as error:
+            return abort(404, 'No document resource exists for this id.')
 
 
 @ns.route('/<string:id>/attributes')

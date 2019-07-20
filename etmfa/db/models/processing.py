@@ -4,11 +4,7 @@ class Processing(db_context.Model):
 	__tablename__ = "etmfa_processing"
 
 	id = db_context.Column(db_context.Integer, primary_key=True)
-<<<<<<< HEAD
 	processing_dir = db_context.Column(db_context.String(1000))
-=======
-	processing_dir = db_context.Column(db_context.String(500))
->>>>>>> f358b797bf9629368279861b4828b78985d499f8
 
 
 	def __init__(self, id, processing_dir):
