@@ -2,10 +2,10 @@ from setuptools import setup, find_packages
 
 setup(
     # Application name:
-    name="electronic Trial Master File Automation",
+    name="etmfa_mgmt",
 
     # Version number (initial):
-    version="1.0.02",
+    version="1.0.0",
 
     # Application author details:
     author="Prathap Veera",
@@ -40,6 +40,12 @@ setup(
 		"flask>=0.9",
 		"SQLAlchemy>=0.8.0",
 		"Mako==1.0.12",
-		"python-editor-1.0.4" ,
+        "flask_cors",
+        "requests",
+        "pandas",
+        "lxml",
+		#"python-editor-1.0.4" ,
 		"kombu",
+        "gevent",
+        "cx_Oracle",
 		"python-logstash_async"])
