@@ -1,10 +1,10 @@
 import datetime
 
 from ..db import db_context
-from ..status import StatusEnum
+#from ..status import StatusEnum
 
 class DocumentProcess(db_context.Model):
-    __tablename__ = "eTMFA_document_process"
+    __tablename__ = "etmfa_document_process"
 
     #p_id = db_context.Column(db_context.Integer(), primary_key=True)
     id = db_context.Column(db_context.String(50), primary_key=True)
@@ -20,12 +20,12 @@ class DocumentProcess(db_context.Model):
     last_updated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
     Percent_complete = db_context.Column(db_context.String(100))
     #Percent_complete = db_context.Column(db_context.Enum(StatusEnumpercent), default=StatusEnum(0))
-    status = db_context.Column(db_context.Enum(StatusEnum), default=StatusEnum(0))
-
+    #status = db_context.Column(db_context.Enum(StatusEnum), default=StatusEnum(0))
+    status = db_context.Column(db_context.String(100))
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}
-        obj['status'] = { 'Percent_complete': self.status.value, 'description': self.status.name}
+        #obj['status'] = { 'Percent_complete': self.status.value, 'description': self.status.name}
         return obj
 
     def from_post_request(request, _id, doc_path):
@@ -35,7 +35,7 @@ class DocumentProcess(db_context.Model):
         this.is_processing = True
         this.Percent_complete = '0'
 
-        if request['file_name'] != None:
+        if request['file_name'] is not None:
             this.file_name = request['file_name']
         else:
             file = request['file']

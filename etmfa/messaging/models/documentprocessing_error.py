@@ -16,9 +16,9 @@ class documentprocessingerror:
 		resp = json.loads(msg_str)
 
 		this = {}
-		this['id'] = resp['id'] 
-		this['logId'] = resp['logId']
-		this['message'] = resp['message']
-		this['stackTrace'] = resp['stackTrace']
+		this['id']           = resp['id']
+		this['service_name'] = resp['service_name']
+		this['error_code']   = resp['error_code']
+		this['error_reason'] = resp['error_message']
 
 		return this

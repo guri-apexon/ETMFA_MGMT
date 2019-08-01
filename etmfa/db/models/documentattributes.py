@@ -1,10 +1,10 @@
 import datetime
 
 from ..db import db_context
-from ..status import StatusEnum
+#from ..status import StatusEnum
 
 class Documentattributes(db_context.Model):
-    __tablename__ = "eTMFA_document_attributes"
+    __tablename__ = "etmfa_document_attributes"
 
     #p_id                                  = db_context.Column(db_context.Integer(), primary_key=True)
     id                                    = db_context.Column(db_context.String(50), primary_key=True)
@@ -30,7 +30,7 @@ class Documentattributes(db_context.Model):
     alcoac_check_comp_score               = db_context.Column(db_context.String(100))
     alcoac_check_comp_score_conf          = db_context.Column(db_context.String(30))
     alcoal_check_error                    = db_context.Column(db_context.String(1000))
-    blinded                               =  db_context.Column(db_context.Boolean())
+    blinded                               = db_context.Column(db_context.Boolean())
     datetimecreated                       = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
     doc_rejected                          = db_context.Column(db_context.String(500))
     priority                              = db_context.Column(db_context.String(100))
@@ -38,7 +38,7 @@ class Documentattributes(db_context.Model):
     site_personnel_list                   = db_context.Column(db_context.String(1000))
     tmf_environment                       = db_context.Column(db_context.String(100))
     tmf_ibr                               = db_context.Column(db_context.String(100))
-
+    doc_classification_elvis              = db_context.Column(db_context.String(500))
     # 'attribute_auxillary_list': fields.List(fields.Nested(kv_pair_model)),
 
     def as_dict(self):

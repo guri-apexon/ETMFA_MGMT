@@ -20,10 +20,9 @@ from ...db import (
     get_doc_processed_by_id,
     get_doc_proc_metrics_by_id,
     get_doc_status_processing_by_id,
-    get_metrics_dict,
-    get_metadata_dict,
+    #get_metrics_dict,
     upsert_attributevalue,
-    get_attributevalue,
+    #get_attributevalue,
     get_attribute_dict
     )
 
@@ -90,17 +89,68 @@ class DocumentprocessingAPI(Resource):
         # Save document in the processing directory
         file.save(file_path)
 
-        customer = args['Customer']
-        protocol = args['Protocol']
-        country  = args['Country']
-        site = args['Site']
-        document_class = args['Document_Class']
-        tmf_ibr = args['TMF_IBR']
+        # Check customer value if passed
+        if args['Customer'] is not None:
+            customer = args['Customer']
+        else:
+            customer = ' '
+
+        #check protocol value if passed
+        if args['Protocol'] is not None:
+            protocol = args['Protocol']
+        else:
+            protocol = ' '
+
+        # check if country value if passed
+        if args['Country'] is not None:
+            country  = args['Country']
+        else:
+            country = ' '
+
+        # check if site value is passed
+        if args['Site'] is not None:
+            site = args['Site']
+        else:
+            site = ' '
+
+        # check if value for document class is passed
+        if args['Document_Class'] is not None:
+            document_class = args['Document_Class']
+        else:
+            document_class = ' '
+
+        # check if value passed for tmf_ibr environment
+        if args['TMF_IBR'] is not None:
+            tmf_ibr = args['TMF_IBR']
+        else:
+            tmf_ibr = ' '
+
+        # check if value passed for field blinded
         blinded = args['Blinded']
-        tmf_environment = args['TMF_Environment']
-        received_date = args['Received_Date']
-        site_personnel_list = args['site_personnel_list']
-        priority = args['Priority']
+
+        # check if value passed for environment
+        if args['TMF_Environment'] is not None:
+            tmf_environment = args['TMF_Environment']
+        else:
+            tmf_environment = ' '
+
+        # check if value passed for received date
+        if args['Received_Date'] is not None:
+            received_date = args['Received_Date']
+        else:
+            received_date = ' '
+
+        # check if value passed into site_personnel_list
+        if args['site_personnel_list'] is not None:
+            site_personnel_list = args['site_personnel_list']
+        else:
+            site_personnel_list = ' '
+
+        # check if value passed into priority
+        if args['Priority'] is not None:
+            priority = args['Priority']
+        else:
+            priority = ' '
 
 
         saved_resource = save_doc_processing(args, _id, file_path)
@@ -117,7 +167,7 @@ class DocumentprocessingAPI(Resource):
         return get_doc_processing_by_id(_id, full_mapping=True)
 
 
-@ns.route('/<string:id>/<string:key>/<string:val>')
+@ns.route('/<string:id>/key/value')
 @ns.response(404, 'Document processing resource not found.')
 @ns.response(500, 'Server error')
 class DocumentprocessingAPI(Resource):
@@ -129,7 +179,8 @@ class DocumentprocessingAPI(Resource):
         md = request.json
         for m in md['metadata']:
             upsert_attributevalue(id, m['name'], m['val'])
-        return get_attribute_dict(id)
+        #return get_attribute_dict(id)
+        return get_doc_processed_by_id(id)
 
 #
 # @ns.route('/<string:id>/get_attribute/key')
@@ -143,8 +194,6 @@ class DocumentprocessingAPI(Resource):
 #         md = request.json
 #         return get_attributevalue(id, md)
 #
-
-
 
 @ns.route('/<string:id>/status')
 @ns.response(404, 'Document Processing resource not found.')
@@ -171,26 +220,24 @@ class DocumentprocessingAPI(Resource):
     @ns.marshal_with(document_processing_object_put_get)
     def put(self, id):
         """Feedback attributes to document processed"""
-        #args = document_processing_object_put.parse_args()
-
-
 
         # format data for finalisation service to update IQVDocument
-        feedbackdata = request.json
-        id_fb = feedbackdata['id']
-        feedback_source = feedbackdata['feedback_source']
-        customer = feedbackdata['customer']
-        protocol = feedbackdata['protocol']
-        country = feedbackdata['country']
-        site = feedbackdata['site']
-        document_class = feedbackdata['document_class']
-        document_date = feedbackdata['document_date']
-        document_classification = feedbackdata['document_classification']
-        name = feedbackdata['name']
-        language = feedbackdata['language']
-        document_rejected = feedbackdata['document_rejected']
-        attribute_auxillary_list = feedbackdata['attribute_auxillary_list']
+        feedbackdata                  = request.json
+        id_fb                         = feedbackdata['id']
+        feedback_source               = feedbackdata['feedback_source']
+        customer                      = feedbackdata['customer']
+        protocol                      = feedbackdata['protocol']
+        country                       = feedbackdata['country']
+        site                          = feedbackdata['site']
+        document_class                = feedbackdata['document_class']
+        document_date                 = feedbackdata['document_date']
+        document_classification       = feedbackdata['document_classification']
+        name                          = feedbackdata['name']
+        language                      = feedbackdata['language']
+        document_rejected             = feedbackdata['document_rejected']
+        attribute_auxillary_list      = feedbackdata['attribute_auxillary_list']
 
+        resourcefound = get_doc_resource_by_id(id)
         saved_resource = save_doc_feedback(id, feedbackdata)
 
 
@@ -204,6 +251,7 @@ class DocumentprocessingAPI(Resource):
         # Send FeedbackRequest
         feedback_req_msg = feedbackrequest(
             id_fb,
+            resourcefound.document_file_path,
             feedback_source,
             customer,
             protocol,
@@ -250,39 +298,6 @@ class DocumentprocessingAPI(Resource):
             return get_doc_processed_by_id(id, full_mapping=True)
         except ValueError as error:
             return abort(404, 'No document resource exists for this id.')
-
-#
-# @ns.route('/<string:id>/supportingDocs')
-# @ns.response(500, 'Server error')
-# class DocumentprocessingAPI(Resource):
-#     @ns.expect(supporting_docs_post)
-#     @api.marshal_with(supporting_docs_get)
-#     @ns.response(201, 'Supporting document saved.')
-#     def post(self, id):
-#         """Upload any supporting document through the stages of external processing or formatting steps.
-#          This will assist in improving the processing and formatting efforts in the future. """
-#
-#         # Generate processing dir
-#         args = supporting_docs_post.parse_args()
-#         path = build_processing_dir(id)
-#
-#         # get save path and output path
-#         processing_dir = build_processing_dir(id)
-#         file = args['file']
-#         file_path = os.path.join(processing_dir, file.filename)
-#
-#         # Save doc
-#         file.save(file_path)
-#
-#         # Save to table
-#         return add_supporting_doc(id, file_path, args['description']), 201
-#
-#     @api.marshal_list_with(supporting_docs_get)
-#     def get(self, id):
-#         """Get list of supporting documents saved. Get the list of documents that have been uploaded to save for archival and learning purposes."""
-#
-#         return get_supporting_docs(id)['supporting_docs']
-
 
 
 # Utility Functions

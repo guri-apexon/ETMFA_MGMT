@@ -15,10 +15,10 @@ class Config(object):
 class DevelopmentConfig(Config):
     """Configurations for Development."""
     DEBUG = True
-    #SQLALCHEMY_DATABASE_URI = "oracle+cx_oracle://TMF_CLASSIFY:tMfA3lod@moruorldb113vd:1521/TMFMLDEV"
-    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:root@localhost:3306/test'
+    SQLALCHEMY_DATABASE_URI = "oracle+cx_oracle://TMF_CLASSIFY:tMfA3lod@moruorldb113vd:1521/TMFMLDEV"
+    #SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:root@localhost:3306/test'
 
-    MESSAGE_BROKER_ADDR = "amqp://guest:guest@morsetmfml01d:5672"
+    MESSAGE_BROKER_ADDR = "amqp://guest:guest@morsetmfhs06d:5672"
     #MESSAGE_BROKER_ADDR = "amqp://guest:guest@localhost:5672"
     MESSAGE_BROKER_EXCHANGE = 'eTMFA'
     LOGSTASH_HOST = 'morsetmfml01d'

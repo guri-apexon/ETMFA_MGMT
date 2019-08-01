@@ -2,70 +2,40 @@ from flask_restplus import Namespace, Resource, fields, reqparse, abort
 import werkzeug
 
 from ..api import api
-from ...db.status import StatusEnum
+#from ...db.status import StatusEnum
 
-object_links = api.model(' Resource Links', {
-        # 'resource': fields.Url('api.resource_get_ep', 
-        #     description='API URI for the main document translation resource.'),
-        # 'target_file': fields.Url('api.formatted_doc_ep',
-        #     description='API URI for the target translated document.'),
-        # 'xliff_file': fields.Url('api.xliff_ep',
-        #     description='API URI for the translated XLIFF file.'),
-    })
 
-kv_pair_model = api.model(' KeyValue Pair',{
+kv_pair_model = api.model(' KeyValue Pair for patch ',{
             'name': fields.String(description='The metadata object supports dictionary style properties of any number of key-value pairs. ' +
                 'Each metadata dictionary will be returned alongside the REST resource.'),
             'val': fields.String()
-            })
-k_pair_model = api.model(' KeyValue Pair',{
+})
+k_pair_model = api.model(' Key for attributes',{
             'name': fields.String(description='The metadata object supports dictionary style properties of any number of key-value pairs. ' +
-                'Each metadata dictionary will be returned alongside the REST resource.')
+                'Each metadata dictionary will be returned alongside the REST resource.'),
             #'val': fields.String()
-            })
+})
 
-
-# supporting_docs_get = api.model('Supporting documents', {
-#     'id': fields.Integer(readOnly=True),
-#     'description': fields.String(readOnly=True),
-#     'file_path': fields.String(readOnly=True),
-#     })
-
-status_model = api.model(' Document Translation Status', {
-        'level': fields.String(),
-        'status': fields.String()
-    })
-
-documentprocessing_metrics = api.model(' Document Processing metrics', {
-        'name': fields.String(),
-        'val': fields.String(),
-    })
-
-metrics = api.model(' Metrics', {
-        'documentprocessing_metrics': fields.List(fields.Nested(documentprocessing_metrics)),
-        #'translation_metrics': fields.List(fields.Nested(translation_metrics)),
-    })
-
-metadata_post = api.model('Translation resource metadata dictionary', {
+metadata_post = api.model('Document attributes patch model', {
         'metadata': fields.List(fields.Nested(kv_pair_model)),
     })
-metadata_get = api.model('eTMFA attribute extraction metadata dictionary', {
+
+metadata_get = api.model('eTMFA attribute extraction get attributes', {
      'metadata': fields.List(fields.Nested(k_pair_model))
  })
 
-# TODO:  Move this to models area and map to API object
-StatusDict_desc = [s.value for s in StatusEnum]
-StatusDict_keys = [s.name for s in StatusEnum]
-StatusDict = dict(zip(StatusDict_keys, StatusDict_desc))
-status_model = api.model('Document Translation object status', {
-        'id': fields.Integer(readOnly=True, description='The linear id value of the current processing step.',
-            default=StatusEnum.CREATED.value),
-        'description': fields.String(readOnly=True, description='The description of the current document translation step.',
-            default=StatusEnum.CREATED.name),
-    })
+# # TODO:  Move this to models area and map to API object
+# StatusDict_desc = [s.value for s in StatusEnum]
+# StatusDict_keys = [s.name for s in StatusEnum]
+# StatusDict = dict(zip(StatusDict_keys, StatusDict_desc))
+# status_model = api.model('Document Translation object status', {
+#         'id': fields.Integer(readOnly=True, description='The linear id value of the current processing step.',
+#             default=StatusEnum.CREATED.value),
+#         'description': fields.String(readOnly=True, description='The description of the current document translation step.',
+#             default=StatusEnum.CREATED.name),
+#     })
 
-
-eTMFA_object_get = api.model('Document REST object',
+eTMFA_object_get = api.model('Document Processing Status Model',
     {
         'id': fields.String(readOnly=True, 
             description='The unique identifier (UUID) of eTMFA document.'),
@@ -82,11 +52,12 @@ eTMFA_object_get = api.model('Document REST object',
             description='If an error code is present, an attempt will be made to supply a user-friendly error reason.'),
         'time_created': fields.DateTime,
         'last_updated': fields.DateTime,
-        'status': fields.Nested(status_model),
+        'status': fields.String(readOnly=True,
+            description='Document processing stage (triage/ocr/classifier/extractor/finalizer'),
     }
 )
 
-eTMFA_object_get_status = api.model('Document REST object',
+eTMFA_object_get_status = api.model('Document Processing Status Model',
     {
         'id': fields.String(readOnly=True,
             description='The unique identifier (UUID) of eTMFA document.'),
@@ -94,7 +65,8 @@ eTMFA_object_get_status = api.model('Document REST object',
             description='The document is being processed. Final attributes of documents may not exist.'),
         'Percent_complete': fields.String(readOnly=False,
             description='The percentage of document is being processed. Final attributes of documents will be ready when percentage is 100.'),
-        'status': fields.Nested(status_model),
+        'status': fields.String(readOnly=False,
+            description='Processing document stage (triage/ocr/classifier/xtractor/finalizer)'),
         'file_name': fields.String(readOnly=True,
             description='The name of the original eTMF file to automate'),
         'document_file_path': fields.String(readOnly=True,
@@ -110,45 +82,69 @@ eTMFA_object_get_status = api.model('Document REST object',
 )
 
 
-eTMFA_metrics_get = api.model('Document REST object',
+eTMFA_metrics_get = api.model('Document Processing Metrics Model',
     {
         'id': fields.String(readOnly=True,
             description='The unique identifier (UUID) of eTMFA document.'),
+        'total_process_time': fields.String(readOnly=True,
+            description='total processing time of eTMFA document.'),
+        'queue_wait_time': fields.String(readOnly=True,
+            description='total queue wait time of eTMFA document.'),
+        'triage_machine_name':fields.String(readOnly=True,
+            description='Triage machine name where service is running'),
+        'triage_version':fields.String(readOnly=True,
+            description='Triage code version'),
         'triage_start_time':fields.String(readOnly=True,
             description='Triage Start time in Server'),
         'triage_end_time':fields.String(readOnly=True,
             description='Triage end time in Server'),
         'triage_proc_time':fields.String(readOnly=True,
             description='Triage total processing time per document in Server'),
+        'digitizer_machine_name': fields.String(readOnly=True,
+            description='digitizer machine name where service is running'),
+        'digitizer_version': fields.String(readOnly=True,
+            description='digitizer code version'),
         'digitizer_start_time':fields.String(readOnly=True,
             description='Digitizer start time in Server'),
         'digitizer_end_time':fields.String(readOnly=True,
             description='Digitizer end time in Server'),
         'digitizer_proc_time':fields.String(readOnly=True,
             description='Digitizer total processing time per document in Server'),
+        'classification_machine_name': fields.String(readOnly=True,
+            description='classification machine name where service is running'),
+        'classification_version': fields.String(readOnly=True,
+            description='classification code version'),
         'classification_start_time':fields.String(readOnly=True,
             description='classification start time in Server'),
         'classification_end_time':fields.String(readOnly=True,
             description='classification end time in Server'),
         'classification_proc_time':fields.String(readOnly=True,
             description='classification total processing time per document in Server'),
-        'attributeextraction_start_time':fields.String(readOnly=True,
-            description='attributeextraction start time in Server'),
-        'attributeextraction_end_time':fields.String(readOnly=True,
-            description='attributeextraction end time in Server'),
-        'attributeextraction_proc_time':fields.String(readOnly=True,
-            description='attributeextraction total processing time per document in Server'),
+        'att_extraction_machine_name': fields.String(readOnly=True,
+            description='attribute extraction machine name where service is running'),
+        'att_extraction_version': fields.String(readOnly=True,
+            description='attribute extraction code version'),
+        'att_extraction_start_time':fields.String(readOnly=True,
+            description='attribute extraction start time in Server'),
+        'att_extraction_end_time':fields.String(readOnly=True,
+            description='attribute extraction end time in Server'),
+        'att_extraction_proc_time':fields.String(readOnly=True,
+            description='attribute extraction total processing time per document in Server'),
+        'finalization_machine_name': fields.String(readOnly=True,
+            description='finalization machine name where service is running'),
+        'finalization_version': fields.String(readOnly=True,
+            description='finalization code version'),
         'finalization_start_time':fields.String(readOnly=True,
             description='finalization start time in Server'),
         'finalization_end_time':fields.String(readOnly=True,
             description='finalization end time in Server'),
-        'finalization_process_time':fields.String(readOnly=True,
+        'finalization_proc_time':fields.String(readOnly=True,
             description='finalization total processing time per document in Server'),
     }
 )
 
 
-eTMFA_attributes_get = api.model('Document REST object',
+eTMFA_attributes_get = api.model('Document Processing Attributes Model',
     {
         'id': fields.String(readOnly=True,
             description='The unique identifier (UUID) of eTMFA document.'),
@@ -182,7 +178,9 @@ eTMFA_attributes_get = api.model('Document REST object',
             description = 'document subclassification'),
         'doc_subclassification_conf' : fields.String(readOnly=True,
             description = 'document subclassification confidence'),
-        'attribute_auxillary_list': fields.List(fields.Nested(kv_pair_model)),
+        #'attribute_auxillary_list': fields.List(fields.Nested(kv_pair_model)),
+        'attribute_auxillary_list': fields.String(readOnly=True,
+            description = 'Attribute auxillary list values'),
         'subject' : fields.String(readOnly=True,
             description = 'subject'),
         'subject_conf' : fields.String(readOnly=True,
@@ -213,28 +211,15 @@ eTMFA_attributes_get = api.model('Document REST object',
             description = 'tmf environment'),
         'tmf_ibr' : fields.String(readOnly=True,
             description = 'tmf/ibr environment'),
-
+        'doc_classification_elvis' : fields.String(readOnly=True,
+            description = 'document classification_elvis'),
     }
 )
-
-
-
-# supporting_docs_post = reqparse.RequestParser()
-# supporting_docs_post.add_argument('description',
-#                          type=str,
-#                          required=True,
-#                          help='Short description of document')
-# supporting_docs_post.add_argument('file',
-#                          type=werkzeug.datastructures.FileStorage,
-#                          location='files',
-#                          required=True,
-#                          help='Input document')
 
 
 eTMFA_object_post = reqparse.RequestParser()
 eTMFA_object_post.add_argument('file_name',
                          type=str,
-                         #required=True,
                          help='Input document name')
 eTMFA_object_post.add_argument('Customer',
                          type=str, 
@@ -286,21 +271,19 @@ eTMFA_object_post.add_argument('file',
                          required=True, 
                          help='Input document')
 
-document_processing_object_put = reqparse.RequestParser()
-# document_processing_object_put.add_argument('id',
-#                         type= str,
-#                         required=True,
-#                         help='ID of the document processed to give feedback information after manual evaluation')
-document_processing_object_put.add_argument('file',
-                         type=werkzeug.datastructures.FileStorage,
-                         location='files',
-                         required=True,
-                         help='Feedback information for the document processed with given id number')
+# document_processing_object_put = reqparse.RequestParser()
+# document_processing_object_put.add_argument('file',
+#                          type=werkzeug.datastructures.FileStorage,
+#                          location='files',
+#                          required=True,
+#                          help='Feedback information for the document processed with given id number')
 
-document_processing_object_put_get = api.model('Document REST object',
+document_processing_object_put_get = api.model('Document Processing Feedback Model',
     {
         'id': fields.String(readOnly=True,
             description='The unique identifier (UUID) of a document processing job.'),
+        'document_file_path': fields.String(readOnly=True,
+            description='path of the document for updating feedback'),
         'feedback_source': fields.String(readOnly=True,
             description='Feedback source for the processed document'),
         'customer': fields.String(readOnly=True,
@@ -323,37 +306,7 @@ document_processing_object_put_get = api.model('Document REST object',
             description='language'),
         'document_rejected': fields.Boolean(readOnly=True,
             description='document rejected'),
-        'attribute_auxillary_list': fields.List(fields.Nested(kv_pair_model)),
+        'attribute_auxillary_list': fields.String(readOnly=True,
+            description='Attribute auxillary list'),
     }
 )
-
-
-
-
-
-# document_translate_object_put = reqparse.RequestParser()
-# document_translate_object_put.add_argument('file',
-#                          type=werkzeug.datastructures.FileStorage,
-#                          location='files',
-#                          required=True,
-#                          help='Document translation XLIFF file')
-# document_translate_object_put.add_argument('cache',
-#                         type=bool,
-#                         required=False,
-#                         help='Cache the segments from the Xliff for future machine translation.',
-#                         default=True)
-#
-# final_document_translate_object_post = reqparse.RequestParser()
-# final_document_translate_object_post.add_argument('file',
-#                          type=werkzeug.datastructures.FileStorage,
-#                          location='files',
-#                          required=True,
-#                          help='Final edited document')
-
-
-# language_pair = api.model('An available language pair for document translation', {
-#     'source_lang_short': fields.String(readOnly=True, description='The source language abbreviation used in a document tranlsation request'),
-#     'source_lang_description': fields.String(readOnly=True, description='The source language description'),
-#     'target_lang_short': fields.String(readOnly=True, description='The target language abbreviation used in a document tranlsation request'),
-#     'target_lang_description': fields.String(readOnly=True, description='The target language description'),
-# })

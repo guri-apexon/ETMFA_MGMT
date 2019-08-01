@@ -8,7 +8,7 @@ import gevent
 
 if __name__ == '__main__':
     import os
-    os.environ["PATH"] += os.pathsep + 'C:/Users/q1019814/oracle/instantclient_19_3/'
+    #os.environ["PATH"] += os.pathsep + 'C:\\Users\\q1019814\\oracle\\instantclient_19_3\\'
 
     parser = argparse.ArgumentParser(description='eTMFA Service deployment script.')
 
@@ -18,13 +18,16 @@ if __name__ == '__main__':
                         default='development')
     parser.add_argument('--port', type=int,
                         help='Port for eTMFA Service api to reside on',
-                        default=9002)
+                        default=9001)
     parser.add_argument('--key', type=str,
                     help='SSL key file',
                     default=None)
     parser.add_argument('--cert', type=str,
                     help='SSL certificate file',
                     default=None)
+    parser.add_argument('--oraclient', type=str, help='Oracle client for python folder')
+    args = parser.parse_args()
+    os.environ["PATH"] += os.pathsep + args.oraclient
 
     args = parser.parse_args()
 
