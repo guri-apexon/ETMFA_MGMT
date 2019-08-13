@@ -15,7 +15,7 @@ setup(
     packages=find_packages(),
 
     data_files = [
-                  ('config', ['README.md'])
+                  ('', ['main.py', 'manage.py'])
                  ],
 
 
