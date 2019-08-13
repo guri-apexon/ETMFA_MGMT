@@ -14,6 +14,7 @@ from ..consts import Consts
 # api
 from .namespaces.docprocessingapi import ns as docprocessing_namespace
 from .namespaces.processingadminapi import ns as processing_namespace
+from .namespaces.healthprocessingapi import ns as health_namespace
 from .api import api, specs_url
 
 # messaging
