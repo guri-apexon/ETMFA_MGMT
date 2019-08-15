@@ -1,5 +1,6 @@
 import os, logging, time, json, requests
 import pandas as pd
+from filehash import FileHash
 
 from datetime import datetime
 from flask_migrate import Migrate
@@ -16,7 +17,7 @@ from .models.documentProcess import DocumentProcess
 from .models.documentattributes import Documentattributes
 from .models.documentfeedback import Documentfeedback
 from .models.metric import Metric
-#from .status import StatusEnum
+from .models.documentduplicate import Documentduplicate
 from ..messaging.models.ocr_request import ocrrequest
 from ..messaging.models.classification_request import classificationRequest
 from ..messaging.models.attributeextraction_request import attributeextractionRequest
@@ -198,9 +199,9 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     db_context.session.add(metrics)
     try:
         db_context.session.commit()
-    except:
+    except Exception as e:
         db_context.session.rollback()
-        raise LookupError("Error while writing record to etmfa_document_metrics to DB for ID: {}".format(finalattributes['id']))
+        raise LookupError("Error while writing record to etmfa_document_metrics to DB for ID: {},{}".format(finalattributes['id'], e))
 
 
     attributes                             = Documentattributes()
@@ -226,8 +227,8 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     attributes.language_conf               = finalattributes['language_conf']
     attributes.alcoac_check_comp_score     = finalattributes['alcoac_check_comp_score']
     attributes.alcoac_check_comp_score_conf= finalattributes['alcoac_check_comp_score_conf']
-    attributes.alcoal_check_error          = finalattributes['alcoac_check_error']
-    attributes.doc_rejected                = ' '
+    attributes.alcoac_check_error          = finalattributes['alcoac_check_error']
+    #attributes.doc_rejected                = ' '
     attributes.priority                    = finalattributes['priority']
     attributes.received_date               = finalattributes['received_date']
     attributes.site_personnel_list         = finalattributes['site_personnel_list']
@@ -243,9 +244,9 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     db_context.session.add(attributes)
     try:
         db_context.session.commit()
-    except:
+    except Exception as e:
         db_context.session.rollback()
-        raise LookupError("Error while writing record to etmfa_document_attributes file in DB for ID: {}".format(finalattributes['id']))
+        raise LookupError("Error while writing record to etmfa_document_attributes file in DB for ID: {},{}".format(finalattributes['id'],e))
 
     return resource.as_dict()
 
@@ -268,34 +269,93 @@ def save_doc_feedback(_id, feedbackdata):
 
     recordfound = get_doc_resource_by_id(_id)
 
-    resource = Documentfeedback()
+    resourcefb = Documentfeedback()
 
-    resource.p_id                     = str(int((datetime.now().timestamp()) * 1000000))
-    resource.id                       = feedbackdata['id']
-    resource.document_file_path       = recordfound.document_file_path
-    resource.feedback_source          = feedbackdata['feedback_source']
-    resource.customer                 = feedbackdata['customer']
-    resource.protocol                 = feedbackdata['protocol']
-    resource.country                  = feedbackdata['country']
-    resource.site                     = feedbackdata['site']
-    resource.document_class           = feedbackdata['document_class']
-    resource.document_date            = feedbackdata['document_date']
-    resource.document_classification  = feedbackdata['document_classification']
-    resource.name                     = feedbackdata['name']
-    resource.language                 = feedbackdata['language']
-    resource.document_rejected        = feedbackdata['document_rejected']
-    resource.attribute_auxillary_list = str(feedbackdata['attribute_auxillary_list'])
+    resourcefb.p_id                     = str(int((datetime.now().timestamp()) * 1000000))
+    resourcefb.id                       = feedbackdata['id']
+    resourcefb.document_file_path       = recordfound.document_file_path
+    resourcefb.feedback_source          = feedbackdata['feedback_source']
+    resourcefb.customer                 = feedbackdata['customer']
+    resourcefb.protocol                 = feedbackdata['protocol']
+    resourcefb.country                  = feedbackdata['country']
+    resourcefb.site                     = feedbackdata['site']
+    resourcefb.document_class           = feedbackdata['document_class']
+    resourcefb.document_date            = feedbackdata['document_date']
+    resourcefb.document_classification  = feedbackdata['document_classification']
+    resourcefb.name                     = feedbackdata['name']
+    resourcefb.language                 = feedbackdata['language']
+    resourcefb.document_rejected        = feedbackdata['document_rejected']
+    resourcefb.attribute_auxillary_list = str(feedbackdata['attribute_auxillary_list'])
 
-
-    db_context.session.add(resource)
+    db_context.session.add(resourcefb)
     try:
         db_context.session.commit()
-    except:
+    except Exception as e:
         db_context.session.rollback()
-        raise LookupError("Error while writing record to etmfa_document_feedback file in DB for ID: {}".format(_id))
+        raise LookupError("Error while writing record to etmfa_document_feedback file in DB for ID: {},{}".format(_id, e))
 
-    return resource.as_dict()
+    return resourcefb.as_dict()
 
+def save_doc_processing_duplicate(request, _id, doc_path):
+    resource = Documentduplicate()
+
+    sha512hasher = FileHash('sha512')
+    resource.id                  = _id
+    resource.doc_hash            = sha512hasher.hash_file(doc_path)
+    resource.document_file_path  = doc_path
+    resource.customer            = request['Customer'] if request['Customer'] is not None else ''
+    resource.protocol            = request['Protocol'] if request['Protocol'] is not None else ''
+    resource.country             = request['Country']  if request['Country'] is not None else ''
+    resource.site                = request['Site']     if request['Site'] is not None else ''
+    resource.document_class      = request['Document_Class'] if request['Document_Class'] is not None else ''
+    resource.received_date       = request['Received_Date']  if request['Received_Date'] is not None else ''
+    #resource.document_rejected   = request['Document_Rejected']
+    resourcefound = get_doc_duplicate_by_id(resource)
+    duplicateresource = ' '
+    if resourcefound is None:
+        resource.doc_duplicate_flag = 0
+        try:
+            db_context.session.add(resource)
+            db_context.session.commit()
+        except Exception as e:
+            db_context.session.rollback()
+            raise LookupError(
+                "Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
+    else:
+        duplicateresource = resourcefound.id
+        doc_duplicate_flag_update  = resourcefound.doc_duplicate_flag + 1
+        setattr(resourcefound, 'doc_duplicate_flag', doc_duplicate_flag_update)
+        db_context.session.commit()
+
+    return duplicateresource
+
+def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
+
+    if resourcechk.document_class == 'core':
+        resource = Documentduplicate.query.filter(Documentduplicate.doc_hash == resourcechk.doc_hash and
+                                                  Documentduplicate.customer == resourcechk.customer and
+                                                  Documentduplicate.protocol == resourcechk.protocol and
+                                                  Documentduplicate.document_rejected == False).first()
+    elif resourcechk.document_class == 'country':
+        resource = Documentduplicate.query.filter(Documentduplicate.doc_hash == resourcechk.doc_hash and
+                                                  Documentduplicate.customer == resourcechk.customer and
+                                                  Documentduplicate.protocol == resourcechk.protocol and
+                                                  Documentduplicate.country  == resourcechk.country and
+                                                  Documentduplicate.document_rejected == False).first()
+    elif resourcechk.document_class == 'site':
+        resource = Documentduplicate.query.filter(Documentduplicate.doc_hash == resourcechk.doc_hash and
+                                                  Documentduplicate.customer == resourcechk.customer and
+                                                  Documentduplicate.protocol == resourcechk.protocol and
+                                                  Documentduplicate.country  == resourcechk.country and
+                                                  Documentduplicate.site     == resourcechk.site and
+                                                  Documentduplicate.document_rejected == False).first()
+    else:
+        resource = Documentduplicate.query.filter(Documentduplicate.doc_hash == resourcechk.doc_hash).first()
+
+    if not full_mapping:
+        return resource
+
+    return resource
 
 def save_doc_processing(request, _id, doc_path):
     resource = DocumentProcess.from_post_request(request, _id, doc_path)
@@ -382,55 +442,6 @@ def get_doc_resource_by_id(id):
 
     return resource
 
-# def upsert_processing_metric(doc_processing_id, property_name, val):
-#     """Adds or updates a name-value pair of a metric, referenced by a processing resource.
-#
-#     Args:
-#         doc_processing_id (int): Doc processing resource id
-#         property_name (str): Metric field name
-#         val (int): Metric value
-#     """
-#     doc_processing_resource = get_doc_resource_by_id(doc_processing_id)
-#     metric = Metric.query.filter(Metric.document_processing_id==doc_processing_resource.p_id).first()
-#
-#     if metric == None:
-#         metric = Metric(doc_processing_resource.p_id)
-#
-#     processing_metric = processingMetric(metric.id, property_name, val)
-#     formatting_metric = FormattingMetric(metric.id, 'test', 'test')
-#     metric.processing_metrics.append(processing_metric)
-#
-#     db_context.session.add(metric)
-#     db_context.session.commit()
-
-# def get_metrics_dict(doc_processing_id):
-#     doc_processing_resource = get_doc_resource_by_id(doc_processing_id)
-#     metric = Metric.query.filter(Metric.document_processing_id == doc_processing_resource.p_id).first()
-#     m_dict = {'DocumentProcessing_metrics': []}
-#
-#     if metric == None:
-#         return m_dict
-#
-#     if metric.documentprocessing_metrics != None:
-#         m_dict['DocumentProcessing_metrics'] = [{'name': m.name, 'val': m.value} for m in metric.documentprocessing_metrics]
-#
-#     return m_dict
-
-# def upsert_metadata(doc_processing_id, name, value):
-#     doc_processing_resource = get_doc_resource_by_id(doc_processing_id)
-#
-#     # Make sure name doesn't already exist
-#     metadata = IQMetadata.query.filter(IQMetadata.name==name).first()
-#     if not metadata:
-#         # Create
-#         metadata = IQMetadata(doc_processing_id, name, value)
-#         doc_processing_resource.iq_metadata.append(metadata)
-#     else:
-#         # Update
-#         metadata.value = value
-#
-#     db_context.session.add(doc_processing_resource)
-#     db_context.session.commit()
 
 def upsert_attributevalue(doc_processing_id, namekey, value):
     doc_processing_resource = get_doc_attributes_by_id(doc_processing_id)
@@ -441,18 +452,6 @@ def upsert_attributevalue(doc_processing_id, namekey, value):
         setattr(doc_processing_resource, namekey, value)
         db_context.session.commit()
 
-# def get_attributevalue(doc_processing_id, keydict):
-#         doc_processing_resource = get_doc_attributes_by_id(doc_processing_id)
-#
-#         m_dict = {'metadata': []}
-#         if doc_processing_resource is None:
-#             raise LookupError("No resource was found in DB for ID: {}".format(id))
-#             return m_dict
-#         else:
-#             for m in keydict:
-#                 m_dict['metadata'].append({'name': m.name, 'val': getattr(doc_processing_resource,m.name)})
-#
-#             return m_dict
 
 def get_attribute_dict(doc_processing_id):
     doc_processing_resource = get_doc_resource_by_id(doc_processing_id)
@@ -463,17 +462,4 @@ def get_attribute_dict(doc_processing_id):
 
     return doc_processing_resource
 
-
-# def get_metadata_dict(doc_processing_id):
-#     doc_processing_resource = get_doc_resource_by_id(doc_processing_id)
-#     metadata = IQMetadata.query.filter(IQMetadata.document_processing_id==doc_processing_resource.p_id)
-#
-#     m_dict = {'metadata': []}
-#     if metadata == None:
-#         return m_dict
-#
-#     for m in metadata:
-#         m_dict['metadata'].append({'name': m.name, 'val': m.value})
-#
-#     return m_dict
 
