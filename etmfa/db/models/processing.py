@@ -1,7 +1,7 @@
 from ...db import db_context
 
 class Processing(db_context.Model):
-	__tablename__ = "etmfa_processing"
+	__tablename__ = "etmfa_document_processing"
 
 	id = db_context.Column(db_context.Integer, primary_key=True)
 	processing_dir = db_context.Column(db_context.String(1000))

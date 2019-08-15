@@ -2,7 +2,6 @@ from flask_restplus import Namespace, Resource, fields, reqparse, abort
 import werkzeug
 
 from ..api import api
-#from ...db.status import StatusEnum
 
 
 kv_pair_model = api.model(' KeyValue Pair for patch ',{
@@ -24,16 +23,6 @@ metadata_get = api.model('eTMFA attribute extraction get attributes', {
      'metadata': fields.List(fields.Nested(k_pair_model))
  })
 
-# # TODO:  Move this to models area and map to API object
-# StatusDict_desc = [s.value for s in StatusEnum]
-# StatusDict_keys = [s.name for s in StatusEnum]
-# StatusDict = dict(zip(StatusDict_keys, StatusDict_desc))
-# status_model = api.model('Document Translation object status', {
-#         'id': fields.Integer(readOnly=True, description='The linear id value of the current processing step.',
-#             default=StatusEnum.CREATED.value),
-#         'description': fields.String(readOnly=True, description='The description of the current document translation step.',
-#             default=StatusEnum.CREATED.name),
-#     })
 
 eTMFA_object_get = api.model('Document Processing Status Model',
     {
@@ -193,7 +182,7 @@ eTMFA_attributes_get = api.model('Document Processing Attributes Model',
             description = 'Alcoac check composite score'),
         'alcoac_check_comp_score_conf' : fields.String(readOnly=True,
             description = 'alcoac check composite score confidence'),
-        'alcoal_check_error' : fields.String(readOnly=True,
+        'alcoac_check_error' : fields.String(readOnly=True,
             description = 'alcoac check error'),
         'blinded': fields.Boolean(readOnly=True,
             description='document is blinded or not'),
@@ -271,12 +260,36 @@ eTMFA_object_post.add_argument('file',
                          required=True, 
                          help='Input document')
 
-# document_processing_object_put = reqparse.RequestParser()
-# document_processing_object_put.add_argument('file',
-#                          type=werkzeug.datastructures.FileStorage,
-#                          location='files',
-#                          required=True,
-#                          help='Feedback information for the document processed with given id number')
+
+document_processing_object_put = api.model('Document feedback definition',
+    {
+        'id': fields.String(required=True,
+                description='The unique identifier (UUID) of a document processing job.'),
+        'feedback_source': fields.String(required=True,
+                description='Feedback source for the processed document'),
+        'customer': fields.String(required=True,
+                description='Customer'),
+        'protocol': fields.String(required=True,
+                description='protocol'),
+        'country': fields.String(required=True,
+                description='country'),
+        'site': fields.String(required=True,
+                description='site'),
+        'document_class': fields.String(required=True,
+                description='document class'),
+        'document_date': fields.String(required=True,
+                description='date string yyyymmdd'),
+        'document_classification': fields.String(required=True,
+                description='document classification'),
+        'name': fields.String(required=True,
+                description='name'),
+        'language': fields.String(required=True,
+                description='language'),
+        'document_rejected': fields.Boolean(readOnly=True,
+            description='document rejected'),
+        'attribute_auxillary_list': fields.List(fields.Nested(kv_pair_model)),
+})
+
 
 document_processing_object_put_get = api.model('Document Processing Feedback Model',
     {

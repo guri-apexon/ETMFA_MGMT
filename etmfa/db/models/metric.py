@@ -1,11 +1,9 @@
 from ..db import db_context
-from .documentProcess import DocumentProcess
 
 class Metric(db_context.Model):
-	__tablename__ = "etmfa_metrics"
+	__tablename__ = "etmfa_document_metrics"
 
-	id = db_context.Column(db_context.String(50), primary_key=True)
-	#document_processing_id          = db_context.Column(db_context.ForeignKey(DocumentProcess.id), nullable=False)
+	id                              = db_context.Column(db_context.String(50), primary_key=True)
 	total_process_time              = db_context.Column(db_context.String(200))
 	queue_wait_time                 = db_context.Column(db_context.String(200))
 	triage_machine_name             = db_context.Column(db_context.String(200))
@@ -34,7 +32,6 @@ class Metric(db_context.Model):
 	finalization_end_time           = db_context.Column(db_context.String(200))
 	finalization_proc_time          = db_context.Column(db_context.String(200))
 
-	#metric = db_context.relationship(DocumentProcess, backref='metrics', lazy=False)
 
 	def __init__(self, id):
 		self.id = id

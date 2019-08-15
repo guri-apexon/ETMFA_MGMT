@@ -36,6 +36,5 @@ class MessagePublisher:
                 self.logger.error('Object must be serializable and contain a queue name definition!', e)
                 raise ValueError('Object must be serializable and contain a queue name definition!')
             jsonstruct = json.dumps(msg_obj.__dict__)
-            #print(jsonstruct)
             #self.send_str(json.dumps(msg_obj.__dict__), msg_obj.QUEUE_NAME)
             self.send_str(jsonstruct, msg_obj.QUEUE_NAME)

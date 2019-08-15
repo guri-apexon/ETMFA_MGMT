@@ -14,15 +14,14 @@ from ...db import (
     get_processing_config,
     get_root_dir,
     save_doc_processing,
+    save_doc_processing_duplicate,
     save_doc_feedback,
     get_doc_resource_by_id,
     get_doc_processing_by_id,
     get_doc_processed_by_id,
     get_doc_proc_metrics_by_id,
     get_doc_status_processing_by_id,
-    #get_metrics_dict,
     upsert_attributevalue,
-    #get_attributevalue,
     get_attribute_dict
     )
 
@@ -37,21 +36,6 @@ from .serializers import *
 
 ns = api.namespace('eTMFA', path='/v1/documents', description='REST endpoints for eTMFA workflows.')
 
-document_feedback = api.model('Document feedback definition', {
-    'id': fields.String(required=True, description='The unique identifier (UUID) of a document processing job.'),
-    'feedback_source': fields.String(required=True, description='Feedback source for the processed document'),
-    'customer': fields.String(required=True, description='Customer'),
-    'protocol': fields.String(required=True, description='protocol'),
-    'country': fields.String(required=True,  description='country'),
-    'site': fields.String(required=True, description='site'),
-    'document_class': fields.String(required=True, description='document class'),
-    'document_date': fields.String(required=True, description='date string yyyymmdd'),
-    'document_classification': fields.String(required=True, description='document classification'),
-    'name': fields.String(required=True, description='name'),
-    'language': fields.String(required=True, description='language'),
-    'document_rejected': fields.String(required=True, description='document rejected'),
-    'attribute_auxillary_list': fields.List(fields.Nested(kv_pair_model)),
-})
 
 @ns.route('/')
 @ns.response(500, 'Server error')
@@ -83,83 +67,31 @@ class DocumentprocessingAPI(Resource):
         filename = fileprefix + filesufix
 
         # build file path in the processing directory
-
         file_path = os.path.join(processing_dir, filename)
 
         # Save document in the processing directory
         file.save(file_path)
 
-        # Check customer value if passed
-        if args['Customer'] is not None:
-            customer = args['Customer']
-        else:
-            customer = ' '
-
-        #check protocol value if passed
-        if args['Protocol'] is not None:
-            protocol = args['Protocol']
-        else:
-            protocol = ' '
-
-        # check if country value if passed
-        if args['Country'] is not None:
-            country  = args['Country']
-        else:
-            country = ' '
-
-        # check if site value is passed
-        if args['Site'] is not None:
-            site = args['Site']
-        else:
-            site = ' '
-
-        # check if value for document class is passed
-        if args['Document_Class'] is not None:
-            document_class = args['Document_Class']
-        else:
-            document_class = ' '
-
-        # check if value passed for tmf_ibr environment
-        if args['TMF_IBR'] is not None:
-            tmf_ibr = args['TMF_IBR']
-        else:
-            tmf_ibr = ' '
-
-        # check if value passed for field blinded
-        blinded = args['Blinded']
-
-        # check if value passed for environment
-        if args['TMF_Environment'] is not None:
-            tmf_environment = args['TMF_Environment']
-        else:
-            tmf_environment = ' '
-
-        # check if value passed for received date
-        if args['Received_Date'] is not None:
-            received_date = args['Received_Date']
-        else:
-            received_date = ' '
-
-        # check if value passed into site_personnel_list
-        if args['site_personnel_list'] is not None:
-            site_personnel_list = args['site_personnel_list']
-        else:
-            site_personnel_list = ' '
-
-        # check if value passed into priority
-        if args['Priority'] is not None:
-            priority = args['Priority']
-        else:
-            priority = ' '
-
+        customer = args['Customer'] if args['Customer'] is not None else ' '                    #customer check
+        protocol = args['Protocol'] if args['Protocol'] is not None else ' '                    #protocol check
+        country  = args['Country'] if args['Country'] is not None else ' '                      #country check
+        site = args['Site'] if args['Site'] is not None else ' '                                #site check
+        document_class = args['Document_Class'] if args['Document_Class'] is not None else ' '  #document class check
+        tmf_ibr = args['TMF_IBR'] if args['TMF_IBR'] is not None else ' '                       #environment check
+        blinded = args['Blinded']                                                               #document blinded/unblinded
+        tmf_environment = args['TMF_Environment'] if args['TMF_Environment'] is not None else ' '
+        received_date = args['Received_Date'] if args['Received_Date'] is not None else ' '     #received date check
+        site_personnel_list = args['site_personnel_list'] if args['site_personnel_list'] is not None else ' '
+        priority = args['Priority'] if args['Priority'] is not None else ' '                    #priority check
 
         saved_resource = save_doc_processing(args, _id, file_path)
+        duplicatecheck = save_doc_processing_duplicate(args, _id, file_path)
 
         BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
         EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
 
         msg_f = TriageRequest(_id, filename_main, file_path, customer, protocol, country, site, document_class,
-                              tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority)
+                              tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority, duplicatecheck)
 
         MessagePublisher(BROKER_ADDR, EXCHANGE, logging.getLogger(consts.LOGGING_NAME)).send_obj(msg_f)
 
@@ -179,7 +111,6 @@ class DocumentprocessingAPI(Resource):
         md = request.json
         for m in md['metadata']:
             upsert_attributevalue(id, m['name'], m['val'])
-        #return get_attribute_dict(id)
         return get_doc_processed_by_id(id)
 
 #
@@ -208,15 +139,13 @@ class DocumentprocessingAPI(Resource):
         except ValueError as error:
             return abort(404, 'No document processing resource exists for this id.')
 
-
 #
 @ns.route('/<string:id>/feedback')
 @ns.response(200, 'Document processing resource returned OK')
 @ns.response(404, 'Document processing resource not found.')
 @ns.response(500, 'Server error')
 class DocumentprocessingAPI(Resource):
-    #@ns.expect(document_processing_object_put)
-    @ns.expect(document_feedback)
+    @ns.expect(document_processing_object_put)
     @ns.marshal_with(document_processing_object_put_get)
     def put(self, id):
         """Feedback attributes to document processed"""
@@ -244,7 +173,6 @@ class DocumentprocessingAPI(Resource):
         # Send async FormattingDeconstructionRequest
         BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
         EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
-
 
         message_publisher = MessagePublisher(BROKER_ADDR, EXCHANGE, logging.getLogger(consts.LOGGING_NAME))
 
@@ -294,7 +222,6 @@ class DocumentprocessingAPI(Resource):
     def get(self, id):
         """Get the document processing object attributes"""
         try:
-            #return get_doc_processing_by_id(id, full_mapping=True)
             return get_doc_processed_by_id(id, full_mapping=True)
         except ValueError as error:
             return abort(404, 'No document resource exists for this id.')

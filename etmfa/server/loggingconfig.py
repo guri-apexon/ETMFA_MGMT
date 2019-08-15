@@ -62,23 +62,6 @@ class ContextFilter(logging.Filter):
 
         return True
 
-# Configure
-# def configure_logging(app, log_level=logging.DEBUG):
-#     root = logging.getLogger(consts.LOGGING_NAME)
-#     root.setLevel(log_level)
-#     consoleHandler = logging.StreamHandler()
-#     consoleFormatter = logging.Formatter(
-#         '%(asctime)s %(levelname)s [%(name)s]  %(message)s')
-#     consoleHandler.setFormatter(consoleFormatter)
-#     root.addHandler(consoleHandler)
-# """
-#     handler = AsynchronousLogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], database_path='logstash.db')
-#     elkFormatter = LogstashFormatter(extra_prefix=None)
-#     handler.setFormatter(elkFormatter)
-#     root.addHandler(handler)
-# """
-#     #return root
-
 
 def initialize_logger(app, debug=True, module_name=Consts.LOGGING_NAME):
     if not os.path.exists(DB_DIR):

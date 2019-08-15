@@ -2,15 +2,11 @@
 import json, logging
 
 class finalizationComplete:
-	""" POCO message response for an initial request from the formatting microservice"""
 
 	QUEUE_NAME = 'finalization_complete'
 
 	def from_msg(msg_str):
 		"""
-		:param _id:  ID of the document translation request
-		:fileName:  Name of the document to translate
-		:xliffPath:  Fully-qualified path of the xliff from formatting deconstruction
 		"""
 		resp = json.loads(msg_str)
 

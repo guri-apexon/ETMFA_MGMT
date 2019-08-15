@@ -44,8 +44,8 @@ setup(
         "requests",
         "pandas",
         "lxml",
-		#"python-editor-1.0.4" ,
 		"kombu",
         "gevent",
         "cx_Oracle",
+        "filehash",
 		"python-logstash_async"])

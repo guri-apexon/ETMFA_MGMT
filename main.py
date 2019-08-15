@@ -1,21 +1,19 @@
+import os
 import argparse
 from etmfa.server import create_app
 from etmfa.server.config import app_config
-
+from sys import argv
 from gevent.pywsgi import WSGIServer
 
 import gevent
 
 if __name__ == '__main__':
-    import os
-    #os.environ["PATH"] += os.pathsep + 'C:\\Users\\q1019814\\oracle\\instantclient_19_3\\'
 
     parser = argparse.ArgumentParser(description='eTMFA Service deployment script.')
 
     level_opts = list(app_config.keys())
     parser.add_argument('--level', type=str,
-                        help='Deployment configuration level for the application. Options include: {}'.format(str(level_opts)),
-                        default='development')
+                        help='Deployment configuration level for the application. Options include: {}'.format(str(level_opts)))
     parser.add_argument('--port', type=int,
                         help='Port for eTMFA Service api to reside on',
                         default=9001)
@@ -29,7 +27,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     os.environ["PATH"] += os.pathsep + args.oraclient
 
-    args = parser.parse_args()
+    arglist = ['--oraclient', '--level']
+    if not (set(arglist).issubset(set(argv))):
+        raise SystemExit("please pass oracle client path and environment(development/svt/uat/production) details as arguments: "
+                         "Eg main.py --oraclient '/path/path/', --level development")
 
     config_name = args.level
     is_SSL = args.key != None and args.cert != None
