@@ -262,7 +262,11 @@ def received_documentprocessing_error_event(errorDict):
     resource.is_processing = False
     resource.last_updated = datetime.utcnow()
 
-    db_context.session.commit()
+    try:
+        db_context.session.commit()
+    except Exception as e:
+        db_context.session.rollback()
+        raise LookupError("Error while writing record to etmfa_document_process file in DB for ID: {},{}".format(errorDict['id'],e))
 
 
 def save_doc_feedback(_id, feedbackdata):
