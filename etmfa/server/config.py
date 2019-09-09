@@ -17,7 +17,8 @@ class DevelopmentConfig(Config):
     user = 'TMF_CLASSIFY1'
     password = 'd3c0d3_12'
     sid = cx_Oracle.makedsn(host, port, sid=sid)
-    SQLALCHEMY_DATABASE_URI = 'oracle://{user}:{password}@{sid}'.format(user=user, password=password, sid=sid)
+    SQLALCHEMY_DATABASE_URI = 'oracle://{user}:{password}@{sid}'.format(user=user, password=password, sid=sid,
+                                                encoding="UTF-8", nencoding="UTF-8", pool_size=40, max_overflow=60)
     mquser = 'guest'
     mqpswd = 'guest'
     mqhost = 'morsetmfml01d'
@@ -36,7 +37,8 @@ class SVTConfig(Config):
     user = 'TMF_CLASSIFY'
     password = 'tMfA3lod'
     sid = cx_Oracle.makedsn(host, port, sid=sid)
-    SQLALCHEMY_DATABASE_URI = 'oracle://{user}:{password}@{sid}'.format(user=user, password=password, sid=sid)
+    SQLALCHEMY_DATABASE_URI = 'oracle://{user}:{password}@{sid}'.format(user=user, password=password, sid=sid,
+                                            encoding="UTF-8", nencoding="UTF-8", pool_size=40, max_overflow=60)
     mquser = 'guest'
     mqpswd = 'guest'
     mqhost = 'morsetmfhs06d'

@@ -55,7 +55,7 @@ class MessageListener(ConsumerMixin):
 
         try:
             callback = self.queue_callback_dict[queue_name](
-                    json.loads(body),
+                        json.loads(body),
                     MessagePublisher(self.connection_str, self.exchange_name, self.logger)
                 )
             message.ack()

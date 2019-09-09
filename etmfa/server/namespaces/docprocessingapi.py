@@ -1,7 +1,8 @@
 import os, uuid, logging, requests, json
 
 from flask_restplus import Namespace, Resource, fields, reqparse, abort
-from flask import current_app, send_from_directory, request
+from flask import current_app, send_from_directory, request, make_response, Flask
+from functools import wraps
 import werkzeug
 import datetime
 import os.path
@@ -32,6 +33,7 @@ from ...messaging.messagepublisher import MessagePublisher
 from ...messaging.models.Triage_Request import TriageRequest
 from ...messaging.models.feedback_request import feedbackrequest
 
+
 from .serializers import *
 
 ns = api.namespace('eTMFA', path='/v1/documents', description='REST endpoints for eTMFA workflows.')
@@ -42,61 +44,65 @@ ns = api.namespace('eTMFA', path='/v1/documents', description='REST endpoints fo
 class DocumentprocessingAPI(Resource):
     @ns.expect(eTMFA_object_post)
     @ns.marshal_with(eTMFA_object_get)
+    @ns.response(400, 'Invalid Request.')
     @ns.response(201, 'Document processing resource created.')
     def post(self):
         """Create document Processing REST object and returns document Processing API object """
 
-        # Generate processing dir
         args = eTMFA_object_post.parse_args()
 
-        # Generate ID
-        _id = uuid.uuid4()
-        _id = str(_id)
-        path = build_processing_dir(_id)
+        if (args['protocol'] is None and args['country'] is None and args['site'] is None) or args['file'] is None:
+           return abort(400, 'Invalid Request.')
+        else:
+            # Generate ID
+            _id = uuid.uuid4()
+            _id = str(_id)
+            path = build_processing_dir(_id)
 
-        # get save path and output path
-        processing_dir = build_processing_dir(_id)
-        file = args['file']
-        filename_main = file.filename
+            # get save path and output path
+            processing_dir = build_processing_dir(_id)
+            file = args['file']
+            filename_main = file.filename
 
-        # Convert file names to shorter length by replacing original filename with timestamp
+            # Convert file names to shorter length by replacing original filename with timestamp
 
-        ts = datetime.datetime.now().timestamp()
-        fileprefix = str(int(ts * 1000000))
-        filesufix = os.path.splitext(filename_main)[1]
-        filename = fileprefix + filesufix
+            ts = datetime.datetime.now().timestamp()
+            fileprefix = str(int(ts * 1000000))
+            filesufix = os.path.splitext(filename_main)[1]
+            filename = fileprefix + filesufix
 
-        # build file path in the processing directory
-        file_path = os.path.join(processing_dir, filename)
+            # build file path in the processing directory
+            file_path = os.path.join(processing_dir, filename)
 
-        # Save document in the processing directory
-        file.save(file_path)
+            # Save document in the processing directory
+            file.save(file_path)
 
-        customer = args['Customer'] if args['Customer'] is not None else ' '                    #customer check
-        protocol = args['Protocol'] if args['Protocol'] is not None else ' '                    #protocol check
-        country  = args['Country'] if args['Country'] is not None else ' '                      #country check
-        site = args['Site'] if args['Site'] is not None else ' '                                #site check
-        document_class = args['Document_Class'] if args['Document_Class'] is not None else ' '  #document class check
-        tmf_ibr = args['TMF_IBR'] if args['TMF_IBR'] is not None else ' '                       #environment check
-        blinded = args['Blinded']                                                               #document blinded/unblinded
-        tmf_environment = args['TMF_Environment'] if args['TMF_Environment'] is not None else ' '
-        received_date = args['Received_Date'] if args['Received_Date'] is not None else ' '     #received date check
-        site_personnel_list = args['site_personnel_list'] if args['site_personnel_list'] is not None else ' '
-        priority = args['Priority'] if args['Priority'] is not None else ' '                    #priority check
+            customer = args['customer'] if args['customer'] is not None else ' '                    #customer check
+            protocol = args['protocol'] if args['protocol'] is not None else ' '                    #protocol check
+            country  = args['country'] if args['country'] is not None else ' '                      #country check
+            site = args['site'] if args['site'] is not None else ' '                                #site check
+            document_class = args['document_class'] if args['document_class'] is not None else ' '  #document class check
+            tmf_ibr = args['tmf_ibr'] if args['tmf_ibr'] is not None else ' '                       #environment check
+            blinded = args['unblinded'] if args['unblinded'] is not None else True                  #document blinded/unblinded
+            tmf_environment = args['tmf_environment'] if args['tmf_environment'] is not None else ' '
+            received_date = args['received_date'] if args['received_date'] is not None else ' '     #received date check
+            site_personnel_list = args['site_personnel_list'] if args['site_personnel_list'] is not None else ' '
+            priority = args['priority'] if args['priority'] is not None else ' '                    #priority check
 
-        saved_resource = save_doc_processing(args, _id, file_path)
-        duplicatecheck = save_doc_processing_duplicate(args, _id, file_path)
+            #saved_resource = save_doc_processing(args, _id, file_path)
+            save_doc_processing(args, _id, file_path)
+            duplicatecheck = save_doc_processing_duplicate(args, _id, file_path)
 
-        BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
-        EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
+            BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
+            EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
 
-        msg_f = TriageRequest(_id, filename_main, file_path, customer, protocol, country, site, document_class,
-                              tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority, duplicatecheck)
+            msg_f = TriageRequest(_id, filename_main, file_path, customer, protocol, country, site, document_class,
+                            tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority, duplicatecheck)
 
-        MessagePublisher(BROKER_ADDR, EXCHANGE, logging.getLogger(consts.LOGGING_NAME)).send_obj(msg_f)
+            MessagePublisher(BROKER_ADDR, EXCHANGE, logging.getLogger(consts.LOGGING_NAME)).send_obj(msg_f)
 
-        # Return response object
-        return get_doc_processing_by_id(_id, full_mapping=True)
+            # Return response object
+            return get_doc_processing_by_id(_id, full_mapping=True)
 
 
 @ns.route('/<string:id>/key/value')
@@ -113,18 +119,6 @@ class DocumentprocessingAPI(Resource):
             upsert_attributevalue(id, m['name'], m['val'])
         return get_doc_processed_by_id(id)
 
-#
-# @ns.route('/<string:id>/get_attribute/key')
-# @ns.response(404, 'Document processing resource not found.')
-# @ns.response(500, 'Server error')
-# class DocumentprocessingAPI(Resource):
-#     @ns.expect(metadata_get)
-#     @ns.marshal_with(metadata_post)
-#     @ns.response(201, 'Document processing resource returned OK')
-#     def get(self, id):
-#         md = request.json
-#         return get_attributevalue(id, md)
-#
 
 @ns.route('/<string:id>/status')
 @ns.response(404, 'Document Processing resource not found.')

@@ -13,6 +13,7 @@ from ..consts import Consts
 
 @api.errorhandler
 def handle_global_errors(error):
+    # print("error raised globally",type(error))
     logger = logging.getLogger(Consts.LOGGING_NAME)
 
     try:
@@ -23,8 +24,8 @@ def handle_global_errors(error):
                     'json': request.json,
                 }
             })
-
-        logger.exception(error, extra=payload)
+        if not LookupError:
+            logger.exception(error, extra=payload)
     except Exception as e:
         logger.exception(e, exc_info=True)
 

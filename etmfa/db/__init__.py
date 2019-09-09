@@ -25,8 +25,6 @@ from ..messaging.models.finalization_request import finalizationRequest
 
 
 
-
-
 from . import *
 
 # Global DB ORM object
@@ -80,17 +78,23 @@ def received_triagecomplete_event(id, IQVXMLPath, message_publisher):
     resource.Percent_complete = '30'
     resource.status = "OCR_STARTED"
     resource.last_updated = datetime.utcnow()
-    db_context.session.commit()
+    #db_context.session.commit()
+    try:
+        db_context.session.commit()
+    except Exception as e:
+        db_context.session.rollback()
+        logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+        raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+    finally:
+        db_context.session.remove()
 
     # Start processing request
     OCR_req_msg = ocrrequest(
         id,
         IQVXMLPath
     )
-
     message_publisher.send_obj(OCR_req_msg)
-
-    return resource.as_dict()
+    #return resource.as_dict()
 
 def received_ocrcomplete_event(id, IQVXMLPath, message_publisher):
     resource = get_doc_resource_by_id(id)
@@ -98,17 +102,22 @@ def received_ocrcomplete_event(id, IQVXMLPath, message_publisher):
     resource.Percent_complete = '70'
     resource.status = "CLASSIFICATION_STARTED"
     resource.last_updated = datetime.utcnow()
-    db_context.session.commit()
+    try:
+        db_context.session.commit()
+    except Exception as e:
+        db_context.session.rollback()
+        logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+        raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+    finally:
+        db_context.session.remove()
 
     # Start processing request
     classification_req_msg = classificationRequest(
         id,
         IQVXMLPath
     )
-
     message_publisher.send_obj(classification_req_msg)
-
-    return resource.as_dict()
+    #return resource.as_dict()
 
 def received_classificationcomplete_event(id, IQVXMLPath, message_publisher):
     resource = get_doc_resource_by_id(id)
@@ -116,17 +125,22 @@ def received_classificationcomplete_event(id, IQVXMLPath, message_publisher):
     resource.Percent_complete = '80'
     resource.status = "ATTRIBUTEEXTRACTION_STARTED"
     resource.last_updated = datetime.utcnow()
-    db_context.session.commit()
+    try:
+        db_context.session.commit()
+    except Exception as e:
+        db_context.session.rollback()
+        logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+        raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+    finally:
+        db_context.session.remove()
 
     # Start processing request
     attributeextraction_req_msg = attributeextractionRequest(
         id,
         IQVXMLPath
     )
-
     message_publisher.send_obj(attributeextraction_req_msg)
-
-    return resource.as_dict()
+    #return resource.as_dict()
 
 def received_attributeextractioncomplete_event(id, IQVXMLPath, message_publisher):
     resource = get_doc_resource_by_id(id)
@@ -134,27 +148,37 @@ def received_attributeextractioncomplete_event(id, IQVXMLPath, message_publisher
     resource.Percent_complete = '90'
     resource.status = "FINALIZATION_STARTED"
     resource.last_updated = datetime.utcnow()
-    db_context.session.commit()
+    try:
+        db_context.session.commit()
+    except Exception as e:
+        db_context.session.rollback()
+        logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+        raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+    finally:
+        db_context.session.remove()
 
     # Start processing request
     finalization_req_msg = finalizationRequest(
         id,
         IQVXMLPath
     )
-
     message_publisher.send_obj(finalization_req_msg)
-
-    return resource.as_dict()
+    #return resource.as_dict()
 
 def received_feedbackcomplete_event(id):
     resource = get_doc_resource_by_id(id)
     resource.Percent_complete = '100'
     resource.status = "FEEDBACK_COMPLETED"
     resource.last_updated = datetime.utcnow()
-
-    db_context.session.commit()
-
-    return resource.as_dict()
+    try:
+        db_context.session.commit()
+    except Exception as e:
+        db_context.session.rollback()
+        logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+        raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+    finally:
+        db_context.session.remove()
+    #return resource.as_dict()
 
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
@@ -164,7 +188,12 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     resource.Percent_complete = '100'
     resource.status = "PROCESS_COMPLETED"
     resource.last_updated = datetime.utcnow()
-    db_context.session.commit()
+    try:
+        db_context.session.commit()
+    except Exception as e:
+        db_context.session.rollback()
+        logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+        raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
 
     metrics = Metric(resource.id)
     metrics.id                             = finalattributes['id']
@@ -196,13 +225,15 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     metrics.finalization_end_time          = finalattributes['finalization_end_time']
     metrics.finalization_proc_time         = finalattributes['finalization_proc_time']
 
-    db_context.session.add(metrics)
-    try:
-        db_context.session.commit()
-    except Exception as e:
-        db_context.session.rollback()
-        raise LookupError("Error while writing record to etmfa_document_metrics to DB for ID: {},{}".format(finalattributes['id'], e))
-
+    # try:
+    #     db_context.session.add(metrics)
+    #     db_context.session.commit()
+    # except Exception as e:
+    #     db_context.session.rollback()
+    #     logger.error("Error while writing record to etmfa_document_metrics to DB for ID: {},{}".format(finalattributes['id'], e))
+    #     raise LookupError("Error while writing record to etmfa_document_metrics to DB for ID: {},{}".format(finalattributes['id'], e))
+    # finally:
+    #     db_context.session.remove()
 
     attributes                             = Documentattributes()
     attributes.id                          = finalattributes['id']
@@ -240,16 +271,18 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     else:
         attributes.blinded = False
 
-
-    db_context.session.add(attributes)
     try:
+        db_context.session.add(attributes)
+        db_context.session.add(metrics)
         db_context.session.commit()
     except Exception as e:
         db_context.session.rollback()
+        logger.error("Error while writing record to etmfa_document_attributes file in DB for ID: {},{}".format(finalattributes['id'],e))
         raise LookupError("Error while writing record to etmfa_document_attributes file in DB for ID: {},{}".format(finalattributes['id'],e))
+    finally:
+        db_context.session.remove()
 
-    return resource.as_dict()
-
+    #return resource.as_dict()
 
 def received_documentprocessing_error_event(errorDict):
     resource = get_doc_resource_by_id(errorDict['id'])
@@ -262,7 +295,14 @@ def received_documentprocessing_error_event(errorDict):
     resource.is_processing = False
     resource.last_updated = datetime.utcnow()
 
-    db_context.session.commit()
+    try:
+        db_context.session.commit()
+    except Exception as e:
+        db_context.session.rollback()
+        logger.error("Error while updating values to etmfa_document_process file in DB for ID: {},{}".format(errorDict['id'],e))
+        raise LookupError("Error while updating values to etmfa_document_process file in DB for ID: {},{}".format(errorDict['id'],e))
+    finally:
+        db_context.session.remove()
 
 
 def save_doc_feedback(_id, feedbackdata):
@@ -287,11 +327,13 @@ def save_doc_feedback(_id, feedbackdata):
     resourcefb.document_rejected        = feedbackdata['document_rejected']
     resourcefb.attribute_auxillary_list = str(feedbackdata['attribute_auxillary_list'])
 
-    db_context.session.add(resourcefb)
     try:
+        db_context.session.add(resourcefb)
         db_context.session.commit()
     except Exception as e:
         db_context.session.rollback()
+        db_context.session.remove()
+        logger.error("Error while writing record to etmfa_document_feedback file in DB for ID: {},{}".format(_id, e))
         raise LookupError("Error while writing record to etmfa_document_feedback file in DB for ID: {},{}".format(_id, e))
 
     return resourcefb.as_dict()
@@ -303,12 +345,12 @@ def save_doc_processing_duplicate(request, _id, doc_path):
     resource.id                  = _id
     resource.doc_hash            = sha512hasher.hash_file(doc_path)
     resource.document_file_path  = doc_path
-    resource.customer            = request['Customer'] if request['Customer'] is not None else ''
-    resource.protocol            = request['Protocol'] if request['Protocol'] is not None else ''
-    resource.country             = request['Country']  if request['Country'] is not None else ''
-    resource.site                = request['Site']     if request['Site'] is not None else ''
-    resource.document_class      = request['Document_Class'] if request['Document_Class'] is not None else ''
-    resource.received_date       = request['Received_Date']  if request['Received_Date'] is not None else ''
+    resource.customer            = request['customer'] if request['customer'] is not None else ''
+    resource.protocol            = request['protocol'] if request['protocol'] is not None else ''
+    resource.country             = request['country']  if request['country'] is not None else ''
+    resource.site                = request['site']     if request['site'] is not None else ''
+    resource.document_class      = request['document_class'] if request['document_class'] is not None else ''
+    resource.received_date       = request['received_date']  if request['received_date'] is not None else ''
     #resource.document_rejected   = request['Document_Rejected']
     resourcefound = get_doc_duplicate_by_id(resource)
     duplicateresource = ' '
@@ -319,13 +361,22 @@ def save_doc_processing_duplicate(request, _id, doc_path):
             db_context.session.commit()
         except Exception as e:
             db_context.session.rollback()
-            raise LookupError(
-                "Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
+            logger.error("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
+            raise LookupError("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
+        finally:
+            db_context.session.remove()
     else:
         duplicateresource = resourcefound.id
         doc_duplicate_flag_update  = resourcefound.doc_duplicate_flag + 1
         setattr(resourcefound, 'doc_duplicate_flag', doc_duplicate_flag_update)
-        db_context.session.commit()
+        try:
+            db_context.session.commit()
+        except Exception as e:
+            db_context.session.rollback()
+            logger.error("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
+            raise LookupError("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
+        finally:
+            db_context.session.remove()
 
     return duplicateresource
 
@@ -352,6 +403,7 @@ def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
     else:
         resource = Documentduplicate.query.filter(Documentduplicate.doc_hash == resourcechk.doc_hash).first()
 
+    db_context.session.remove()
     if not full_mapping:
         return resource
 
@@ -363,10 +415,17 @@ def save_doc_processing(request, _id, doc_path):
     resource.document_file_path = doc_path
     resource.Percent_complete = '0'
     resource.status = "TRIAGE_STARTED"
-    db_context.session.add(resource)
-    db_context.session.commit()
+    try:
+        db_context.session.add(resource)
+        db_context.session.commit()
+    except Exception as e:
+        db_context.session.rollback()
+        logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(_id, e))
+        raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(_id, e))
+    finally:
+        db_context.session.remove()
 
-    return resource.as_dict()
+    #return resource.as_dict()
 
 
 def get_doc_processing_by_id(id, full_mapping=False):
@@ -394,28 +453,22 @@ def get_doc_proc_metrics_by_id(id, full_mapping=True):
     return resource_dict
 
 def get_doc_attributes_by_id(id):
-    """
-    Returns the DTO by id.
-    Raises LookupError if no id is found.
-    """
-
     resource = Documentattributes.query.filter(Documentattributes.id.like(str(id))).first()
+    db_context.session.remove()
 
     if resource == None:
-        raise LookupError("No resource was found in DB for ID: {}".format(id))
+        logger.error("No document resource was found in DB for ID: {}".format(id))
+        raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
     return resource
 
 def get_doc_metrics_by_id(id):
-    """
-    Returns the DTO by id.
-    Raises LookupError if no id is found.
-    """
-
     resource = Metric.query.filter(Metric.id.like(str(id))).first()
+    db_context.session.remove()
 
     if resource == None:
-        raise LookupError("No resource was found in DB for ID: {}".format(id))
+        logger.error("No document resource was found in DB for ID: {}".format(id))
+        raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
     return resource
 
@@ -429,11 +482,6 @@ def get_doc_status_processing_by_id(id, full_mapping=True):
 
 
 def get_doc_resource_by_id(id):
-    """
-    Returns the DTO by id.
-    Raises LookupError if no id is found.
-    """
-
     resource = DocumentProcess.query.filter(DocumentProcess.id.like(str(id))).first()
 
     if resource == None:
@@ -447,18 +495,26 @@ def upsert_attributevalue(doc_processing_id, namekey, value):
     doc_processing_resource = get_doc_attributes_by_id(doc_processing_id)
 
     if doc_processing_resource is None:
-        raise LookupError("No resource was found in DB for ID: {}".format(id))
+        logger.error("No document resource was found in DB for ID: {}".format(id))
+        raise LookupError("No document resource was found in DB for ID: {}".format(id))
     else:
         setattr(doc_processing_resource, namekey, value)
-        db_context.session.commit()
+        try:
+            db_context.session.commit()
+        except Exception as e:
+            db_context.session.rollback()
+            logger.error("Error while updating attribute to etmfa_document_attributes to DB for ID: {},{}".format(doc_processing_id, e))
+            raise LookupError("Error while updating attribute to etmfa_document_attributes to DB for ID: {},{}".format(doc_processing_id, e))
+        finally:
+            db_context.session.remove()
 
 
 def get_attribute_dict(doc_processing_id):
     doc_processing_resource = get_doc_resource_by_id(doc_processing_id)
-    #metadata = IQMetadata.query.filter(IQMetadata.document_processing_id==doc_processing_resource.p_id)
 
     if doc_processing_resource == None:
-        raise LookupError("No resource was found in DB for ID: {}".format(id))
+        logger.error("No document resource was found in DB for ID: {}".format(id))
+        raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
     return doc_processing_resource
 

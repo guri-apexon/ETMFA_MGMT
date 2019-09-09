@@ -210,49 +210,49 @@ eTMFA_object_post = reqparse.RequestParser()
 eTMFA_object_post.add_argument('file_name',
                          type=str,
                          help='Input document name')
-eTMFA_object_post.add_argument('Customer',
+eTMFA_object_post.add_argument('customer',
                          type=str, 
-                         required=True, 
+                         required=False,
                          help='Customer Name')
-eTMFA_object_post.add_argument('Protocol',
+eTMFA_object_post.add_argument('protocol',
                          type=str,
-                         required=True, 
+                         required=True,
                          help='Protocol')
-eTMFA_object_post.add_argument('Country',
+eTMFA_object_post.add_argument('country',
                          type=str,
                          required=False,
                          help='Country')
-eTMFA_object_post.add_argument('Site',
+eTMFA_object_post.add_argument('site',
                          type=str,
                          required=False,
                          help='Site')
-eTMFA_object_post.add_argument('Document_Class',
+eTMFA_object_post.add_argument('document_class',
                          type=str,
                          required=True,
-                         help='Document_Class')
-eTMFA_object_post.add_argument('TMF_IBR',
+                         help='Document Class(core/country/site)')
+eTMFA_object_post.add_argument('tmf_ibr',
                          type=str,
-                         required=True,
-                         help='TMF_IBR')
-eTMFA_object_post.add_argument('Blinded',
+                         required=False,
+                         help='TMF/IBR')
+eTMFA_object_post.add_argument('unblinded',
                          type=bool,
                          required=False,
-                         help='Blinded')
-eTMFA_object_post.add_argument('TMF_Environment',
+                         help='Unblinded')
+eTMFA_object_post.add_argument('tmf_environment',
                          type=str,
-                         required=True,
-                         help='TMF_Environment')
-eTMFA_object_post.add_argument('Received_Date',
+                         required=False,
+                         help='TMF Environment')
+eTMFA_object_post.add_argument('received_date',
                          type=str,
-                         required=True,
-                         help='Received_Date')
+                         required=False,
+                         help='Received Date')
 eTMFA_object_post.add_argument('site_personnel_list',
                          type=str,
-                         required=True,
-                         help='site_personnel_list')
-eTMFA_object_post.add_argument('Priority',
+                         required=False,
+                         help='Site personnel Information')
+eTMFA_object_post.add_argument('priority',
                          type=str,
-                         required=True,
+                         required=False,
                          help='Priority')
 eTMFA_object_post.add_argument('file',
                          type=werkzeug.datastructures.FileStorage, 
