@@ -62,40 +62,40 @@ def on_triage_complete(msg_proc_obj, message_publisher):
     db_context.session.commit()
 
     if msg_proc_obj['OCR_Required'] == True:
-        #print("message received from traiage complete", msg_proc_obj)
+        print("message received from traiage complete", msg_proc_obj)
         received_triagecomplete_event(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], message_publisher)
     else:
-        #print("message received from OCR complete", str(msg_proc_obj))
+        print("message received from OCR complete", str(msg_proc_obj))
         received_ocrcomplete_event(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], message_publisher)
 
 def on_ocr_complete(msg_proc_obj, message_publisher):
     from ..db import received_ocrcomplete_event
 
-    #print("message received from OCR complete", str(msg_proc_obj))
+    print("message received from OCR complete", str(msg_proc_obj))
     received_ocrcomplete_event(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], message_publisher)
 
 def on_classification_complete(msg_proc_obj, message_publisher):
     from ..db import received_classificationcomplete_event
 
-    #print("message received from classification complete",str(msg_proc_obj))
+    print("message received from classification complete",str(msg_proc_obj))
     received_classificationcomplete_event(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], message_publisher)
 
 def on_attributeextraction_complete(msg_proc_obj, message_publisher):
     from ..db import received_attributeextractioncomplete_event
 
-    #print("message received from Attribute Extraction complete", str(msg_proc_obj))
+    print("message received from Attribute Extraction complete", str(msg_proc_obj))
     received_attributeextractioncomplete_event(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], message_publisher)
 
 def on_finalization_complete(msg_proc_obj, message_publisher):
     from ..db import received_finalizationcomplete_event
 
-    #print("message received from Finalization complete", str(msg_proc_obj))
+    print("message received from Finalization complete", str(msg_proc_obj))
     received_finalizationcomplete_event(msg_proc_obj['id'], msg_proc_obj, message_publisher)
 
 def on_feedback_complete(msg_proc_obj, message_publisher):
     from ..db import received_feedbackcomplete_event
 
-    #print("message received from feedback complete", str(msg_proc_obj))
+    print("message received from feedback complete", str(msg_proc_obj))
     received_feedbackcomplete_event(msg_proc_obj['id'])
 
 def on_documentprocessing_error(error_obj, message_publisher):

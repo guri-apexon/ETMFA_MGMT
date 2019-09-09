@@ -31,7 +31,10 @@ class Metric(db_context.Model):
 	finalization_start_time         = db_context.Column(db_context.String(200))
 	finalization_end_time           = db_context.Column(db_context.String(200))
 	finalization_proc_time          = db_context.Column(db_context.String(200))
-
+	doc_type                        = db_context.Column(db_context.String(200))
+	doc_type_original               = db_context.Column(db_context.String(200))
+	doc_segments                    = db_context.Column(db_context.String(200))
+	doc_pages                       = db_context.Column(db_context.String(200))
 
 	def __init__(self, id):
 		self.id = id

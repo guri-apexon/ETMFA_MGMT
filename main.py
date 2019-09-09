@@ -4,6 +4,7 @@ from etmfa.server import create_app
 from etmfa.server.config import app_config
 from sys import argv
 from gevent.pywsgi import WSGIServer
+#from flask_httpauth import HTTPBasicAuth
 
 import gevent
 
@@ -36,6 +37,7 @@ if __name__ == '__main__':
     is_SSL = args.key != None and args.cert != None
 
     app = create_app(config_name, ssl_enabled=is_SSL)
+
 
     print('Starting eTMFA Service at level: {}, on port: {}, SSL enabled: {} ...'.format(args.level, args.port, is_SSL))
 

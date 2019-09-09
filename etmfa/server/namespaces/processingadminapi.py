@@ -8,7 +8,6 @@ from ..api import api
 
 ns = api.namespace('Admin - Processing', path='/admin/processing', description='Operations related to application configuration')
 
-
 processing = api.model('Processing definition', {
     'id': fields.Integer(required = True, description = 'Id for Processing directory. '),
     'processing_dir': fields.String(required=True, description='Processing directory for intermediate files.'),
