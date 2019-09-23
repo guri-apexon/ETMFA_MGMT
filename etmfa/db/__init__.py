@@ -22,8 +22,9 @@ from ..messaging.models.ocr_request import ocrrequest
 from ..messaging.models.classification_request import classificationRequest
 from ..messaging.models.attributeextraction_request import attributeextractionRequest
 from ..messaging.models.finalization_request import finalizationRequest
-
-
+#os.environ["NLS_LANG"] = "RUSSIAN_RUSSIA.AL32UTF8"
+#os.environ["NLS_LANG"] = "AMERICAN_AMERICA.CL8MSWIN1251"
+os.environ["NLS_LANG"]="AMERICAN_AMERICA.AL32UTF8"
 
 from . import *
 
@@ -75,9 +76,9 @@ def get_root_dir():
 def received_triagecomplete_event(id, IQVXMLPath, message_publisher):
     resource = get_doc_resource_by_id(id)
 
-    resource.Percent_complete = '30'
+    resource.percentComplete = '30'
     resource.status = "OCR_STARTED"
-    resource.last_updated = datetime.utcnow()
+    resource.lastUpdated = datetime.utcnow()
     #db_context.session.commit()
     try:
         db_context.session.commit()
@@ -85,8 +86,8 @@ def received_triagecomplete_event(id, IQVXMLPath, message_publisher):
         db_context.session.rollback()
         logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
         raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
-    finally:
-        db_context.session.remove()
+    # finally:
+    #     db_context.session.remove()
 
     # Start processing request
     OCR_req_msg = ocrrequest(
@@ -99,17 +100,17 @@ def received_triagecomplete_event(id, IQVXMLPath, message_publisher):
 def received_ocrcomplete_event(id, IQVXMLPath, message_publisher):
     resource = get_doc_resource_by_id(id)
 
-    resource.Percent_complete = '70'
+    resource.percentComplete = '70'
     resource.status = "CLASSIFICATION_STARTED"
-    resource.last_updated = datetime.utcnow()
+    resource.lastUpdated = datetime.utcnow()
     try:
         db_context.session.commit()
     except Exception as e:
         db_context.session.rollback()
         logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
         raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
-    finally:
-        db_context.session.remove()
+    # finally:
+    #     db_context.session.remove()
 
     # Start processing request
     classification_req_msg = classificationRequest(
@@ -122,17 +123,17 @@ def received_ocrcomplete_event(id, IQVXMLPath, message_publisher):
 def received_classificationcomplete_event(id, IQVXMLPath, message_publisher):
     resource = get_doc_resource_by_id(id)
 
-    resource.Percent_complete = '80'
+    resource.percentComplete = '80'
     resource.status = "ATTRIBUTEEXTRACTION_STARTED"
-    resource.last_updated = datetime.utcnow()
+    resource.lastUpdated = datetime.utcnow()
     try:
         db_context.session.commit()
     except Exception as e:
         db_context.session.rollback()
         logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
         raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
-    finally:
-        db_context.session.remove()
+    # finally:
+    #     db_context.session.remove()
 
     # Start processing request
     attributeextraction_req_msg = attributeextractionRequest(
@@ -145,17 +146,17 @@ def received_classificationcomplete_event(id, IQVXMLPath, message_publisher):
 def received_attributeextractioncomplete_event(id, IQVXMLPath, message_publisher):
     resource = get_doc_resource_by_id(id)
 
-    resource.Percent_complete = '90'
+    resource.percentComplete = '90'
     resource.status = "FINALIZATION_STARTED"
-    resource.last_updated = datetime.utcnow()
+    resource.lastUpdated = datetime.utcnow()
     try:
         db_context.session.commit()
     except Exception as e:
         db_context.session.rollback()
         logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
         raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
-    finally:
-        db_context.session.remove()
+    # finally:
+    #     db_context.session.remove()
 
     # Start processing request
     finalization_req_msg = finalizationRequest(
@@ -167,27 +168,27 @@ def received_attributeextractioncomplete_event(id, IQVXMLPath, message_publisher
 
 def received_feedbackcomplete_event(id):
     resource = get_doc_resource_by_id(id)
-    resource.Percent_complete = '100'
+    resource.percentComplete = '100'
     resource.status = "FEEDBACK_COMPLETED"
-    resource.last_updated = datetime.utcnow()
+    resource.lastUpdated = datetime.utcnow()
     try:
         db_context.session.commit()
     except Exception as e:
         db_context.session.rollback()
         logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
         raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
-    finally:
-        db_context.session.remove()
+    # finally:
+    #     db_context.session.remove()
     #return resource.as_dict()
 
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     resource = get_doc_resource_by_id(id)
 
-    resource.is_processing = False
-    resource.Percent_complete = '100'
+    resource.isProcessing = False
+    resource.percentComplete = '100'
     resource.status = "PROCESS_COMPLETED"
-    resource.last_updated = datetime.utcnow()
+    resource.lastUpdated = datetime.utcnow()
     try:
         db_context.session.commit()
     except Exception as e:
@@ -197,77 +198,75 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
 
     metrics = Metric(resource.id)
     metrics.id                             = finalattributes['id']
-    metrics.total_process_time             = finalattributes['total_process_time']
-    metrics.queue_wait_time                = finalattributes['queue_wait_time']
-    metrics.triage_machine_name            = finalattributes['triage_machine_name']
-    metrics.triage_version                 = finalattributes['triage_version']
-    metrics.triage_start_time              = finalattributes['triage_start_time']
-    metrics.triage_end_time                = finalattributes['triage_end_time']
-    metrics.triage_proc_time               = finalattributes['triage_proc_time']
-    metrics.digitizer_machine_name         = finalattributes['digitizer_machine_name']
-    metrics.digitizer_version              = finalattributes['digitizer_version']
-    metrics.digitizer_start_time           = finalattributes['digitizer_start_time']
-    metrics.digitizer_end_time             = finalattributes['digitizer_end_time']
-    metrics.digitizer_proc_time            = finalattributes['digitizer_proc_time']
-    metrics.classification_machine_name    = finalattributes['classification_machine_name']
-    metrics.classification_version         = finalattributes['classification_version']
-    metrics.classification_start_time      = finalattributes['classification_start_time']
-    metrics.classification_end_time        = finalattributes['classification_end_time']
-    metrics.classification_proc_time       = finalattributes['classification_proc_time']
-    metrics.att_extraction_machine_name    = finalattributes['att_extraction_machine_name']
-    metrics.att_extraction_version         = finalattributes['att_extraction_version']
-    metrics.att_extraction_start_time      = finalattributes['att_extraction_start_time']
-    metrics.att_extraction_end_time        = finalattributes['att_extraction_end_time']
-    metrics.att_extraction_proc_time       = finalattributes['att_extraction_proc_time']
-    metrics.finalization_machine_name      = finalattributes['finalization_machine_name']
-    metrics.finalization_version           = finalattributes['finalization_version']
-    metrics.finalization_start_time        = finalattributes['finalization_start_time']
-    metrics.finalization_end_time          = finalattributes['finalization_end_time']
-    metrics.finalization_proc_time         = finalattributes['finalization_proc_time']
+    metrics.totalProcessTime               = finalattributes['total_process_time']
+    metrics.queueWaitTime                  = finalattributes['queue_wait_time']
+    metrics.triageMachineName              = finalattributes['triage_machine_name']
+    metrics.triageVersion                  = finalattributes['triage_version']
+    metrics.triageStartTime                = finalattributes['triage_start_time']
+    metrics.triageEndTime                  = finalattributes['triage_end_time']
+    metrics.triageProcTime                 = finalattributes['triage_proc_time']
+    metrics.digitizerMachineName           = finalattributes['digitizer_machine_name']
+    metrics.digitizerVersion               = finalattributes['digitizer_version']
+    metrics.digitizerStartTime             = finalattributes['digitizer_start_time']
+    metrics.digitizerEndTime               = finalattributes['digitizer_end_time']
+    metrics.digitizerProcTime              = finalattributes['digitizer_proc_time']
+    metrics.classificationMachineName      = finalattributes['classification_machine_name']
+    metrics.classificationVersion          = finalattributes['classification_version']
+    metrics.classificationStartTime        = finalattributes['classification_start_time']
+    metrics.classificationEndTime          = finalattributes['classification_end_time']
+    metrics.classificationProcTime         = finalattributes['classification_proc_time']
+    metrics.att_extractionMachineName      = finalattributes['att_extraction_machine_name']
+    metrics.att_extractionVersion          = finalattributes['att_extraction_version']
+    metrics.att_extractionStartTime        = finalattributes['att_extraction_start_time']
+    metrics.att_extractionEndTime          = finalattributes['att_extraction_end_time']
+    metrics.att_extractionProcTime         = finalattributes['att_extraction_proc_time']
+    metrics.finalizationMachineName        = finalattributes['finalization_machine_name']
+    metrics.finalizationVersion            = finalattributes['finalization_version']
+    metrics.finalizationStartTime          = finalattributes['finalization_start_time']
+    metrics.finalizationEndTime            = finalattributes['finalization_end_time']
+    metrics.finalizationProcTime           = finalattributes['finalization_proc_time']
+    metrics.docType                        = finalattributes['doc_type']
+    metrics.docTypeOriginal                = finalattributes['doc_type_original']
+    metrics.docSegments                    = finalattributes['doc_segments']
+    metrics.docPages                       = finalattributes['doc_pages']
 
-    # try:
-    #     db_context.session.add(metrics)
-    #     db_context.session.commit()
-    # except Exception as e:
-    #     db_context.session.rollback()
-    #     logger.error("Error while writing record to etmfa_document_metrics to DB for ID: {},{}".format(finalattributes['id'], e))
-    #     raise LookupError("Error while writing record to etmfa_document_metrics to DB for ID: {},{}".format(finalattributes['id'], e))
-    # finally:
-    #     db_context.session.remove()
 
     attributes                             = Documentattributes()
     attributes.id                          = finalattributes['id']
-    attributes.doc_comp_conf               = finalattributes['doc_comp_conf']
-    attributes.customer                    = finalattributes['customer']
-    attributes.protocol                    = finalattributes['protocol']
-    attributes.country                     = finalattributes['country']
-    attributes.site                        = finalattributes['site']
-    attributes.doc_class                   = finalattributes['doc_class']
-    attributes.doc_date                    = finalattributes['doc_date']
-    attributes.doc_date_conf               = finalattributes['doc_date_conf']
-    attributes.doc_date_type               = finalattributes['doc_date_type']
-    attributes.doc_classification          = finalattributes['doc_classification']
-    attributes.doc_classification_conf     = finalattributes['doc_classification_conf']
-    attributes.name                        = finalattributes['name']
-    attributes.name_conf                   = finalattributes['name_conf']
-    attributes.doc_subclassification       = finalattributes['doc_subclassification']
-    attributes.doc_subclassification_conf  = finalattributes['doc_subclassification_conf']
-    attributes.subject                     = finalattributes['subject']
-    attributes.subject_conf                = finalattributes['subject_conf']
-    attributes.language                    = finalattributes['language']
-    attributes.language_conf               = finalattributes['language_conf']
-    attributes.alcoac_check_comp_score     = finalattributes['alcoac_check_comp_score']
-    attributes.alcoac_check_comp_score_conf= finalattributes['alcoac_check_comp_score_conf']
-    attributes.alcoac_check_error          = finalattributes['alcoac_check_error']
-    #attributes.doc_rejected                = ' '
+    attributes.fileName                    = safe_unicode(resource.fileName)
+    attributes.documentFilePath            = resource.documentFilePath
+    attributes.customer                    = safe_unicode(finalattributes['customer'])
+    attributes.protocol                    = safe_unicode(finalattributes['protocol'])
+    attributes.country                     = safe_unicode(finalattributes['country'])
+    attributes.site                        = safe_unicode(finalattributes['site'])
+    attributes.docClass                    = finalattributes['doc_class']
     attributes.priority                    = finalattributes['priority']
-    attributes.received_date               = finalattributes['received_date']
-    attributes.site_personnel_list         = finalattributes['site_personnel_list']
-    attributes.tmf_environment             = finalattributes['tmf_environment']
-    attributes.tmf_ibr                     = finalattributes['tmf_ibr']
-    attributes.doc_classification_elvis    = finalattributes['doc_classification_elvis']
+    attributes.receivedDate                = finalattributes['received_date']
+    attributes.sitePersonnelList           = safe_unicode(finalattributes['site_personnel_list'])
+    attributes.tmfEnvironment              = finalattributes['tmf_environment']
+    attributes.tmfIbr                      = finalattributes['tmf_ibr']
+
+    attributes.docCompConf                 = finalattributes['doc_comp_conf']
+    attributes.docClassification           = finalattributes['doc_classification']
+    attributes.docClassificationConf       = finalattributes['doc_classification_conf']
+    attributes.docDate                     = finalattributes['doc_date']
+    attributes.docDateConf                 = finalattributes['doc_date_conf']
+    attributes.docDateType                 = finalattributes['doc_date_type']
+    attributes.name                        = safe_unicode(finalattributes['name'])
+    attributes.nameConf                    = finalattributes['name_conf']
+    attributes.language                    = finalattributes['language']
+    attributes.languageConf                = finalattributes['language_conf']
+    attributes.subject                     = safe_unicode(finalattributes['subject'])
+    attributes.subjectConf                 = finalattributes['subject_conf']
+    attributes.alcoacCheckError            = finalattributes['alcoac_check_error']
+    attributes.alcoacCheckCompScore        = finalattributes['alcoac_check_comp_score']
+    attributes.alcoacCheckCompScoreConf    = finalattributes['alcoac_check_comp_score_conf']
+    attributes.docSubclassification        = finalattributes['doc_subclassification']
+    attributes.docSubclassificationConf    = finalattributes['doc_subclassification_conf']
+    attributes.docClassificationElvis      = finalattributes['doc_classification_elvis']
+
     if finalattributes['blinded'] in ['true', 'yes', 'True', 'TRUE', 'YES', 'Yes', 'y', 'Y']:
-        attributes.blinded = True
+        attributes.unblinded = True
     else:
         attributes.blinded = False
 
@@ -279,8 +278,8 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         db_context.session.rollback()
         logger.error("Error while writing record to etmfa_document_attributes file in DB for ID: {},{}".format(finalattributes['id'],e))
         raise LookupError("Error while writing record to etmfa_document_attributes file in DB for ID: {},{}".format(finalattributes['id'],e))
-    finally:
-        db_context.session.remove()
+    # finally:
+    #     db_context.session.remove()
 
     #return resource.as_dict()
 
@@ -288,12 +287,12 @@ def received_documentprocessing_error_event(errorDict):
     resource = get_doc_resource_by_id(errorDict['id'])
 
     # Update status
-    resource.error_code = errorDict['error_code']
-    resource.error_reason = errorDict['service_name'] + errorDict['error_message']
+    resource.errorCode = errorDict['error_code']
+    resource.errorReason = errorDict['service_name'] + errorDict['error_message']
     resource.status = "ERROR"
 
-    resource.is_processing = False
-    resource.last_updated = datetime.utcnow()
+    resource.isProcessing = False
+    resource.lastUpdated = datetime.utcnow()
 
     try:
         db_context.session.commit()
@@ -301,8 +300,8 @@ def received_documentprocessing_error_event(errorDict):
         db_context.session.rollback()
         logger.error("Error while updating values to etmfa_document_process file in DB for ID: {},{}".format(errorDict['id'],e))
         raise LookupError("Error while updating values to etmfa_document_process file in DB for ID: {},{}".format(errorDict['id'],e))
-    finally:
-        db_context.session.remove()
+    # finally:
+    #     db_context.session.remove()
 
 
 def save_doc_feedback(_id, feedbackdata):
@@ -313,49 +312,52 @@ def save_doc_feedback(_id, feedbackdata):
 
     resourcefb.p_id                     = str(int((datetime.now().timestamp()) * 1000000))
     resourcefb.id                       = feedbackdata['id']
-    resourcefb.document_file_path       = recordfound.document_file_path
-    resourcefb.feedback_source          = feedbackdata['feedback_source']
-    resourcefb.customer                 = feedbackdata['customer']
-    resourcefb.protocol                 = feedbackdata['protocol']
-    resourcefb.country                  = feedbackdata['country']
-    resourcefb.site                     = feedbackdata['site']
-    resourcefb.document_class           = feedbackdata['document_class']
-    resourcefb.document_date            = feedbackdata['document_date']
-    resourcefb.document_classification  = feedbackdata['document_classification']
-    resourcefb.name                     = feedbackdata['name']
+    resourcefb.fileName                 = safe_unicode(recordfound.fileName)
+    resourcefb.documentFilePath         = recordfound.documentFilePath
+    resourcefb.feedbackSource           = feedbackdata['feedbackSource']
+    resourcefb.customer                 = safe_unicode(feedbackdata['customer'])
+    resourcefb.protocol                 = safe_unicode(feedbackdata['protocol'])
+    resourcefb.country                  = safe_unicode(feedbackdata['country'])
+    resourcefb.site                     = safe_unicode(feedbackdata['site'])
+    resourcefb.documentClass            = feedbackdata['documentClass']
+    resourcefb.documentDate             = feedbackdata['documentDate']
+    resourcefb.documentClassification   = feedbackdata['documentClassification']
+    resourcefb.name                     = safe_unicode(feedbackdata['name'])
     resourcefb.language                 = feedbackdata['language']
-    resourcefb.document_rejected        = feedbackdata['document_rejected']
-    resourcefb.attribute_auxillary_list = str(feedbackdata['attribute_auxillary_list'])
+    resourcefb.documentRejected         = feedbackdata['documentRejected']
+    resourcefb.attributeAuxillaryList   = safe_unicode(str(feedbackdata['attributeAuxillaryList']))
 
     try:
         db_context.session.add(resourcefb)
         db_context.session.commit()
     except Exception as e:
         db_context.session.rollback()
-        db_context.session.remove()
+        #db_context.session.remove()
         logger.error("Error while writing record to etmfa_document_feedback file in DB for ID: {},{}".format(_id, e))
         raise LookupError("Error while writing record to etmfa_document_feedback file in DB for ID: {},{}".format(_id, e))
 
     return resourcefb.as_dict()
 
-def save_doc_processing_duplicate(request, _id, doc_path):
+def save_doc_processing_duplicate(request, _id, fileName, doc_path):
     resource = Documentduplicate()
 
     sha512hasher = FileHash('sha512')
     resource.id                  = _id
-    resource.doc_hash            = sha512hasher.hash_file(doc_path)
-    resource.document_file_path  = doc_path
-    resource.customer            = request['customer'] if request['customer'] is not None else ''
-    resource.protocol            = request['protocol'] if request['protocol'] is not None else ''
-    resource.country             = request['country']  if request['country'] is not None else ''
-    resource.site                = request['site']     if request['site'] is not None else ''
-    resource.document_class      = request['document_class'] if request['document_class'] is not None else ''
-    resource.received_date       = request['received_date']  if request['received_date'] is not None else ''
-    #resource.document_rejected   = request['Document_Rejected']
+    resource.fileName            = safe_unicode(fileName)
+    resource.docHash             = sha512hasher.hash_file(doc_path)
+    resource.documentFilePath    = doc_path
+    resource.customer            = safe_unicode(request['customer']) if request['customer'] is not None else ''
+    resource.protocol            = safe_unicode(request['protocol']) if request['protocol'] is not None else ''
+    resource.country             = safe_unicode(request['country'])  if request['country'] is not None else ''
+    resource.site                = safe_unicode(request['site']) if request['site'] is not None else ''
+    resource.documentClass       = request['documentClass'] if request['documentClass'] is not None else ''
+    resource.receivedDate        = request['receivedDate']  if request['receivedDate'] is not None else ''
+
     resourcefound = get_doc_duplicate_by_id(resource)
     duplicateresource = ' '
+
     if resourcefound is None:
-        resource.doc_duplicate_flag = 0
+        resource.docDuplicateFlag = 0
         try:
             db_context.session.add(resource)
             db_context.session.commit()
@@ -363,47 +365,47 @@ def save_doc_processing_duplicate(request, _id, doc_path):
             db_context.session.rollback()
             logger.error("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
             raise LookupError("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
-        finally:
-            db_context.session.remove()
+        # finally:
+        #     db_context.session.remove()
     else:
         duplicateresource = resourcefound.id
-        doc_duplicate_flag_update  = resourcefound.doc_duplicate_flag + 1
-        setattr(resourcefound, 'doc_duplicate_flag', doc_duplicate_flag_update)
+        doc_duplicate_flag_update  = resourcefound.docDuplicateFlag + 1
+        setattr(resourcefound, 'docDuplicateFlag', doc_duplicate_flag_update)
         try:
             db_context.session.commit()
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
             raise LookupError("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
-        finally:
-            db_context.session.remove()
+        # finally:
+        #     db_context.session.remove()
 
     return duplicateresource
 
 def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
 
-    if resourcechk.document_class == 'core':
-        resource = Documentduplicate.query.filter(Documentduplicate.doc_hash == resourcechk.doc_hash and
+    if resourcechk.documentClass == 'core':
+        resource = Documentduplicate.query.filter(Documentduplicate.docHash  == resourcechk.docHash and
                                                   Documentduplicate.customer == resourcechk.customer and
                                                   Documentduplicate.protocol == resourcechk.protocol and
-                                                  Documentduplicate.document_rejected == False).first()
-    elif resourcechk.document_class == 'country':
-        resource = Documentduplicate.query.filter(Documentduplicate.doc_hash == resourcechk.doc_hash and
+                                                  Documentduplicate.documentRejected == False).first()
+    elif resourcechk.documentClass == 'country':
+        resource = Documentduplicate.query.filter(Documentduplicate.docHash  == resourcechk.docHash and
                                                   Documentduplicate.customer == resourcechk.customer and
                                                   Documentduplicate.protocol == resourcechk.protocol and
                                                   Documentduplicate.country  == resourcechk.country and
-                                                  Documentduplicate.document_rejected == False).first()
-    elif resourcechk.document_class == 'site':
-        resource = Documentduplicate.query.filter(Documentduplicate.doc_hash == resourcechk.doc_hash and
+                                                  Documentduplicate.documentRejected == False).first()
+    elif resourcechk.documentClass == 'site':
+        resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash and
                                                   Documentduplicate.customer == resourcechk.customer and
                                                   Documentduplicate.protocol == resourcechk.protocol and
                                                   Documentduplicate.country  == resourcechk.country and
                                                   Documentduplicate.site     == resourcechk.site and
-                                                  Documentduplicate.document_rejected == False).first()
+                                                  Documentduplicate.documentRejected == False).first()
     else:
-        resource = Documentduplicate.query.filter(Documentduplicate.doc_hash == resourcechk.doc_hash).first()
+        resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash).first()
 
-    db_context.session.remove()
+    #db_context.session.remove()
     if not full_mapping:
         return resource
 
@@ -412,8 +414,8 @@ def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
 def save_doc_processing(request, _id, doc_path):
     resource = DocumentProcess.from_post_request(request, _id, doc_path)
 
-    resource.document_file_path = doc_path
-    resource.Percent_complete = '0'
+    resource.documentFilePath = doc_path
+    resource.percentComplete = '0'
     resource.status = "TRIAGE_STARTED"
     try:
         db_context.session.add(resource)
@@ -422,8 +424,8 @@ def save_doc_processing(request, _id, doc_path):
         db_context.session.rollback()
         logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(_id, e))
         raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(_id, e))
-    finally:
-        db_context.session.remove()
+    # finally:
+    #     db_context.session.remove()
 
     #return resource.as_dict()
 
@@ -437,7 +439,8 @@ def get_doc_processing_by_id(id, full_mapping=False):
     return resource_dict
 
 def get_doc_processed_by_id(id, full_mapping=True):
-    resource_dict = get_doc_attributes_by_id(id).as_dict()
+    #resource_dict = get_doc_attributes_by_id(id).as_dict()
+    resource_dict = get_doc_attributes_by_id(id)
 
     if not full_mapping:
         return resource_dict
@@ -445,7 +448,8 @@ def get_doc_processed_by_id(id, full_mapping=True):
     return resource_dict
 
 def get_doc_proc_metrics_by_id(id, full_mapping=True):
-    resource_dict = get_doc_metrics_by_id(id).as_dict()
+    #resource_dict = get_doc_metrics_by_id(id).as_dict()
+    resource_dict = get_doc_metrics_by_id(id)
 
     if not full_mapping:
         return resource_dict
@@ -454,26 +458,25 @@ def get_doc_proc_metrics_by_id(id, full_mapping=True):
 
 def get_doc_attributes_by_id(id):
     resource = Documentattributes.query.filter(Documentattributes.id.like(str(id))).first()
-    db_context.session.remove()
 
     if resource == None:
         logger.error("No document resource was found in DB for ID: {}".format(id))
-        raise LookupError("No document resource was found in DB for ID: {}".format(id))
+        #raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
     return resource
 
 def get_doc_metrics_by_id(id):
     resource = Metric.query.filter(Metric.id.like(str(id))).first()
-    db_context.session.remove()
 
     if resource == None:
         logger.error("No document resource was found in DB for ID: {}".format(id))
-        raise LookupError("No document resource was found in DB for ID: {}".format(id))
+        #raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
     return resource
 
 def get_doc_status_processing_by_id(id, full_mapping=True):
-    resource_dict = get_doc_resource_by_id(id).as_dict()
+    #resource_dict = get_doc_resource_by_id(id).as_dict()
+    resource_dict = get_doc_resource_by_id(id)
 
     if not full_mapping:
         return resource_dict
@@ -486,7 +489,7 @@ def get_doc_resource_by_id(id):
 
     if resource == None:
         logger.error("No document resource was found in DB for ID: {}".format(id))
-        raise LookupError("No document resource was found in DB for ID: {}".format(id))
+        #raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
     return resource
 
@@ -498,15 +501,15 @@ def upsert_attributevalue(doc_processing_id, namekey, value):
         logger.error("No document resource was found in DB for ID: {}".format(id))
         raise LookupError("No document resource was found in DB for ID: {}".format(id))
     else:
-        setattr(doc_processing_resource, namekey, value)
         try:
+            setattr(doc_processing_resource, namekey, value)
             db_context.session.commit()
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while updating attribute to etmfa_document_attributes to DB for ID: {},{}".format(doc_processing_id, e))
             raise LookupError("Error while updating attribute to etmfa_document_attributes to DB for ID: {},{}".format(doc_processing_id, e))
-        finally:
-            db_context.session.remove()
+        # finally:
+        #     db_context.session.remove()
 
 
 def get_attribute_dict(doc_processing_id):
@@ -518,4 +521,11 @@ def get_attribute_dict(doc_processing_id):
 
     return doc_processing_resource
 
-
+def safe_unicode(obj, *args):
+    """ return the unicode representation of obj """
+    try:
+        return str(obj, *args)
+    except UnicodeDecodeError:
+        # obj is byte string
+        ascii_text = str(obj).encode('string_escape')
+        return str(ascii_text)

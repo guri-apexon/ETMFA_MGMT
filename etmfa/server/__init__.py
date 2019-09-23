@@ -23,8 +23,9 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 app = Flask(__name__, instance_relative_config=True, instance_path=dir_path)
 app.config.from_object(app_config['development'])
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-
+# Enable or disable the mask field, by default X-Fields
+app.config['RESTPLUS_MASK_SWAGGER'] = False
+app.config['ERROR_404_HELP'] = False
 
 def load_app_config(config_name):
     app.config.from_object(app_config[config_name])

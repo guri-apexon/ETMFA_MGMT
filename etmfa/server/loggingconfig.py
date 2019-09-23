@@ -24,7 +24,7 @@ def handle_global_errors(error):
                     'json': request.json,
                 }
             })
-        if not LookupError:
+        if not isinstance(error, LookupError):
             logger.exception(error, extra=payload)
     except Exception as e:
         logger.exception(e, exc_info=True)

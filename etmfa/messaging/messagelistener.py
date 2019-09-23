@@ -21,7 +21,7 @@ class MessageListener(ConsumerMixin):
 
 
     def get_queues(self):
-        return [Queue(q, exchange=self.exchange, routing_key=q, durable=False) for q in self.queue_callback_dict.keys()]
+        return [Queue(q, exchange=self.exchange, routing_key=q, durable=True) for q in self.queue_callback_dict.keys()]
 
     def get_consumers(self, Consumer, channel):
         return [Consumer(queues=[q], callbacks=[self._on_message]) for q in self.get_queues()]
@@ -47,6 +47,7 @@ class MessageListener(ConsumerMixin):
         queue_name = message.delivery_info['routing_key']
         try:
             message_body = json.loads(body)
+
             Globals.THREAD_LOCAL.aidocid = message_body.get('id')
         except:
             self.logger.error("Could not parse message on queue: {}, body: {}".format(queue_name, body))

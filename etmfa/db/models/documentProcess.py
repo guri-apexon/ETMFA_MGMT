@@ -1,20 +1,21 @@
 import datetime
 
 from ..db import db_context
+#from ...db import safe_unicode
 
 class DocumentProcess(db_context.Model):
     __tablename__ = "etmfa_document_process"
 
     id                 = db_context.Column(db_context.String(50), primary_key=True)
-    is_processing      = db_context.Column(db_context.Boolean())
-    file_name          = db_context.Column(db_context.String(300))
-    document_file_path = db_context.Column(db_context.String(500))
-    error_code         = db_context.Column(db_context.Integer())
-    error_reason       = db_context.Column(db_context.String(1000))
-    time_created       = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
-    last_updated       = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
-    Percent_complete   = db_context.Column(db_context.String(100))
+    isProcessing       = db_context.Column(db_context.Boolean())
+    fileName           = db_context.Column(db_context.String(300))
+    documentFilePath   = db_context.Column(db_context.String(500))
+    percentComplete    = db_context.Column(db_context.String(100))
     status             = db_context.Column(db_context.String(100))
+    errorCode          = db_context.Column(db_context.Integer())
+    errorReason        = db_context.Column(db_context.String(1000))
+    timeCreated        = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
+    lastUpdated        = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}
@@ -24,13 +25,22 @@ class DocumentProcess(db_context.Model):
 
         this = DocumentProcess()
         this.id = _id
-        this.is_processing = True
-        this.Percent_complete = '0'
+        this.isProcessing = True
+        this.percentComplete = '0'
 
-        if request['file_name'] is not None:
-            this.file_name = request['file_name']
+        if request['fileName'] is not None:
+            this.fileName = safe_unicode(request['fileName'])
         else:
             file = request['file']
-            this.file_name = file.filename
+            this.fileName = safe_unicode(file.filename)
 
         return this
+
+def safe_unicode(obj, *args):
+    """ return the unicode representation of obj """
+    try:
+        return str(obj, *args)
+    except UnicodeDecodeError:
+        # obj is byte string
+        ascii_text = str(obj).encode('string_escape')
+        return str(ascii_text)

@@ -40,18 +40,18 @@ ns = api.namespace('eTMFA', path='/v1/documents', description='REST endpoints fo
 
 
 @ns.route('/')
-@ns.response(500, 'Server error')
+@ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
     @ns.expect(eTMFA_object_post)
     @ns.marshal_with(eTMFA_object_get)
     @ns.response(400, 'Invalid Request.')
-    @ns.response(201, 'Document processing resource created.')
+    @ns.response(200, 'Success')
     def post(self):
         """Create document Processing REST object and returns document Processing API object """
 
         args = eTMFA_object_post.parse_args()
 
-        if (args['protocol'] is None and args['country'] is None and args['site'] is None) or args['file'] is None:
+        if (args['customer'] is None) or (args['protocol'] is None) or (args['documentClass'] is None) or (args['file'] is None):
            return abort(400, 'Invalid Request.')
         else:
             # Generate ID
@@ -77,21 +77,21 @@ class DocumentprocessingAPI(Resource):
             # Save document in the processing directory
             file.save(file_path)
 
-            customer = args['customer'] if args['customer'] is not None else ' '                    #customer check
-            protocol = args['protocol'] if args['protocol'] is not None else ' '                    #protocol check
-            country  = args['country'] if args['country'] is not None else ' '                      #country check
-            site = args['site'] if args['site'] is not None else ' '                                #site check
-            document_class = args['document_class'] if args['document_class'] is not None else ' '  #document class check
-            tmf_ibr = args['tmf_ibr'] if args['tmf_ibr'] is not None else ' '                       #environment check
-            blinded = args['unblinded'] if args['unblinded'] is not None else True                  #document blinded/unblinded
-            tmf_environment = args['tmf_environment'] if args['tmf_environment'] is not None else ' '
-            received_date = args['received_date'] if args['received_date'] is not None else ' '     #received date check
-            site_personnel_list = args['site_personnel_list'] if args['site_personnel_list'] is not None else ' '
-            priority = args['priority'] if args['priority'] is not None else ' '                    #priority check
+            customer            = args['customer'] if args['customer'] is not None else ' '              #customer check
+            protocol            = args['protocol'] if args['protocol'] is not None else ' '              #protocol check
+            country             = args['country'] if args['country'] is not None else ' '                #country check
+            site                = args['site'] if args['site'] is not None else ' '                      #site check
+            document_class      = args['documentClass'] if args['documentClass'] is not None else ' '  #document class check
+            tmf_ibr             = args['tmfIbr'] if args['tmfIbr'] is not None else ' '                #environment check
+            blinded             = args['unblinded'] if args['unblinded'] is not None else True           #document blinded/unblinded
+            tmf_environment     = args['tmfEnvironment'] if args['tmfEnvironment'] is not None else ' '
+            received_date       = args['receivedDate'] if args['receivedDate'] is not None else ' '     #received date check
+            site_personnel_list = args['sitePersonnelList'] if args['sitePersonnelList'] is not None else ' '
+            priority            = args['priority'] if args['priority'] is not None else ' '               #priority check
 
             #saved_resource = save_doc_processing(args, _id, file_path)
             save_doc_processing(args, _id, file_path)
-            duplicatecheck = save_doc_processing_duplicate(args, _id, file_path)
+            duplicatecheck = save_doc_processing_duplicate(args, _id, filename, file_path)
 
             BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
             EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
@@ -105,39 +105,11 @@ class DocumentprocessingAPI(Resource):
             return get_doc_processing_by_id(_id, full_mapping=True)
 
 
-@ns.route('/<string:id>/key/value')
-@ns.response(404, 'Document processing resource not found.')
-@ns.response(500, 'Server error')
-class DocumentprocessingAPI(Resource):
-    @ns.expect(metadata_post)
-    @ns.marshal_with(eTMFA_attributes_get)
-    @ns.response(201, 'Document processing resource returned OK')
-    def patch(self, id):
-        """Update document attributes with key value """
-        md = request.json
-        for m in md['metadata']:
-            upsert_attributevalue(id, m['name'], m['val'])
-        return get_doc_processed_by_id(id)
-
-
-@ns.route('/<string:id>/status')
-@ns.response(404, 'Document Processing resource not found.')
-@ns.response(500, 'Server error')
-class DocumentprocessingAPI(Resource):
-    @ns.marshal_with(eTMFA_object_get_status)
-    @ns.response(200, 'Document procesing resource returned OK')
-    def get(self, id):
-        """Get document processing object status. This includes any locations of processed documents"""
-        try:
-            return get_doc_status_processing_by_id(id, full_mapping=True)
-        except ValueError as error:
-            return abort(404, 'No document processing resource exists for this id.')
-
 #
 @ns.route('/<string:id>/feedback')
-@ns.response(200, 'Document processing resource returned OK')
+@ns.response(200, 'Success.')
 @ns.response(404, 'Document processing resource not found.')
-@ns.response(500, 'Server error')
+@ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
     @ns.expect(document_processing_object_put)
     @ns.marshal_with(document_processing_object_put_get)
@@ -147,20 +119,23 @@ class DocumentprocessingAPI(Resource):
         # format data for finalisation service to update IQVDocument
         feedbackdata                  = request.json
         id_fb                         = feedbackdata['id']
-        feedback_source               = feedbackdata['feedback_source']
+        feedback_source               = feedbackdata['feedbackSource']
         customer                      = feedbackdata['customer']
         protocol                      = feedbackdata['protocol']
         country                       = feedbackdata['country']
         site                          = feedbackdata['site']
-        document_class                = feedbackdata['document_class']
-        document_date                 = feedbackdata['document_date']
-        document_classification       = feedbackdata['document_classification']
+        document_class                = feedbackdata['documentClass']
+        document_date                 = feedbackdata['documentDate']
+        document_classification       = feedbackdata['documentClassification']
         name                          = feedbackdata['name']
         language                      = feedbackdata['language']
-        document_rejected             = feedbackdata['document_rejected']
-        attribute_auxillary_list      = feedbackdata['attribute_auxillary_list']
+        document_rejected             = feedbackdata['documentRejected']
+        attribute_auxillary_list      = feedbackdata['attributeAuxillaryList']
 
         resourcefound = get_doc_resource_by_id(id)
+        if resourcefound == None:
+            return abort(404, 'Document Processing resource not found for id: {}'.format(id))
+
         saved_resource = save_doc_feedback(id, feedbackdata)
 
 
@@ -173,7 +148,7 @@ class DocumentprocessingAPI(Resource):
         # Send FeedbackRequest
         feedback_req_msg = feedbackrequest(
             id_fb,
-            resourcefound.document_file_path,
+            resourcefound.documentFilePath,
             feedback_source,
             customer,
             protocol,
@@ -192,33 +167,82 @@ class DocumentprocessingAPI(Resource):
 
         return saved_resource
 
-#
+
+
+@ns.route('/<string:id>/key/value')
+@ns.response(404, 'Document Processing resource not found.')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(metadata_post)
+    @ns.marshal_with(eTMFA_attributes_get)
+    @ns.response(200, 'Success.')
+    def patch(self, id):
+        """Update document attributes with key value """
+        resource = get_doc_status_processing_by_id(id, full_mapping=True)
+        if resource == None:
+            return abort(404, 'Document Processing resource not found for id: {}'.format(id))
+        else:
+            md = request.json
+            for m in md['metadata']:
+                upsert_attributevalue(id, m['name'], m['val'])
+            return get_doc_processed_by_id(id)
+
+
+@ns.route('/<string:id>/status')
+@ns.response(404, 'Document Processing resource not found.')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.marshal_with(eTMFA_object_get_status)
+    @ns.response(200, 'Success.')
+    def get(self, id):
+        """Get document processing object status. This includes any locations of processed documents"""
+        try:
+            #return get_doc_status_processing_by_id(id, full_mapping=True)
+            resource = get_doc_status_processing_by_id(id, full_mapping=True)
+            if resource == None:
+                return abort(404, 'Document Processing resource not found for id: {}'.format(id))
+            else:
+                return resource
+        except ValueError as e:
+            return abort(500, 'Server error.')
+
+
 @ns.route('/<string:id>/metrics')
-@ns.response(200, 'Document processing resource returned OK')
+@ns.response(200, 'Success.')
 @ns.response(404, 'Document processing resource not found.')
-@ns.response(500, 'Server error')
+@ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
     @ns.marshal_with(eTMFA_metrics_get)
     def get(self, id):
         """Returns metrics of document processed"""
         try:
-            return get_doc_proc_metrics_by_id(id, full_mapping=True)
-        except ValueError as error:
-            return abort(404, 'No document resource exists for this id.')
+            #return get_doc_proc_metrics_by_id(id, full_mapping=True)
+            resource = get_doc_proc_metrics_by_id(id, full_mapping=True)
+            if resource == None:
+                return abort(404, 'Document Processing resource not found id: {}'.format(id))
+            else:
+                return resource
+        except ValueError as e:
+            return abort(500, 'Server error.')
 
 
 @ns.route('/<string:id>/attributes')
-@ns.response(200, 'Document processing resource returned OK')
+@ns.response(200, 'Success.')
 @ns.response(404, 'Document processing resource not found.')
-@ns.response(500, 'Server error')
+@ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
     @ns.marshal_with(eTMFA_attributes_get)
     def get(self, id):
         """Get the document processing object attributes"""
         try:
-            return get_doc_processed_by_id(id, full_mapping=True)
-        except ValueError as error:
-            return abort(404, 'No document resource exists for this id.')
+            #return get_doc_processed_by_id(id, full_mapping=True)
+            resource = get_doc_processed_by_id(id, full_mapping=True)
+            if resource == None:
+                return abort(404, 'Document Processing resource not found for id: {}'.format(id))
+            else:
+                return resource
+        except ValueError as e:
+            return abort(500, 'Server error.')
 
 
 # Utility Functions
