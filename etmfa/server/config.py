@@ -10,7 +10,13 @@ class Config(object):
     password = 'd3c0d3_12'
     sid = cx_Oracle.makedsn(host, port, sid=sid)
     SQLALCHEMY_DATABASE_URI = 'oracle://{user}:{password}@{sid}'.format(user=user, password=password, sid=sid)
-    # , encoding="UTF-8", nencoding="UTF-8", pool_size=10, max_overflow=15)
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    PRESERVE_CONTEXT_ON_EXCEPTION = False
+    PROPAGATE_EXCEPTIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
     mquser = 'guest'
     mqpswd = 'guest'
     mqhost = 'localhost'
@@ -31,7 +37,13 @@ class DevelopmentConfig(Config):
     password = 'd3c0d3_12'
     sid = cx_Oracle.makedsn(host, port, sid=sid)
     SQLALCHEMY_DATABASE_URI = 'oracle://{user}:{password}@{sid}'.format(user=user, password=password, sid=sid)
-        #, encoding="UTF-8", nencoding="UTF-8", pool_size=10, max_overflow=15)
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    PRESERVE_CONTEXT_ON_EXCEPTION = False
+    PROPAGATE_EXCEPTIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
     mquser = 'guest'
     mqpswd = 'guest'
     mqhost = 'morsetmfml01d'
@@ -51,7 +63,13 @@ class SVTConfig(Config):
     password = 'tMfA3lod'
     sid = cx_Oracle.makedsn(host, port, sid=sid)
     SQLALCHEMY_DATABASE_URI = 'oracle://{user}:{password}@{sid}'.format(user=user, password=password, sid=sid)
-                                            #encoding="UTF-8", nencoding="UTF-8", pool_size=40, max_overflow=60)
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    PRESERVE_CONTEXT_ON_EXCEPTION = False
+    PROPAGATE_EXCEPTIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
     mquser = 'guest'
     mqpswd = 'guest'
     mqhost = 'morsetmfhs06d'
@@ -80,7 +98,7 @@ class ProductionConfig(Config):
 
 
 app_config = {
-    'local':Config,
+    'local': Config,
     'development': DevelopmentConfig,
     'staging': StagingConfig,
     'test': TestConfig,
