@@ -8,7 +8,7 @@ from lxml import html
 
 # Global DB context must be initialized before local imports
 from .db import db_context
-
+from flask import g
 from ..consts import Consts as consts
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -85,7 +85,7 @@ def received_triagecomplete_event(id, IQVXMLPath, message_publisher):
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
-            raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+            #raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
 
         # Start processing OCR request
         OCR_req_msg = ocrrequest(id, IQVXMLPath)
@@ -93,7 +93,7 @@ def received_triagecomplete_event(id, IQVXMLPath, message_publisher):
 
     else:
         logger.error("No document resource was found in DB for ID: {}".format(id))
-        raise LookupError("No document resource was found in DB for ID: {}".format(id))
+        #raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
 
 def received_ocrcomplete_event(id, IQVXMLPath, message_publisher):
@@ -108,14 +108,14 @@ def received_ocrcomplete_event(id, IQVXMLPath, message_publisher):
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
-            raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+            #raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
 
         # Start processing Classification request
         classification_req_msg = classificationRequest(id, IQVXMLPath)
         message_publisher.send_obj(classification_req_msg)
     else:
         logger.error("No document resource was found in DB for ID: {}".format(id))
-        raise LookupError("No document resource was found in DB for ID: {}".format(id))
+        #raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
 
 def received_classificationcomplete_event(id, IQVXMLPath, message_publisher):
@@ -130,14 +130,14 @@ def received_classificationcomplete_event(id, IQVXMLPath, message_publisher):
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
-            raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+            #raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
 
         # Start processing Extraction request
         attributeextraction_req_msg = attributeextractionRequest(id,IQVXMLPath)
         message_publisher.send_obj(attributeextraction_req_msg)
     else:
         logger.error("No document resource was found in DB for ID: {}".format(id))
-        raise LookupError("No document resource was found in DB for ID: {}".format(id))
+        #raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
 
 def received_attributeextractioncomplete_event(id, IQVXMLPath, message_publisher):
@@ -152,14 +152,14 @@ def received_attributeextractioncomplete_event(id, IQVXMLPath, message_publisher
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
-            raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+            #raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
 
         # Start processing finalizer request
         finalization_req_msg = finalizationRequest(id,IQVXMLPath)
         message_publisher.send_obj(finalization_req_msg)
     else:
         logger.error("No document resource was found in DB for ID: {}".format(id))
-        raise LookupError("No document resource was found in DB for ID: {}".format(id))
+        #raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
 def received_feedbackcomplete_event(id):
     resource = get_doc_resource_by_id(id)
@@ -173,10 +173,10 @@ def received_feedbackcomplete_event(id):
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
-            raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+            #raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
     else:
         logger.error("No document resource was found in DB for ID: {}".format(id))
-        raise LookupError("No document resource was found in DB for ID: {}".format(id))
+        #raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     resource = get_doc_resource_by_id(id)
@@ -191,7 +191,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
-            raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+            #raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
 
         metrics = Metric(resource.id)
         metrics.id                             = finalattributes['id']
@@ -274,10 +274,10 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while writing record to etmfa_document_attributes file in DB for ID: {},{}".format(finalattributes['id'],e))
-            raise LookupError("Error while writing record to etmfa_document_attributes file in DB for ID: {},{}".format(finalattributes['id'],e))
+            #raise LookupError("Error while writing record to etmfa_document_attributes file in DB for ID: {},{}".format(finalattributes['id'],e))
     else:
         logger.error("No document resource was found in DB for ID: {}".format(id))
-        raise LookupError("No document resource was found in DB for ID: {}".format(id))
+        #raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
 def received_documentprocessing_error_event(errorDict):
     resource = get_doc_resource_by_id(errorDict['id'])
@@ -296,10 +296,10 @@ def received_documentprocessing_error_event(errorDict):
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while updating values to etmfa_document_process file in DB for ID: {},{}".format(errorDict['id'],e))
-            raise LookupError("Error while updating values to etmfa_document_process file in DB for ID: {},{}".format(errorDict['id'],e))
+            #raise LookupError("Error while updating values to etmfa_document_process file in DB for ID: {},{}".format(errorDict['id'],e))
     else:
         logger.error("No document resource was found in DB for ID: {}".format(id))
-        raise LookupError("No document resource was found in DB for ID: {}".format(id))
+        #raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
 
 def save_doc_feedback(_id, feedbackdata):
@@ -332,7 +332,7 @@ def save_doc_feedback(_id, feedbackdata):
         db_context.session.rollback()
         #db_context.session.remove()
         logger.error("Error while writing record to etmfa_document_feedback file in DB for ID: {},{}".format(_id, e))
-        raise LookupError("Error while writing record to etmfa_document_feedback file in DB for ID: {},{}".format(_id, e))
+        #raise LookupError("Error while writing record to etmfa_document_feedback file in DB for ID: {},{}".format(_id, e))
 
     return resourcefb.as_dict()
 
@@ -362,7 +362,7 @@ def save_doc_processing_duplicate(request, _id, fileName, doc_path):
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
-            raise LookupError("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
+            #raise LookupError("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
     else:
         duplicateresource = resourcefound.id
         doc_duplicate_flag_update  = resourcefound.docDuplicateFlag + 1
@@ -372,7 +372,7 @@ def save_doc_processing_duplicate(request, _id, fileName, doc_path):
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
-            raise LookupError("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
+            #raise LookupError("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
 
     return duplicateresource
 
@@ -416,7 +416,7 @@ def save_doc_processing(request, _id, doc_path):
     except Exception as e:
         db_context.session.rollback()
         logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(_id, e))
-        raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(_id, e))
+        #raise LookupError("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(_id, e))
 
 
 def get_doc_processing_by_id(id, full_mapping=False):
@@ -444,6 +444,7 @@ def get_doc_proc_metrics_by_id(id, full_mapping=True):
     return resource_dict
 
 def get_doc_attributes_by_id(id):
+    g.aidocid = id
     resource = Documentattributes.query.filter(Documentattributes.id.like(str(id))).first()
 
     if resource == None:
@@ -453,6 +454,7 @@ def get_doc_attributes_by_id(id):
     return resource
 
 def get_doc_metrics_by_id(id):
+    g.aidocid = id
     resource = Metric.query.filter(Metric.id.like(str(id))).first()
 
     if resource == None:
@@ -471,6 +473,7 @@ def get_doc_status_processing_by_id(id, full_mapping=True):
 
 
 def get_doc_resource_by_id(id):
+    g.aidocid = id
     resource = DocumentProcess.query.filter(DocumentProcess.id.like(str(id))).first()
 
     if resource == None:
@@ -480,11 +483,12 @@ def get_doc_resource_by_id(id):
 
 
 def upsert_attributevalue(doc_processing_id, namekey, value):
+    g.aidocid = id
     doc_processing_resource = get_doc_attributes_by_id(doc_processing_id)
 
     if doc_processing_resource is None:
         logger.error("No document resource was found in DB for ID: {}".format(id))
-        raise LookupError("No document resource was found in DB for ID: {}".format(id))
+        #raise LookupError("No document resource was found in DB for ID: {}".format(id))
     else:
         try:
             setattr(doc_processing_resource, namekey, value)
@@ -492,7 +496,7 @@ def upsert_attributevalue(doc_processing_id, namekey, value):
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while updating attribute to etmfa_document_attributes to DB for ID: {},{}".format(doc_processing_id, e))
-            raise LookupError("Error while updating attribute to etmfa_document_attributes to DB for ID: {},{}".format(doc_processing_id, e))
+            #raise LookupError("Error while updating attribute to etmfa_document_attributes to DB for ID: {},{}".format(doc_processing_id, e))
 
 
 def get_attribute_dict(doc_processing_id):
@@ -500,7 +504,7 @@ def get_attribute_dict(doc_processing_id):
 
     if doc_processing_resource == None:
         logger.error("No document resource was found in DB for ID: {}".format(id))
-        raise LookupError("No document resource was found in DB for ID: {}".format(id))
+        #raise LookupError("No document resource was found in DB for ID: {}".format(id))
 
     return doc_processing_resource
 

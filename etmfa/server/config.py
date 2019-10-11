@@ -15,7 +15,7 @@ class Config(object):
     PROPAGATE_EXCEPTIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
-        "pool_recycle": 300,
+        "pool_recycle": 900,
     }
     mquser = 'guest'
     mqpswd = 'guest'
@@ -42,7 +42,7 @@ class DevelopmentConfig(Config):
     PROPAGATE_EXCEPTIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
-        "pool_recycle": 300,
+        "pool_recycle": 900,
     }
     mquser = 'guest'
     mqpswd = 'guest'
@@ -68,7 +68,7 @@ class SVTConfig(Config):
     PROPAGATE_EXCEPTIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
-        "pool_recycle": 300,
+        "pool_recycle": 900,
     }
     mquser = 'guest'
     mqpswd = 'guest'

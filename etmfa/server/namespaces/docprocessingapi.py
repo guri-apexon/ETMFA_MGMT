@@ -1,7 +1,7 @@
 import os, uuid, logging, requests, json
 
 from flask_restplus import Namespace, Resource, fields, reqparse, abort
-from flask import current_app, send_from_directory, request, make_response, Flask
+from flask import current_app, send_from_directory, request, make_response, Flask, abort, g
 from functools import wraps
 import werkzeug
 import datetime
@@ -27,7 +27,8 @@ from ...db import (
     )
 
 from ...consts import Consts as consts
-
+#from ...db import db_context
+logger = logging.getLogger(consts.LOGGING_NAME)
 
 from ...messaging.messagepublisher import MessagePublisher
 from ...messaging.models.Triage_Request import TriageRequest
@@ -76,6 +77,7 @@ class DocumentprocessingAPI(Resource):
 
             # Save document in the processing directory
             file.save(file_path)
+            g.aidocid = _id
 
             customer            = args['customer'] if args['customer'] is not None else ' '              #customer check
             protocol            = args['protocol'] if args['protocol'] is not None else ' '              #protocol check
@@ -100,6 +102,8 @@ class DocumentprocessingAPI(Resource):
                             tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority, duplicatecheck)
 
             MessagePublisher(BROKER_ADDR, EXCHANGE, logging.getLogger(consts.LOGGING_NAME)).send_obj(msg_f)
+            #print("Message for initial puh: ", TriageRequest.QUEUE_NAME)
+            #logger.info("Sent message on queue: {}, {}".format(TriageRequest.QUEUE_NAME, _id))
 
             # Return response object
             return get_doc_processing_by_id(_id, full_mapping=True)
@@ -117,6 +121,8 @@ class DocumentprocessingAPI(Resource):
         """Feedback attributes to document processed"""
 
         # format data for finalisation service to update IQVDocument
+
+        g.aidocid                     = id
         feedbackdata                  = request.json
         id_fb                         = feedbackdata['id']
         feedback_source               = feedbackdata['feedbackSource']
@@ -178,6 +184,7 @@ class DocumentprocessingAPI(Resource):
     @ns.response(200, 'Success.')
     def patch(self, id):
         """Update document attributes with key value """
+        g.aidocid = id
         resource = get_doc_status_processing_by_id(id, full_mapping=True)
         if resource == None:
             return abort(404, 'Document Processing resource not found for id: {}'.format(id))
@@ -197,7 +204,7 @@ class DocumentprocessingAPI(Resource):
     def get(self, id):
         """Get document processing object status. This includes any locations of processed documents"""
         try:
-            #return get_doc_status_processing_by_id(id, full_mapping=True)
+            g.aidocid = id
             resource = get_doc_status_processing_by_id(id, full_mapping=True)
             if resource == None:
                 return abort(404, 'Document Processing resource not found for id: {}'.format(id))
@@ -216,7 +223,7 @@ class DocumentprocessingAPI(Resource):
     def get(self, id):
         """Returns metrics of document processed"""
         try:
-            #return get_doc_proc_metrics_by_id(id, full_mapping=True)
+            g.aidocid = id
             resource = get_doc_proc_metrics_by_id(id, full_mapping=True)
             if resource == None:
                 return abort(404, 'Document Processing resource not found id: {}'.format(id))
@@ -235,7 +242,7 @@ class DocumentprocessingAPI(Resource):
     def get(self, id):
         """Get the document processing object attributes"""
         try:
-            #return get_doc_processed_by_id(id, full_mapping=True)
+            g.aidocid = id
             resource = get_doc_processed_by_id(id, full_mapping=True)
             if resource == None:
                 return abort(404, 'Document Processing resource not found for id: {}'.format(id))
