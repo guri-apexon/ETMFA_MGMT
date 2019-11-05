@@ -381,25 +381,27 @@ def save_doc_processing_duplicate(request, _id, fileName, doc_path):
 
 def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
 
-    if resourcechk.documentClass == 'core':
+    if resourcechk.documentClass.lower() == 'core':
         resource = Documentduplicate.query.filter(Documentduplicate.docHash  == resourcechk.docHash and
                                                   Documentduplicate.customer == resourcechk.customer and
                                                   Documentduplicate.protocol == resourcechk.protocol and
                                                   Documentduplicate.documentRejected == False).first()
-    elif resourcechk.documentClass == 'country':
+    elif resourcechk.documentClass.lower() == 'country':
         resource = Documentduplicate.query.filter(Documentduplicate.docHash  == resourcechk.docHash and
                                                   Documentduplicate.customer == resourcechk.customer and
                                                   Documentduplicate.protocol == resourcechk.protocol and
                                                   Documentduplicate.country  == resourcechk.country and
                                                   Documentduplicate.documentRejected == False).first()
-    elif resourcechk.documentClass == 'site':
+    elif resourcechk.documentClass.lower() == 'site':
         resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash and
                                                   Documentduplicate.customer == resourcechk.customer and
                                                   Documentduplicate.protocol == resourcechk.protocol and
                                                   Documentduplicate.country  == resourcechk.country and
                                                   Documentduplicate.site     == resourcechk.site and
                                                   Documentduplicate.documentRejected == False).first()
-    #else:
+    else:
+	resource = None
+
     if resource is None:
         resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash).first()
 
