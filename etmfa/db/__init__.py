@@ -400,7 +400,7 @@ def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
                                                   Documentduplicate.site     == resourcechk.site and
                                                   Documentduplicate.documentRejected == False).first()
     else:
-	resource = None
+        resource = None
 
     if resource is None:
         resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash).first()
