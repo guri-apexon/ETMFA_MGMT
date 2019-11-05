@@ -367,7 +367,9 @@ def save_doc_processing_duplicate(request, _id, fileName, doc_path):
         duplicateresource = resourcefound.id
         logger.info("Duplicate document id for the resource uploaded is:", duplicateresource)
         doc_duplicate_flag_update  = resourcefound.docDuplicateFlag + 1
+        last_updated = datetime.utcnow()
         setattr(resourcefound, 'docDuplicateFlag', doc_duplicate_flag_update)
+        setattr(resourcefound, 'lastUpdated', last_updated)
         try:
             db_context.session.commit()
         except Exception as e:
