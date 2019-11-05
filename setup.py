@@ -1,11 +1,17 @@
 from setuptools import setup, find_packages
+import os
+
+version = "1.0"
+build_number = os.getenv("bamboo_buildNumber")
+if build_number:
+    version += "." + build_number
 
 setup(
     # Application name:
     name="etmfa_mgmt",
 
     # Version number (initial):
-    version="1.0.0",
+    version=version,
 
     # Application author details:
     author="Prathap Veera",
