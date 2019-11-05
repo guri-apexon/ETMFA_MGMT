@@ -365,6 +365,7 @@ def save_doc_processing_duplicate(request, _id, fileName, doc_path):
             #raise LookupError("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
     else:
         duplicateresource = resourcefound.id
+        logger.info("Duplicate document id for the resource uploaded is:", duplicateresource)
         doc_duplicate_flag_update  = resourcefound.docDuplicateFlag + 1
         setattr(resourcefound, 'docDuplicateFlag', doc_duplicate_flag_update)
         try:
@@ -396,7 +397,8 @@ def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
                                                   Documentduplicate.country  == resourcechk.country and
                                                   Documentduplicate.site     == resourcechk.site and
                                                   Documentduplicate.documentRejected == False).first()
-    else:
+    #else:
+    if resource is None:
         resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash).first()
 
     if not full_mapping:

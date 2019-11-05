@@ -93,7 +93,7 @@ class DocumentprocessingAPI(Resource):
 
             #saved_resource = save_doc_processing(args, _id, file_path)
             save_doc_processing(args, _id, file_path)
-            duplicatecheck = save_doc_processing_duplicate(args, _id, filename, file_path)
+            duplicatecheck = save_doc_processing_duplicate(args, _id, filename_main, file_path)
 
             BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
             EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
