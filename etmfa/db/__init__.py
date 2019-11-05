@@ -365,7 +365,7 @@ def save_doc_processing_duplicate(request, _id, fileName, doc_path):
             #raise LookupError("Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
     else:
         duplicateresource = resourcefound.id
-        logger.info("Duplicate document id for the resource uploaded is:", duplicateresource)
+        logger.info("Duplicate document id for the resource uploaded is: {}".format(duplicateresource))
         doc_duplicate_flag_update  = resourcefound.docDuplicateFlag + 1
         last_updated = datetime.utcnow()
         setattr(resourcefound, 'docDuplicateFlag', doc_duplicate_flag_update)
