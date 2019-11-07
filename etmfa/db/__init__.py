@@ -261,11 +261,12 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         attributes.docSubclassification        = finalattributes['doc_subclassification']
         attributes.docSubclassificationConf    = finalattributes['doc_subclassification_conf']
         attributes.docClassificationElvis      = finalattributes['doc_classification_elvis']
+        attributes.unblinded                   = finalattributes['blinded']
 
-        if finalattributes['blinded'] in ['true', 'yes', 'True', 'TRUE', 'YES', 'Yes', 'y', 'Y']:
-            attributes.unblinded = True
-        else:
-            attributes.blinded = False
+        # if finalattributes['blinded'] in ['true', 'yes', 'True', 'TRUE', 'YES', 'Yes', 'y', 'Y']:
+        #     attributes.unblinded = True
+        # else:
+        #     attributes.blinded = False
 
         try:
             db_context.session.add(attributes)

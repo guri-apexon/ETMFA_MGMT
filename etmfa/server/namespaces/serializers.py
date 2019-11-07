@@ -1,4 +1,4 @@
-from flask_restplus import Namespace, Resource, fields, reqparse, abort
+from flask_restplus import fields, reqparse, inputs
 import werkzeug
 
 from ..api import api
@@ -251,7 +251,7 @@ eTMFA_object_post.add_argument('tmfIbr',
                          required=False,
                          help='TMF/IBR')
 eTMFA_object_post.add_argument('unblinded',
-                         type=bool,
+                         type=inputs.boolean,
                          required=False,
                          help='Unblinded')
 eTMFA_object_post.add_argument('tmfEnvironment',
