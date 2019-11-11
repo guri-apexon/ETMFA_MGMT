@@ -403,8 +403,8 @@ def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
     else:
         resource = None
 
-    if resource is None:
-        resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash).first()
+    # if resource is None:
+    #     resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash).first()
 
     if not full_mapping:
         return resource
