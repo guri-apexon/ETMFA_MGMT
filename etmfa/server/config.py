@@ -46,7 +46,7 @@ class DevelopmentConfig(Config):
     }
     mquser = 'guest'
     mqpswd = 'guest'
-    mqhost = 'morsetmfml01d'
+    mqhost = '10.2.166.248' # load balancer IP of RabbitMQ cluster
     mqport = 5672
     MESSAGE_BROKER_ADDR = "amqp://{0}:{1}@{2}:{3}".format(mquser, mqpswd, mqhost, mqport)
     MESSAGE_BROKER_EXCHANGE = 'eTMFA'
