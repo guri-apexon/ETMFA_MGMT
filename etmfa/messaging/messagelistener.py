@@ -1,4 +1,6 @@
 import json
+import getpass
+import socket
 
 from kombu import Connection, Exchange, Queue
 from kombu.mixins import ConsumerMixin
@@ -23,8 +25,14 @@ class MessageListener(ConsumerMixin):
     def get_queues(self):
         return [Queue(q, exchange=self.exchange, routing_key=q, durable=True) for q in self.queue_callback_dict.keys()]
 
+    def _create_consumer(self, Consumer, queues):
+        consumer = Consumer(queues=[queues], callbacks=[self._on_message], prefetch_count=5)
+        consumer.tag_prefix = f'{socket.gethostname()} - {getpass.getuser()} | Mgmt-{Globals.VERSION}'
+
+        return consumer
+
     def get_consumers(self, Consumer, channel):
-        return [Consumer(queues=[q], callbacks=[self._on_message]) for q in self.get_queues()]
+        return [self._create_consumer(Consumer, q) for q in self.get_queues()]
 
     def add_listener(self, queue_name, callback):
         """
