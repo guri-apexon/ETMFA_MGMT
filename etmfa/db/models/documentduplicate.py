@@ -6,10 +6,10 @@ import datetime
 class Documentduplicate(db_context.Model):
     __tablename__ = "etmfa_document_duplicate"
 
-    id                       = db_context.Column(db_context.String(50))
     customer                 = db_context.Column(db_context.String(300), primary_key=True)
     protocol                 = db_context.Column(db_context.String(300), primary_key=True)
-    docHash                  = db_context.Column(db_context.String(300), primary_key=True)
+    id                       = db_context.Column(db_context.String(50),  primary_key=True)
+    docHash                  = db_context.Column(db_context.String(300))
     fileName                 = db_context.Column(db_context.String(300))
     documentFilePath         = db_context.Column(db_context.String(500))
     country                  = db_context.Column(db_context.String(300))
