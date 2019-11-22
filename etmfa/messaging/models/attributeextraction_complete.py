@@ -6,8 +6,7 @@ class attributeextractionComplete:
 	QUEUE_NAME = 'attributeextraction_complete'
 
 	def from_msg(msg_str):
-		"""
-		"""
+
 		resp = json.loads(msg_str)
 
 		this = {}

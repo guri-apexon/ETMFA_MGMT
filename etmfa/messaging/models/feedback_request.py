@@ -6,8 +6,7 @@ class feedbackrequest:
 				 			 document_class, document_date, document_classification,
 				             name, language, document_rejected, attribute_auxillary_list
 				 ):
-		"""
-		"""
+
 		self.id                       = str(_id)
 		self.document_file_path       = document_file_path
 		self.feedback_source          = feedback_source

@@ -12,7 +12,6 @@ kv_pair_model = api.model(' KeyValue Pair for patch ',{
 k_pair_model = api.model(' Key for attributes',{
             'name': fields.String(description='The metadata object supports dictionary style properties of any number of key-value pairs. ' +
                 'Each metadata dictionary will be returned alongside the REST resource.'),
-            #'val': fields.String()
 })
 
 metadata_post = api.model('Document attributes patch model', {

@@ -6,8 +6,7 @@ class TriageComplete:
 	QUEUE_NAME = 'Triage_Complete'
 
 	def from_msg(msg_str):
-		"""
-		"""
+
 		resp = json.loads(msg_str)
 
 		this = {}

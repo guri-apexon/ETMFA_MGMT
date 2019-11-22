@@ -4,8 +4,6 @@ class TriageRequest:
 
 	def __init__(self, _id, filename, filepath, customer, protocol, country, site, document_class, tmf_ibr,
 				 blinded, tmf_environment, received_date, site_personnel_list, priority, doc_duplicate_flag):
-		"""
-		"""
 
 		self.id = str(_id)
 		self.filename = filename

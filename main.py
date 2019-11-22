@@ -4,7 +4,6 @@ from etmfa.server import create_app
 from etmfa.server.config import app_config
 from sys import argv
 from gevent.pywsgi import WSGIServer
-#from flask_httpauth import HTTPBasicAuth
 
 import gevent
 

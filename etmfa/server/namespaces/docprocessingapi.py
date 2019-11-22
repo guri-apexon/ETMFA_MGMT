@@ -27,7 +27,6 @@ from ...db import (
     )
 
 from ...consts import Consts as consts
-#from ...db import db_context
 logger = logging.getLogger(consts.LOGGING_NAME)
 
 from ...messaging.messagepublisher import MessagePublisher
@@ -102,8 +101,6 @@ class DocumentprocessingAPI(Resource):
                             tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority, duplicatecheck)
 
             MessagePublisher(BROKER_ADDR, EXCHANGE, logging.getLogger(consts.LOGGING_NAME)).send_obj(msg_f)
-            #print("Message for initial puh: ", TriageRequest.QUEUE_NAME)
-            #logger.info("Sent message on queue: {}, {}".format(TriageRequest.QUEUE_NAME, _id))
 
             # Return response object
             return get_doc_processing_by_id(_id, full_mapping=True)
@@ -139,7 +136,7 @@ class DocumentprocessingAPI(Resource):
         attribute_auxillary_list      = feedbackdata['attributeAuxillaryList']
 
         resourcefound = get_doc_resource_by_id(id)
-        if resourcefound == None:
+        if resourcefound is None:
             return abort(404, 'Document Processing resource not found for id: {}'.format(id))
 
         saved_resource = save_doc_feedback(id, feedbackdata)
@@ -186,7 +183,7 @@ class DocumentprocessingAPI(Resource):
         """Update document attributes with key value """
         g.aidocid = id
         resource = get_doc_status_processing_by_id(id, full_mapping=True)
-        if resource == None:
+        if resource is None:
             return abort(404, 'Document Processing resource not found for id: {}'.format(id))
         else:
             md = request.json
@@ -206,7 +203,7 @@ class DocumentprocessingAPI(Resource):
         try:
             g.aidocid = id
             resource = get_doc_status_processing_by_id(id, full_mapping=True)
-            if resource == None:
+            if resource is None:
                 return abort(404, 'Document Processing resource not found for id: {}'.format(id))
             else:
                 return resource
@@ -225,7 +222,7 @@ class DocumentprocessingAPI(Resource):
         try:
             g.aidocid = id
             resource = get_doc_proc_metrics_by_id(id, full_mapping=True)
-            if resource == None:
+            if resource is None:
                 return abort(404, 'Document Processing resource not found id: {}'.format(id))
             else:
                 return resource
@@ -244,7 +241,7 @@ class DocumentprocessingAPI(Resource):
         try:
             g.aidocid = id
             resource = get_doc_processed_by_id(id, full_mapping=True)
-            if resource == None:
+            if resource is None:
                 return abort(404, 'Document Processing resource not found for id: {}'.format(id))
             else:
                 return resource

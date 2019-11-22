@@ -1,5 +1,4 @@
 from ..db import db_context
-from sqlalchemy import Sequence, Index
 import datetime
 
 

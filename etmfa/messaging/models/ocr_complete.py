@@ -5,8 +5,7 @@ class ocrcomplete:
 	QUEUE_NAME = 'ocr_complete'
 
 	def from_msg(msg_str):
-		"""
-		"""
+
 		resp = json.loads(msg_str)
 
 		this = {}

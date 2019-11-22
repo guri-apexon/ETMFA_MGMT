@@ -22,8 +22,6 @@ from ..messaging import initialize_msg_listeners
 dir_path = os.path.dirname(os.path.realpath(__file__))
 app = Flask(__name__, instance_relative_config=True, instance_path=dir_path)
 app.config.from_object(app_config['development'])
-#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# Enable or disable the mask field, by default X-Fields
 app.config['RESTPLUS_MASK_SWAGGER'] = False
 app.config['ERROR_404_HELP'] = False
 
@@ -38,7 +36,6 @@ def create_app(config_name, ssl_enabled=False):
     load_app_config(config_name)
 
     # register centralized logger
-    #logger = configure_logging(app)
     initialize_logger(app)
     logger = logging.getLogger(Consts.LOGGING_NAME)
 
