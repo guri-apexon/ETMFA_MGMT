@@ -361,15 +361,15 @@ def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
         resource = Documentduplicate.query.filter(Documentduplicate.docHash  == resourcechk.docHash,
                                                   Documentduplicate.customer == resourcechk.customer,
                                                   Documentduplicate.protocol == resourcechk.protocol,
-                                                  Documentduplicate.customer == ' ',
-                                                  Documentduplicate.site     == ' ',
+                                                  Documentduplicate.country  == None,
+                                                  Documentduplicate.site     == None,
                                                   Documentduplicate.documentRejected == False).first()
     elif resourcechk.documentClass.lower() == 'country':
         resource = Documentduplicate.query.filter(Documentduplicate.docHash  == resourcechk.docHash,
                                                   Documentduplicate.customer == resourcechk.customer,
                                                   Documentduplicate.protocol == resourcechk.protocol,
                                                   Documentduplicate.country  == resourcechk.country,
-                                                  Documentduplicate.site     == ' ',
+                                                  Documentduplicate.site     == None,
                                                   Documentduplicate.documentRejected == False).first()
     elif resourcechk.documentClass.lower() == 'site':
         resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash,
