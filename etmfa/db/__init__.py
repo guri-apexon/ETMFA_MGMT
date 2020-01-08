@@ -361,6 +361,7 @@ def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
         resource = Documentduplicate.query.filter(Documentduplicate.docHash  == resourcechk.docHash,
                                                   Documentduplicate.customer == resourcechk.customer,
                                                   Documentduplicate.protocol == resourcechk.protocol,
+                                                  Documentduplicate.documentClass == resourcechk.documentClass.lower(),
                                                   Documentduplicate.country  == None,
                                                   Documentduplicate.site     == None,
                                                   Documentduplicate.documentRejected == False).first()
@@ -368,6 +369,7 @@ def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
         resource = Documentduplicate.query.filter(Documentduplicate.docHash  == resourcechk.docHash,
                                                   Documentduplicate.customer == resourcechk.customer,
                                                   Documentduplicate.protocol == resourcechk.protocol,
+                                                  Documentduplicate.documentClass == resourcechk.documentClass.lower(),
                                                   Documentduplicate.country  == resourcechk.country,
                                                   Documentduplicate.site     == None,
                                                   Documentduplicate.documentRejected == False).first()
@@ -375,6 +377,7 @@ def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
         resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash,
                                                   Documentduplicate.customer == resourcechk.customer,
                                                   Documentduplicate.protocol == resourcechk.protocol,
+                                                  Documentduplicate.documentClass == resourcechk.documentClass.lower(),
                                                   Documentduplicate.country  == resourcechk.country,
                                                   Documentduplicate.site     == resourcechk.site,
                                                   Documentduplicate.documentRejected == False).first()
