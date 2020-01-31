@@ -27,7 +27,7 @@ class MessageListener(ConsumerMixin):
 
     def _create_consumer(self, Consumer, queues):
         consumer = Consumer(queues=[queues], callbacks=[self._on_message], prefetch_count=5)
-        consumer.tag_prefix = f'{socket.gethostname()} - {getpass.getuser()} | Mgmt-{Globals.VERSION}'
+        consumer.tag_prefix = f'{socket.gethostname()} - {getpass.getuser()} | Mgmt-{Globals.VERSION} | '
 
         return consumer
 
