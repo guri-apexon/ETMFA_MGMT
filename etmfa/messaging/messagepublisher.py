@@ -30,10 +30,15 @@ class MessagePublisher:
             self.logger.info("Sent message on queue: {}".format(queue_name))
 
         def send_obj(self, msg_obj):
+            self.send_dict(msg_obj.__dict__, msg_obj.QUEUE_NAME)
+
+        # Possible addition to allow publishing of dictionaries
+        # This will enable deletion of request messaging classes
+        def send_dict(self, msg_dict, queue_name):
             try:
-                assert msg_obj.QUEUE_NAME != None and msg_obj.QUEUE_NAME != ''
+                assert queue_name is not None
             except AssertionError as e:
-                self.logger.error('Object must be serializable and contain a queue name definition!', e)
-                raise ValueError('Object must be serializable and contain a queue name definition!')
-            jsonstruct = json.dumps(msg_obj.__dict__)
-            self.send_str(jsonstruct, msg_obj.QUEUE_NAME)
+                self.logger.error('A queue has to be provided!', e)
+                raise ValueError('A queue has to be provided')
+            jsonstruct = json.dumps(msg_dict)
+            self.send_str(jsonstruct, queue_name)            
