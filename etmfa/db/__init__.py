@@ -71,8 +71,15 @@ def get_root_dir():
 
     return config['processing_dir']
 
-
 def received_triagecomplete_event(id, IQVXMLPath, message_publisher):
+    # Refactor: the following code is duplicated 
+    # This can be moved to separate function e.g, update_processing_status
+    # Possible rewrite then could be
+    # def received_triagecomplete_event(id, IQVXMLPath, message_publisher):
+    #   if update_processing_status(id, '30', 'OCR_STARTED'):
+    #       OCR_req_msg = ocrrequest(id, IQVXMLPath)
+    #       message_publisher.send_obj(OCR_req_msg)
+    # % state and string representation of status e.g., '30' and 'OCR_STARTED' could be further put into some enum structure
     resource = get_doc_resource_by_id(id)
 
     if resource is not None:
@@ -84,14 +91,13 @@ def received_triagecomplete_event(id, IQVXMLPath, message_publisher):
         except Exception as e:
             db_context.session.rollback()
             logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
-
+    # End of duplicated code 
         # Start processing OCR request
         OCR_req_msg = ocrrequest(id, IQVXMLPath)
         message_publisher.send_obj(OCR_req_msg)
 
     else:
         logger.error("No document resource was found in DB for ID: {}".format(id))
-
 
 def received_ocrcomplete_event(id, IQVXMLPath, message_publisher):
     resource = get_doc_resource_by_id(id)
@@ -181,6 +187,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
             db_context.session.rollback()
             logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
 
+        # Refactor: the following 
         metrics = Metric(resource.id)
         metrics.id                             = finalattributes['id']
         metrics.totalProcessTime               = finalattributes['total_process_time']
@@ -384,6 +391,7 @@ def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
     else:
         resource = None
 
+    # Remove this unnecessary if branch
     if not full_mapping:
         return resource
 
