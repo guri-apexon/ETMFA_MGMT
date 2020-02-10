@@ -71,33 +71,34 @@ def get_root_dir():
 
     return config['processing_dir']
 
-def received_triagecomplete_event(id, IQVXMLPath, message_publisher):
-    # Refactor: the following code is duplicated 
-    # This can be moved to separate function e.g, update_processing_status
-    # Possible rewrite then could be
-    # def received_triagecomplete_event(id, IQVXMLPath, message_publisher):
-    #   if update_processing_status(id, '30', 'OCR_STARTED'):
-    #       OCR_req_msg = ocrrequest(id, IQVXMLPath)
-    #       message_publisher.send_obj(OCR_req_msg)
-    # % state and string representation of status e.g., '30' and 'OCR_STARTED' could be further put into some enum structure
-    resource = get_doc_resource_by_id(id)
+from etmfa.messaging.models.processing_status import ProcessingStatus
 
-    if resource is not None:
-        resource.percentComplete = '30'
-        resource.status = "OCR_STARTED"
-        resource.lastUpdated = datetime.utcnow()
-        try:
-            db_context.session.commit()
-        except Exception as e:
-            db_context.session.rollback()
-            logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
-    # End of duplicated code 
-        # Start processing OCR request
-        OCR_req_msg = ocrrequest(id, IQVXMLPath)
-        message_publisher.send_obj(OCR_req_msg)
+# Once duplicated code is moved/refactored to update_processing_status
+# as described in previous merge request. We could refactor status param
+# which could be defined as enum type.
+def update_processing_status(id, status: ProcessingStatus):
+    pass
 
-    else:
-        logger.error("No document resource was found in DB for ID: {}".format(id))
+
+# Consequently, received_completed_xyzcomplete_event (received_triagecomplete_event, received_ocrcomplete_event ...) could be removed
+# def received_triagecomplete_event(id, IQVXMLPath, message_publisher):
+#     resource = get_doc_resource_by_id(id)
+
+#     if resource is not None:
+#         resource.percentComplete = '30'
+#         resource.status = "OCR_STARTED"
+#         resource.lastUpdated = datetime.utcnow()
+#         try:
+#             db_context.session.commit()
+#         except Exception as e:
+#             db_context.session.rollback()
+#             logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
+#         # Start processing OCR request
+#         OCR_req_msg = ocrrequest(id, IQVXMLPath)
+#         message_publisher.send_obj(OCR_req_msg)
+
+#     else:
+#         logger.error("No document resource was found in DB for ID: {}".format(id))
 
 def received_ocrcomplete_event(id, IQVXMLPath, message_publisher):
     resource = get_doc_resource_by_id(id)
@@ -187,7 +188,11 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
             db_context.session.rollback()
             logger.error("Error while updating processing status to etmfa_document_process to DB for ID: {},{}".format(id, e))
 
-        # Refactor: the following 
+        # Refactor: the following should be moved to separate functions
+        # e.g.,
+        # metrics =  getMetricFromFinalizationAttributes(finalization_attributes)
+        # attributes = getDocumentattributesFromFinalizationAttributes(finalization_attributes)
+
         metrics = Metric(resource.id)
         metrics.id                             = finalattributes['id']
         metrics.totalProcessTime               = finalattributes['total_process_time']
@@ -258,6 +263,10 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         attributes.docClassificationElvis      = finalattributes['doc_classification_elvis']
         attributes.unblinded                   = finalattributes['blinded']
 
+        # this could be as well moved to separate function
+        # def insert_resources_to_db(resources: List[db_context.Model]):
+            # add list of resources to session and then commit
+        # then it would be invoked as insert_resources_to_db([attributes, metrics])            
         try:
             db_context.session.add(attributes)
             db_context.session.add(metrics)
