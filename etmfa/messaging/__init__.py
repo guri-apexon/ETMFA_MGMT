@@ -63,7 +63,7 @@ def on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queu
     from ..db import update_processing_status
 
     # update db status
-    update_processing_status(msg_proc_obj['id'], status['perentual_status'], status['status'])            
+    update_processing_status(msg_proc_obj['id'], status)            
     required_fields = ['id', 'IQVXMLPath']
     msg_proc_filtered = {key:value for key, value in msg_proc_obj.items() if key in required_fields}
     message_publisher.send_dict(msg_proc_filtered, dest_queue_name)
