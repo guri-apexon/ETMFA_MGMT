@@ -1,17 +1,15 @@
+import json
 
-import json, logging
 
 class attributeextractionComplete:
+    QUEUE_NAME = 'attributeextraction_complete'
 
-	QUEUE_NAME = 'attributeextraction_complete'
+    def from_msg(msg_str):
+        resp = json.loads(msg_str)
 
-	def from_msg(msg_str):
+        this = {}
+        this['id'] = resp['id']
+        this['fileName'] = resp['fileName']
+        this['IQVXMLPath'] = resp['IQVXMLPath']
 
-		resp = json.loads(msg_str)
-
-		this = {}
-		this['id'] = resp['id']
-		this['fileName'] = resp['fileName']
-		this['IQVXMLPath'] = resp['IQVXMLPath']
-
-		return this
+        return this

@@ -4,8 +4,8 @@ import socket
 
 from kombu import Connection, Exchange, Queue
 from kombu.mixins import ConsumerMixin
-from ..consts import Globals
-from .messagepublisher import MessagePublisher
+from etmfa.consts import Globals
+from etmfa.messaging.messagepublisher import MessagePublisher
 
 
 class MessageListener(ConsumerMixin):
@@ -65,7 +65,7 @@ class MessageListener(ConsumerMixin):
         try:
             callback = self.queue_callback_dict[queue_name](
                         json.loads(body),
-                    MessagePublisher(self.connection_str, self.exchange_name, self.logger)
+                    MessagePublisher(self.connection_str, self.exchange_name)
                 )
             message.ack()
         except Exception as ex:

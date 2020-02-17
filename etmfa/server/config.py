@@ -1,5 +1,6 @@
 import cx_Oracle
 
+
 class Config(object):
     """Parent configuration class."""
     DEBUG = True
@@ -19,7 +20,7 @@ class Config(object):
     }
     mquser = 'guest'
     mqpswd = 'guest'
-    mqhost = 'localhost'
+    mqhost = '10.2.166.248'  # 'localhost'
     mqport = 5672
     MESSAGE_BROKER_ADDR = "amqp://{0}:{1}@{2}:{3}".format(mquser, mqpswd, mqhost, mqport)
     MESSAGE_BROKER_EXCHANGE = 'eTMFA'
@@ -46,12 +47,13 @@ class DevelopmentConfig(Config):
     }
     mquser = 'guest'
     mqpswd = 'guest'
-    mqhost = '10.2.166.248' # load balancer IP of RabbitMQ cluster
+    mqhost = '10.2.166.248'  # load balancer IP of RabbitMQ cluster
     mqport = 5672
     MESSAGE_BROKER_ADDR = "amqp://{0}:{1}@{2}:{3}".format(mquser, mqpswd, mqhost, mqport)
     MESSAGE_BROKER_EXCHANGE = 'eTMFA'
     LOGSTASH_HOST = 'morsetmfml01d'
     LOGSTASH_PORT = 5959
+
 
 class SVTConfig(Config):
     """Configurations for Testing."""
@@ -84,13 +86,16 @@ class TestConfig(Config):
     """Configurations for Testing."""
     DEBUG = True
 
+
 class StagingConfig(Config):
     """Configurations for Production."""
     DEBUG = True
 
+
 class UATConfig(Config):
     """Configurations for UAT."""
     DEBUG = True
+
 
 class ProductionConfig(Config):
     """Configurations for Production."""

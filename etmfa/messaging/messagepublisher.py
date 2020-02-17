@@ -1,13 +1,16 @@
-import os, logging, json
+import json
+import logging
 
+from etmfa.consts import Consts as consts
 from kombu import Connection, Exchange, Queue
-from kombu.mixins import ConsumerMixin
+
+logger = logging.getLogger(consts.LOGGING_NAME)
 
 class MessagePublisher:
-        def __init__(self, connection_str, exchange_name, logger):
+
+        def __init__(self, connection_str, exchange_name):
             self.connection_str = connection_str
             self.exchange_name = exchange_name
-            self.logger = logger
 
         def send_str(self, msg_str, queue_name):
             exchange = Exchange(self.exchange_name, type='direct', durable=True)
@@ -27,7 +30,7 @@ class MessagePublisher:
                             'max_retries': 300,   # give up after 300 tries.
                         })
 
-            self.logger.info("Sent message on queue: {}".format(queue_name))
+            logger.info("Sent message on queue: {}".format(queue_name))
 
         def send_obj(self, msg_obj):
             try:
