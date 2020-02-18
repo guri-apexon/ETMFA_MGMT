@@ -201,7 +201,7 @@ class DocumentprocessingAPI(Resource):
                 return abort(404, documentNotFound.format(id))
             else:
                 return resource
-        except ValueError as e:
+        except ValueError:
             return abort(500, 'Server error.')
 
 
@@ -220,7 +220,7 @@ class DocumentprocessingAPI(Resource):
                 return abort(404, 'Document Processing resource not found id: {}'.format(id))
             else:
                 return resource
-        except ValueError as e:
+        except ValueError:
             return abort(500, 'Server error.')
 
 
@@ -239,7 +239,7 @@ class DocumentprocessingAPI(Resource):
                 return abort(404, documentNotFound.format(id))
             else:
                 return resource
-        except ValueError as e:
+        except ValueError:
             return abort(500, 'Server error.')
 
 
