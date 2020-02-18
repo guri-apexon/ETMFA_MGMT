@@ -36,7 +36,7 @@ class MessagePublisher:
             try:
                 assert msg_obj.QUEUE_NAME != None and msg_obj.QUEUE_NAME != ''
             except AssertionError as e:
-                self.logger.error('Object must be serializable and contain a queue name definition!', e)
+                logger.error('Object must be serializable and contain a queue name definition!', e)
                 raise ValueError('Object must be serializable and contain a queue name definition!')
             jsonstruct = json.dumps(msg_obj.__dict__)
             self.send_str(jsonstruct, msg_obj.QUEUE_NAME)

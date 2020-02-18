@@ -11,7 +11,7 @@ class feedbackrequest:
         self.customer = customer
         self.protocol = protocol
         self.country = country
-        # self.site = site
+        self.site = site
         self.document_class = document_class
         self.document_date = document_date
         self.document_classification = document_classification

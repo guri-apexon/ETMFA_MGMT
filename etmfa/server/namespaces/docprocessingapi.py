@@ -1,11 +1,8 @@
 import datetime
 import logging
-import os
 import os.path
 import uuid
 
-from flask import current_app, request, abort, g
-from flask_restplus import Resource, abort
 from etmfa.consts import Consts as consts
 from etmfa.db import (
     get_root_dir,
@@ -22,7 +19,19 @@ from etmfa.db import (
 from etmfa.messaging.messagepublisher import MessagePublisher
 from etmfa.messaging.models.Triage_Request import TriageRequest
 from etmfa.messaging.models.feedback_request import feedbackrequest
-from etmfa.server.namespaces.serializers import *
+from etmfa.server.api import api
+from etmfa.server.namespaces.serializers import (
+    metadata_post,
+    eTMFA_object_get,
+    eTMFA_object_get_status,
+    eTMFA_metrics_get,
+    eTMFA_attributes_get,
+    eTMFA_object_post,
+    document_processing_object_put,
+    document_processing_object_put_get
+)
+from flask import current_app, request, abort, g
+from flask_restplus import Resource, abort
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 documentNotFound = 'Document Processing resource not found for id: {}'
@@ -42,11 +51,7 @@ class DocumentprocessingAPI(Resource):
 
         args = eTMFA_object_post.parse_args()
 
-        # if (args['customer'] is None) or (args['protocol'] is None) or (args['documentClass'] is None) or (
-        #         args['file'] is None):
-        #     return abort(400, 'Invalid Request.')
-        # else:
-            # Generate ID
+        # Generate ID
         _id = uuid.uuid4()
         _id = str(_id)
         g.aidocid = _id
@@ -92,7 +97,6 @@ class DocumentprocessingAPI(Resource):
                               tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority,
                               duplicatecheck)
 
-        #MessagePublisher(BROKER_ADDR, EXCHANGE, logging.getLogger(consts.LOGGING_NAME)).send_obj(msg_f)
         MessagePublisher(BROKER_ADDR, EXCHANGE).send_obj(msg_f)
 
         # Return response object
