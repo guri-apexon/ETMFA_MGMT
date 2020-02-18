@@ -1,6 +1,6 @@
 import datetime
 import logging
-import os.path
+import os
 import uuid
 
 from etmfa.consts import Consts as consts
