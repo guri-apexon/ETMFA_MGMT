@@ -34,7 +34,8 @@ from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
 
 logger = logging.getLogger(consts.LOGGING_NAME)
-documentNotFound = 'Document Processing resource not found for id: {}'
+DOCUMENT_NOT_FOUND = 'Document Processing resource not found for id: {}'
+SERVER_ERROR = 'Server error.'
 
 ns = api.namespace('eTMFA', path='/v1/documents', description='REST endpoints for eTMFA workflows.')
 
@@ -134,7 +135,7 @@ class DocumentprocessingAPI(Resource):
 
         resourcefound = get_doc_resource_by_id(id)
         if resourcefound is None:
-            return abort(404, documentNotFound.format(id))
+            return abort(404, DOCUMENT_NOT_FOUND.format(id))
 
         saved_resource = save_doc_feedback(id, feedbackdata)
 
@@ -178,7 +179,7 @@ class DocumentprocessingAPI(Resource):
         g.aidocid = id
         resource = get_doc_status_processing_by_id(id, full_mapping=True)
         if resource is None:
-            return abort(404, documentNotFound.format(id))
+            return abort(404, DOCUMENT_NOT_FOUND.format(id))
         else:
             md = request.json
             for m in md['metadata']:
@@ -198,11 +199,11 @@ class DocumentprocessingAPI(Resource):
             g.aidocid = id
             resource = get_doc_status_processing_by_id(id, full_mapping=True)
             if resource is None:
-                return abort(404, documentNotFound.format(id))
+                return abort(404, DOCUMENT_NOT_FOUND.format(id))
             else:
                 return resource
         except ValueError:
-            return abort(500, 'Server error.')
+            return abort(500, SERVER_ERROR)
 
 
 @ns.route('/<string:id>/metrics')
@@ -221,7 +222,7 @@ class DocumentprocessingAPI(Resource):
             else:
                 return resource
         except ValueError:
-            return abort(500, 'Server error.')
+            return abort(500, SERVER_ERROR)
 
 
 @ns.route('/<string:id>/attributes')
@@ -236,19 +237,19 @@ class DocumentprocessingAPI(Resource):
             g.aidocid = id
             resource = get_doc_processed_by_id(id, full_mapping=True)
             if resource is None:
-                return abort(404, documentNotFound.format(id))
+                return abort(404, DOCUMENT_NOT_FOUND.format(id))
             else:
                 return resource
         except ValueError:
-            return abort(500, 'Server error.')
+            return abort(500, SERVER_ERROR)
 
 
 # Utility Functions
 
-def build_processing_dir(ID):
+def build_processing_dir(id):
     PROCESSING_DIR = get_root_dir()
 
-    path = os.path.join(PROCESSING_DIR, str(ID) + "/")
+    path = os.path.join(PROCESSING_DIR, str(id) + "/")
     if not os.path.isdir(path):
         os.makedirs(path)
 

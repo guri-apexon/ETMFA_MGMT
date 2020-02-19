@@ -63,7 +63,7 @@ class MessageListener(ConsumerMixin):
         self.logger.info("Received message on queue: {}".format(queue_name))
 
         try:
-            callback = self.queue_callback_dict[queue_name](
+            self.queue_callback_dict[queue_name](
                         json.loads(body),
                     MessagePublisher(self.connection_str, self.exchange_name)
                 )
