@@ -20,7 +20,7 @@ class Config(object):
     }
     mquser = 'guest'
     mqpswd = 'guest'
-    mqhost = '10.2.166.248'  # 'localhost'
+    mqhost = 'localhost' # 'localhost'
     mqport = 5672
     MESSAGE_BROKER_ADDR = "amqp://{0}:{1}@{2}:{3}".format(mquser, mqpswd, mqhost, mqport)
     MESSAGE_BROKER_EXCHANGE = 'eTMFA'
@@ -47,7 +47,7 @@ class DevelopmentConfig(Config):
     }
     mquser = 'guest'
     mqpswd = 'guest'
-    mqhost = '10.2.166.248'  # load balancer IP of RabbitMQ cluster
+    mqhost = 'rabbitmq-ai-etmfa-dev.work.iqvia.com'  # load balancer IP of RabbitMQ cluster
     mqport = 5672
     MESSAGE_BROKER_ADDR = "amqp://{0}:{1}@{2}:{3}".format(mquser, mqpswd, mqhost, mqport)
     MESSAGE_BROKER_EXCHANGE = 'eTMFA'

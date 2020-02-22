@@ -35,7 +35,7 @@ from flask_restplus import Resource, abort
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 DOCUMENT_NOT_FOUND = 'Document Processing resource not found for id: {}'
-SERVER_ERROR = 'Server error.'
+SERVER_ERROR = 'Server error: {}'
 
 ns = api.namespace('eTMFA', path='/v1/documents', description='REST endpoints for eTMFA workflows.')
 
@@ -72,6 +72,7 @@ class DocumentprocessingAPI(Resource):
 
         # build file path in the processing directory
         file_path = os.path.join(processing_dir, filename)
+        print("Path of the file: {}", format(file_path))
         # Save document in the processing directory
         file.save(file_path)
         logger.info("Document saved at location: {}".format(file_path))
@@ -202,8 +203,9 @@ class DocumentprocessingAPI(Resource):
                 return abort(404, DOCUMENT_NOT_FOUND.format(id))
             else:
                 return resource
-        except ValueError:
-            return abort(500, SERVER_ERROR)
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
 
 
 @ns.route('/<string:id>/metrics')
@@ -221,8 +223,9 @@ class DocumentprocessingAPI(Resource):
                 return abort(404, 'Document Processing resource not found id: {}'.format(id))
             else:
                 return resource
-        except ValueError:
-            return abort(500, SERVER_ERROR)
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
 
 
 @ns.route('/<string:id>/attributes')
@@ -240,8 +243,9 @@ class DocumentprocessingAPI(Resource):
                 return abort(404, DOCUMENT_NOT_FOUND.format(id))
             else:
                 return resource
-        except ValueError:
-            return abort(500, SERVER_ERROR)
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
 
 
 # Utility Functions
