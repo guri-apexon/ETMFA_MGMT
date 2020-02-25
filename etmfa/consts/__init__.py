@@ -1,10 +1,12 @@
 import threading
+
 import gevent.local
 from flask import g
 from pkg_resources import get_distribution, DistributionNotFound
 
+
 class Consts():
-	LOGGING_NAME = 'mgmt'
+    LOGGING_NAME = 'mgmt'
 
 
 class Globals:

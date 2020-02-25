@@ -1,15 +1,12 @@
-import logging, sys, traceback, json
-from flask import request, jsonify
-from flask_restplus import abort
+import logging
 import os
 
-from logstash_async.handler import AsynchronousLogstashHandler
-from logstash_async.formatter import LogstashFormatter
-from .api import api
+from etmfa.consts import Consts
+from etmfa.consts import Globals
+from etmfa.server.api import api
+from flask import request
 from logstash_async.handler import AsynchronousLogstashHandler
 
-from ..consts import Globals
-from ..consts import Consts
 
 @api.errorhandler
 def handle_global_errors(error):
@@ -18,12 +15,12 @@ def handle_global_errors(error):
 
     try:
         payload = dict({'req': {
-                    'headers': dict(request.headers),
-                    'url': request.url,
-                    'values': request.values,
-                    'json': request.json,
-                }
-            })
+            'headers': dict(request.headers),
+            'url': request.url,
+            'values': request.values,
+            'json': request.json,
+        }
+        })
         if not isinstance(error, LookupError):
             logger.exception(error, extra=payload)
     except Exception as e:

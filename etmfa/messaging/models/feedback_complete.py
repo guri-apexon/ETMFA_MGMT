@@ -1,16 +1,14 @@
+import json
 
-import json, logging
 
 class feedbackComplete:
+    QUEUE_NAME = 'feedback_complete'
 
-	QUEUE_NAME = 'feedback_complete'
+    def from_msg(msg_str):
+        resp = json.loads(msg_str)
 
-	def from_msg(msg_str):
+        this = {}
+        this['id'] = resp['id']
+        this['fileName'] = resp['fileName']
 
-		resp = json.loads(msg_str)
-
-		this = {}
-		this['id'] = resp['id']
-		this['fileName'] = resp['fileName']
-
-		return this
+        return this

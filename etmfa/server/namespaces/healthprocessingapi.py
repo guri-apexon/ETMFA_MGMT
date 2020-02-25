@@ -1,9 +1,9 @@
-from flask_restplus import Namespace, Resource, fields, reqparse, abort
+from etmfa.server.api import api
 from flask import Response
-
-from ..api import api
+from flask_restplus import Resource
 
 ns = api.namespace('Health - Check', path='/health', description='Operations related to health check')
+
 
 @ns.route('/')
 class HealthprocessingAPI(Resource):

@@ -1,18 +1,16 @@
-from flask import Flask, Blueprint, request, send_from_directory, render_template, url_for, jsonify
-from flask_restplus import Namespace, Resource, fields, reqparse, abort
-import werkzeug
+from etmfa.db import create_processing_config, get_processing_config
+from etmfa.server.api import api
+from flask import request
+from flask_restplus import Resource, fields
 
-from ...db import create_processing_config, get_processing_config
-
-from ..api import api
-
-ns = api.namespace('Admin - Processing', path='/admin/processing', description='Operations related to application configuration')
-
+ns = api.namespace('Admin - Processing', path='/admin/processing',
+                   description='Operations related to application configuration')
 
 processing = api.model('Processing definition', {
-    'id': fields.Integer(required = True, description = 'Id for Processing directory. '),
+    'id': fields.Integer(required=True, description='Id for Processing directory. '),
     'processing_dir': fields.String(required=True, description='Processing directory for intermediate files.'),
 })
+
 
 @ns.route('/')
 class ProcessingAPI(Resource):
@@ -32,4 +30,3 @@ class ProcessingAPI(Resource):
     def put(self):
         """Update processing configuration data"""
         return create_processing_config(request.json)
-

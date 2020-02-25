@@ -1,16 +1,14 @@
+import json
 
-import json, logging
 
 class TriageComplete:
+    QUEUE_NAME = 'Triage_Complete'
 
-	QUEUE_NAME = 'Triage_Complete'
+    def from_msg(msg_str):
+        resp = json.loads(msg_str)
 
-	def from_msg(msg_str):
+        this = {}
+        this['id'] = resp['id']
+        this['IQVXMLPath'] = resp['IQVXMLPath']
 
-		resp = json.loads(msg_str)
-
-		this = {}
-		this['id'] = resp['id']
-		this['IQVXMLPath'] = resp['IQVXMLPath']
-
-		return this
+        return this
