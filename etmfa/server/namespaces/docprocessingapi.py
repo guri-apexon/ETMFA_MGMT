@@ -221,7 +221,7 @@ class DocumentprocessingAPI(Resource):
         """Returns metrics of document processed"""
         try:
             g.aidocid = id
-            resource = get_doc_proc_metrics_by_id(id, full_mapping=True)
+            resource = get_doc_proc_metrics_by_id(id)
             if resource is None:
                 return abort(404, 'Document Processing resource not found id: {}'.format(id))
             else:
