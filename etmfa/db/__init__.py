@@ -86,8 +86,6 @@ def update_doc_processing_status(id: str, process_status: ProcessingStatus):
         except Exception as e:
             db_context.session.rollback()
             logger.error(ERROR_PROCESSING_STATUS.format(id, e))
-    else:
-        logger.error(NO_RESOURCE_FOUND.format(id))
     return False
 
 
