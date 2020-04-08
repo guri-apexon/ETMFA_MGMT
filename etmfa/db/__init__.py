@@ -3,6 +3,9 @@ import logging
 import os
 from datetime import datetime
 
+from filehash import FileHash
+from flask import g
+
 from etmfa.consts import Consts as consts
 from etmfa.db.db import db_context
 from etmfa.db.models.documentProcess import DocumentProcess
@@ -11,12 +14,7 @@ from etmfa.db.models.documentduplicate import Documentduplicate
 from etmfa.db.models.documentfeedback import Documentfeedback
 from etmfa.db.models.metric import Metric
 from etmfa.db.models.processing import Processing
-from etmfa.messaging.models.attributeextraction_request import attributeextractionRequest
-from etmfa.messaging.models.classification_request import classificationRequest
-from etmfa.messaging.models.finalization_request import finalizationRequest
-from etmfa.messaging.models.ocr_request import ocrrequest
-from filehash import FileHash
-from flask import g
+from etmfa.messaging.models.processing_status import ProcessingStatus
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
@@ -71,7 +69,7 @@ def get_root_dir():
     return config['processing_dir']
 
 
-def update_doc_processing_status(id: str, percent_complete: str, update_status: str):
+def update_doc_processing_status(id: str, process_status: ProcessingStatus):
     """ Receives id for the document being processed along with percent_complete and present status of document
         If the document id being processed is present in DB, this function will update the percent_complete and
         status of document.
@@ -79,8 +77,8 @@ def update_doc_processing_status(id: str, percent_complete: str, update_status: 
 
     resource = get_doc_resource_by_id(id)
     if resource is not None:
-        resource.percentComplete = percent_complete
-        resource.status = update_status
+        resource.percentComplete = process_status.value
+        resource.status = process_status.name
         resource.lastUpdated = datetime.utcnow()
         try:
             db_context.session.commit()
@@ -93,42 +91,14 @@ def update_doc_processing_status(id: str, percent_complete: str, update_status: 
     return False
 
 
-def received_triagecomplete_event(id, iqvxml_path, message_publisher):
-    if update_doc_processing_status(id, '30', "OCR_STARTED"):
-        # Start processing OCR request
-        ocr_req_msg = ocrrequest(id, iqvxml_path)
-        message_publisher.send_obj(ocr_req_msg)
-
-
-def received_ocrcomplete_event(id, iqvxml_path, message_publisher):
-    if update_doc_processing_status(id, '70', "CLASSIFICATION_STARTED"):
-        # Start processing Classification request
-        classification_req_msg = classificationRequest(id, iqvxml_path)
-        message_publisher.send_obj(classification_req_msg)
-
-
-def received_classificationcomplete_event(id, iqvxml_path, message_publisher):
-    if update_doc_processing_status(id, '80', "ATTRIBUTEEXTRACTION_STARTED"):
-        #     # Start processing Extraction request
-        attributeextraction_req_msg = attributeextractionRequest(id, iqvxml_path)
-        message_publisher.send_obj(attributeextraction_req_msg)
-
-
-def received_attributeextractioncomplete_event(id, iqvxml_path, message_publisher):
-    if update_doc_processing_status(id, '90', "FINALIZATION_STARTED"):
-        # Start processing finalizer request
-        finalization_req_msg = finalizationRequest(id, iqvxml_path)
-        message_publisher.send_obj(finalization_req_msg)
-
-
 def received_feedbackcomplete_event(id):
-    if update_doc_processing_status(id, '100', "FEEDBACK_COMPLETED"):
+    if update_doc_processing_status(id, ProcessingStatus.FEEDBACK_COMPLETED):
         # log message for feedback received is updated to DB from users/reviewers
         logger.info("Feedback received for id is updated to DB: {}".format(id))
 
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
-    if update_doc_processing_status(id, '100', "PROCESS_COMPLETED"):
+    if update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED):
 
         resource = get_doc_resource_by_id(id)
 
@@ -311,7 +281,7 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
     return duplicateresource
 
 
-def get_doc_duplicate_by_id(resourcechk,full_mapping=False):
+def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
     if resourcechk.documentClass.lower() == 'core':
         resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash,
                                                   Documentduplicate.customer == resourcechk.customer,
@@ -394,7 +364,7 @@ def get_doc_metrics_by_id(id):
     return resource
 
 
-def get_doc_status_processing_by_id(id,full_mapping=True):
+def get_doc_status_processing_by_id(id, full_mapping=True):
     resource_dict = get_doc_resource_by_id(id)
 
     return resource_dict

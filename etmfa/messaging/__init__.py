@@ -5,12 +5,7 @@ from functools import partial
 from kombu import Connection
 
 from etmfa.messaging.messagelistener import MessageListener
-from etmfa.messaging.models.Triage_Request import TriageRequest
-from etmfa.messaging.models.attributeextraction_request import attributeextractionRequest
-from etmfa.messaging.models.classification_request import classificationRequest
-from etmfa.messaging.models.finalization_request import GenericRequest
-from etmfa.messaging.models.finalization_request import finalizationRequest
-from etmfa.messaging.models.ocr_request import ocrrequest
+from etmfa.messaging.models.generic_request import GenericRequest
 from etmfa.messaging.models.processing_status import ProcessingStatus
 from etmfa.messaging.models.queue_names import EtmfaQueues
 
@@ -38,6 +33,7 @@ def initialize_msg_listeners(app, connection_str, exchange_name, logger):
 
 
 def build_queue_callbacks(queue_worker):
+    # TODO : Triage_Complete will be replaced with EtmfaQueues queue names
     queue_worker.add_listener("Triage_Complete", on_triage_complete)
     queue_worker.add_listener(EtmfaQueues.OCR.complete,
                               partial(on_generic_complete_event, status=ProcessingStatus.CLASSIFICATION_STARTED,
@@ -56,12 +52,9 @@ def build_queue_callbacks(queue_worker):
 
 
 def on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queue_name):
+    # TODO: Resolve Circular Dependency
     from etmfa.db import update_doc_processing_status
-    print("ongeneric method", dest_queue_name, status, type(message_publisher), msg_proc_obj['id'],
-          msg_proc_obj['IQVXMLPath'])
-    print(status.name, status.value)
-    # update db status
-    update_doc_processing_status(msg_proc_obj['id'], status.value, status.name)
+    update_doc_processing_status(msg_proc_obj['id'], status)
     request = GenericRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'])
     message_publisher.send_dict(asdict(request), dest_queue_name)
 
@@ -78,13 +71,11 @@ def on_triage_complete(msg_proc_obj, message_publisher):
 
 def on_finalization_complete(msg_proc_obj, message_publisher):
     from etmfa.db import received_finalizationcomplete_event
-
     received_finalizationcomplete_event(msg_proc_obj['id'], msg_proc_obj, message_publisher)
 
 
 def on_feedback_complete(msg_proc_obj):
     from etmfa.db import received_feedbackcomplete_event
-
     received_feedbackcomplete_event(msg_proc_obj['id'])
 
 
