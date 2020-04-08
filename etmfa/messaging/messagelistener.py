@@ -1,11 +1,16 @@
-import json
 import getpass
+import json
+import logging
 import socket
 
-from kombu import Connection, Exchange, Queue
+from kombu import Exchange, Queue
 from kombu.mixins import ConsumerMixin
-from ..consts import Globals
-from .messagepublisher import MessagePublisher
+
+from etmfa.consts import Consts as consts
+from etmfa.consts import Globals
+from etmfa.messaging.messagepublisher import MessagePublisher
+
+logger = logging.getLogger(consts.LOGGING_NAME)
 
 
 class MessageListener(ConsumerMixin):
@@ -16,11 +21,10 @@ class MessageListener(ConsumerMixin):
         self.queue_callback_dict = queue_callback_dict
         self.logger = logger
 
-        if logger == None:
+        if logger is None:
             print("WARNING: No logger used in message listener.")
 
         self.exchange = Exchange(exchange_name, type='direct', durable=True)
-
 
     def get_queues(self):
         return [Queue(q, exchange=self.exchange, routing_key=q, durable=True) for q in self.queue_callback_dict.keys()]
@@ -36,10 +40,11 @@ class MessageListener(ConsumerMixin):
 
     def add_listener(self, queue_name, callback):
         """
-        Add a queue listener with the mapped callback to be invoked whenever a message is received. Listeners cannot be added after calling 'run()'
+        Add a queue listener with the mapped callback to be invoked whenever a message is received. Listeners cannot
+        be added after calling 'run()'
 
-        queue_name: string
-        callback: Function with the signature (dictionary_object, message publisher), where the dictionary_object corresponds to the received message.
+        queue_name: string callback: Function with the signature (dictionary_object, message publisher), where the
+        dictionary_object corresponds to the received message.
 
         Note: Only one top-level callback can be registered per queue.
         """
@@ -47,26 +52,28 @@ class MessageListener(ConsumerMixin):
             raise ValueError("Queue name parameter must be non-empty or whitespace: {}".format(queue_name))
 
         if queue_name in self.queue_callback_dict:
-            raise ValueError("Only one callback can be registered for a single queue. If multiple callbacks are required, compose functions.")
+            raise ValueError(
+                "Only one callback can be registered for a single queue. If multiple callbacks are required, "
+                "compose functions.")
 
         self.queue_callback_dict[queue_name] = callback
-    
+
     def _on_message(self, body, message):
         queue_name = message.delivery_info['routing_key']
         try:
             message_body = json.loads(body)
 
             Globals.THREAD_LOCAL.aidocid = message_body.get('id')
-        except:
-            self.logger.error("Could not parse message on queue: {}, body: {}".format(queue_name, body))
+        except Exception as ex:
+            logger.error("Could not parse message on queue: {}, body: {} {}".format(queue_name, body, ex))
 
-        self.logger.info("Received message on queue: {}".format(queue_name))
+        logger.info("Received message on queue: {}".format(queue_name))
 
         try:
-            callback = self.queue_callback_dict[queue_name](
-                        json.loads(body),
-                    MessagePublisher(self.connection_str, self.exchange_name, self.logger)
-                )
+            self.queue_callback_dict[queue_name](
+                json.loads(body),
+                MessagePublisher(self.connection_str, self.exchange_name)
+            )
             message.ack()
         except Exception as ex:
-            self.logger.error("Fatal message error while processing queue: {}".format(queue_name), ex)
+            logger.error("Fatal message error while processing queue: {}".format(queue_name), ex)

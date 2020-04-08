@@ -3,9 +3,6 @@ import logging
 import os
 from datetime import datetime
 
-from filehash import FileHash
-from flask import g
-
 from etmfa.consts import Consts as consts
 from etmfa.db.db import db_context
 from etmfa.db.models.documentProcess import DocumentProcess
@@ -18,6 +15,8 @@ from etmfa.messaging.models.attributeextraction_request import attributeextracti
 from etmfa.messaging.models.classification_request import classificationRequest
 from etmfa.messaging.models.finalization_request import finalizationRequest
 from etmfa.messaging.models.ocr_request import ocrrequest
+from filehash import FileHash
+from flask import g
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
@@ -312,7 +311,7 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
     return duplicateresource
 
 
-def get_doc_duplicate_by_id(resourcechk):
+def get_doc_duplicate_by_id(resourcechk,full_mapping=False):
     if resourcechk.documentClass.lower() == 'core':
         resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash,
                                                   Documentduplicate.customer == resourcechk.customer,
@@ -357,19 +356,19 @@ def save_doc_processing(request, _id, doc_path):
         logger.error(ERROR_PROCESSING_STATUS.format(_id, e))
 
 
-def get_doc_processing_by_id(id):
+def get_doc_processing_by_id(id, full_mapping=False):
     resource_dict = get_doc_resource_by_id(id).as_dict()
 
     return resource_dict
 
 
-def get_doc_processed_by_id(id):
+def get_doc_processed_by_id(id, full_mapping=True):
     resource_dict = get_doc_attributes_by_id(id)
 
     return resource_dict
 
 
-def get_doc_proc_metrics_by_id(id):
+def get_doc_proc_metrics_by_id(id, full_mapping=True):
     resource_dict = get_doc_metrics_by_id(id)
 
     return resource_dict
@@ -379,7 +378,7 @@ def get_doc_attributes_by_id(id):
     g.aidocid = id
     resource = Documentattributes.query.filter(Documentattributes.id.like(str(id))).first()
 
-    if resource == None:
+    if resource is None:
         logger.error(NO_RESOURCE_FOUND.format(id))
 
     return resource
@@ -395,7 +394,7 @@ def get_doc_metrics_by_id(id):
     return resource
 
 
-def get_doc_status_processing_by_id(id):
+def get_doc_status_processing_by_id(id,full_mapping=True):
     resource_dict = get_doc_resource_by_id(id)
 
     return resource_dict
