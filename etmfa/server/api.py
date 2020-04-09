@@ -1,5 +1,6 @@
-from flask_restplus import Api
 from flask import url_for
+from flask_restplus import Api
+
 
 @property
 def specs_url(self):
@@ -10,8 +11,8 @@ def specs_url(self):
     return url_for(self.endpoint('specs'), _external=True, _scheme='https')
 
 
-api = Api(version='0.1', 
-	    title='eTMF Automation Service API',
-	    description='eTMF Automation Service API for document processing.',
-	    contact="prathap.veera@quintiles.com"
-    )
+api = Api(version='0.1',
+          title='eTMF Automation Service API',
+          description='eTMF Automation Service API for document processing.',
+          contact="prathap.veera@quintiles.com"
+          )
