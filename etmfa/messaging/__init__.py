@@ -74,11 +74,11 @@ def on_finalization_complete(msg_proc_obj, message_publisher):
     received_finalizationcomplete_event(msg_proc_obj['id'], msg_proc_obj, message_publisher)
 
 
-def on_feedback_complete(msg_proc_obj):
+def on_feedback_complete(msg_proc_obj, message_publisher):
     from etmfa.db import received_feedbackcomplete_event
     received_feedbackcomplete_event(msg_proc_obj['id'])
 
 
-def on_documentprocessing_error(error_obj):
+def on_documentprocessing_error(error_obj, message_publisher):
     from etmfa.db import received_documentprocessing_error_event
     received_documentprocessing_error_event(error_obj)
