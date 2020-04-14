@@ -80,12 +80,14 @@ def update_doc_processing_status(id: str, process_status: ProcessingStatus):
         resource.percentComplete = process_status.value
         resource.status = process_status.name
         resource.lastUpdated = datetime.utcnow()
+
         try:
             db_context.session.commit()
             return True
         except Exception as e:
             db_context.session.rollback()
             logger.error(ERROR_PROCESSING_STATUS.format(id, e))
+
     return False
 
 
@@ -255,6 +257,7 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
 
     if resourcefound is None:
         resource.docDuplicateFlag = 0
+
         try:
             db_context.session.add(resource)
             db_context.session.commit()
@@ -269,6 +272,7 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
         last_updated = datetime.utcnow()
         setattr(resourcefound, 'docDuplicateFlag', doc_duplicate_flag_update)
         setattr(resourcefound, 'lastUpdated', last_updated)
+
         try:
             db_context.session.commit()
         except Exception as e:
@@ -316,6 +320,7 @@ def save_doc_processing(request, _id, doc_path):
     resource.documentFilePath = doc_path
     resource.percentComplete = '0'
     resource.status = "TRIAGE_STARTED"
+
     try:
         db_context.session.add(resource)
         db_context.session.commit()

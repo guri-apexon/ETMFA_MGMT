@@ -42,5 +42,6 @@ class MessagePublisher:
         except AssertionError as e:
             logger.error('A queue has to be provided!', e)
             raise ValueError('A queue has to be provided')
+
         jsonstruct = json.dumps(msg_dict)
         self.send_str(jsonstruct, queue_name)
