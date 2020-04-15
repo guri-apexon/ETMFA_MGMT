@@ -88,6 +88,7 @@ def update_doc_processing_status(id: str, process_status: ProcessingStatus):
             return True
         except Exception as ex:
             db_context.session.rollback()
+
             exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS, ex)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
@@ -181,7 +182,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
-            exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES,ex)
+            exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES, ex)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error("Error while writing record to etmfa_document_attributes file in DB for ID: {},{}".format(
                 finalattributes['id'], ex))
@@ -273,7 +274,7 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
-            exception = ManagementException(_id, ErrorCodes.ERROR_DOCUMENT_DUPLICATE,ex)
+            exception = ManagementException(_id, ErrorCodes.ERROR_DOCUMENT_DUPLICATE, ex)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error(
                 "Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, ex))
@@ -333,6 +334,7 @@ def save_doc_processing(request, _id, doc_path):
     resource = DocumentProcess.from_post_request(request, _id, doc_path)
 
     resource.documentFilePath = doc_path
+
     resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
     resource.status = ProcessingStatus.TRIAGE_STARTED.name
 
