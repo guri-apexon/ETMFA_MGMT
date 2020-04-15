@@ -29,6 +29,7 @@ def initialize_msg_listeners(app, connection_str, exchange_name, logger):
         daemon_handle.setDaemon(True)
         daemon_handle.start()
         logger.info("Consuming queues...")
+
     return daemon_handle
 
 
@@ -48,6 +49,7 @@ def build_queue_callbacks(queue_worker):
     queue_worker.add_listener(EtmfaQueues.FINALIZATION.complete, on_finalization_complete)
     queue_worker.add_listener(EtmfaQueues.FEEDBACK.complete, on_feedback_complete)
     queue_worker.add_listener(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value, on_documentprocessing_error)
+
     return queue_worker
 
 
@@ -66,6 +68,7 @@ def on_triage_complete(msg_proc_obj, message_publisher):
     else:
         dest_queue = EtmfaQueues.CLASSIFICATION.request
         status = ProcessingStatus.CLASSIFICATION_STARTED
+
     return on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queue)
 
 
