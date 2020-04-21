@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+from pathlib import Path
 from datetime import datetime
 
 from filehash import FileHash
@@ -65,8 +66,8 @@ def get_root_dir():
     if config is None:
         raise ValueError("Processing directory must be configured before files can be uploaded")
 
-    if not os.path.exists(config['processing_dir']):
-        os.makedirs(config['processing_dir'])
+    if not Path(config['processing_dir']):
+        Path(config['processing_dir']).mkdir(exist_ok=True, parents=True)
 
     return config['processing_dir']
 
@@ -337,6 +338,7 @@ def save_doc_processing(request, _id, doc_path):
         db_context.session.add(resource)
         db_context.session.commit()
     except Exception as ex:
+        print('hi')
         db_context.session.rollback()
         exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_SAVING, ex)
         received_documentprocessing_error_event(exception.__dict__)

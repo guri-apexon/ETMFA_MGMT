@@ -2,6 +2,7 @@ import datetime
 import logging
 import os
 import uuid
+from pathlib import Path
 
 from etmfa.consts import Consts as consts
 from etmfa.db import (
@@ -18,7 +19,7 @@ from etmfa.db import (
 )
 from etmfa.messaging.messagepublisher import MessagePublisher
 from etmfa.messaging.models.Triage_Request import TriageRequest
-from etmfa.messaging.models.feedback_request import feedbackrequest
+from etmfa.messaging.models.feedback_request import FeedbackRequest
 from etmfa.server.api import api
 from etmfa.server.namespaces.serializers import (
     metadata_post,
@@ -67,13 +68,13 @@ class DocumentprocessingAPI(Resource):
 
         ts = datetime.datetime.now().timestamp()
         fileprefix = str(int(ts * 1000000))
-        filesufix = os.path.splitext(filename_main)[1]
+        filesufix = Path(filename_main).suffix
         filename = fileprefix + filesufix
 
         # build file path in the processing directory
-        file_path = os.path.join(processing_dir, filename)
+        file_path = processing_dir.joinpath(filename)
         # Save document in the processing directory
-        file.save(file_path)
+        file.save(str(file_path))
         logger.info("Document saved at location: {}".format(file_path))
 
         customer = args['customer'] if args['customer'] is not None else ' '  # customer check
@@ -88,13 +89,13 @@ class DocumentprocessingAPI(Resource):
         site_personnel_list = args['sitePersonnelList'] if args['sitePersonnelList'] is not None else ' '
         priority = args['priority'] if args['priority'] is not None else ' '  # priority check
 
-        save_doc_processing(args, _id, file_path)
-        duplicatecheck = save_doc_processing_duplicate(args, _id, filename_main, file_path)
+        save_doc_processing(args, _id, str(file_path))
+        duplicatecheck = save_doc_processing_duplicate(args, _id, filename_main, str(file_path))
 
         BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
         EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
 
-        msg_f = TriageRequest(_id, filename_main, file_path, customer, protocol, country, site, document_class,
+        msg_f = TriageRequest(_id, filename_main, str(file_path), customer, protocol, country, site, document_class,
                               tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority,
                               duplicatecheck)
 
@@ -146,7 +147,7 @@ class DocumentprocessingAPI(Resource):
         message_publisher = MessagePublisher(BROKER_ADDR, EXCHANGE)
 
         # Send FeedbackRequest
-        feedback_req_msg = feedbackrequest(
+        feedback_req_msg = FeedbackRequest(
             id_fb,
             resourcefound.documentFilePath,
             feedback_source,
@@ -251,9 +252,9 @@ class DocumentprocessingAPI(Resource):
 
 def build_processing_dir(id):
     PROCESSING_DIR = get_root_dir()
+    path = Path(PROCESSING_DIR).joinpath(str(id))
 
-    path = os.path.join(PROCESSING_DIR, str(id) + "/")
-    if not os.path.isdir(path):
-        os.makedirs(path)
+    if not path.is_dir():
+        path.mkdir(exist_ok=True, parents=True)
 
     return path
