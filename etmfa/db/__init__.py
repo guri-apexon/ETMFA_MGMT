@@ -3,8 +3,10 @@ import logging
 import os
 from datetime import datetime
 
+from filehash import FileHash
+from flask import g
+
 from etmfa.consts import Consts as consts
-# Global DB context must be initialized before local imports
 from etmfa.db.db import db_context
 from etmfa.db.models.documentProcess import DocumentProcess
 from etmfa.db.models.documentattributes import Documentattributes
@@ -12,12 +14,9 @@ from etmfa.db.models.documentduplicate import Documentduplicate
 from etmfa.db.models.documentfeedback import Documentfeedback
 from etmfa.db.models.metric import Metric
 from etmfa.db.models.processing import Processing
-from etmfa.messaging.models.attributeextraction_request import attributeextractionRequest
-from etmfa.messaging.models.classification_request import classificationRequest
-from etmfa.messaging.models.finalization_request import finalizationRequest
-from etmfa.messaging.models.ocr_request import ocrrequest
-from filehash import FileHash
-from flask import g
+from etmfa.messaging.models.processing_status import ProcessingStatus
+from etmfa.error import ManagementException
+from etmfa.error import ErrorCodes
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
@@ -40,7 +39,7 @@ def init_db(app):
 
 def create_processing_config(kwargs):
     config = Processing.query.one_or_none()
-    if config != None:
+    if config is not None:
         # update
         for key in kwargs:
             setattr(config, key, kwargs[key])
@@ -55,7 +54,7 @@ def create_processing_config(kwargs):
 
 def get_processing_config():
     config = Processing.query.one_or_none()
-    if config == None:
+    if config is None:
         return None
 
     return config.as_dict()
@@ -63,7 +62,7 @@ def get_processing_config():
 
 def get_root_dir():
     config = get_processing_config()
-    if config == None:
+    if config is None:
         raise ValueError("Processing directory must be configured before files can be uploaded")
 
     if not os.path.exists(config['processing_dir']):
@@ -72,118 +71,43 @@ def get_root_dir():
     return config['processing_dir']
 
 
-def received_triagecomplete_event(id, iqvxml_path, message_publisher):
-    resource = get_doc_resource_by_id(id)
+def update_doc_processing_status(id: str, process_status: ProcessingStatus):
+    """ Receives id for the document being processed along with percent_complete and present status of document
+        If the document id being processed is present in DB, this function will update the percent_complete and
+        status of document.
+        If document id is not present in the DB, it will return a message saying document id not available"""
 
+    resource = get_doc_resource_by_id(id)
     if resource is not None:
-        resource.percentComplete = '30'
-        resource.status = "OCR_STARTED"
+        resource.percentComplete = process_status.value
+        resource.status = process_status.name
         resource.lastUpdated = datetime.utcnow()
+
         try:
             db_context.session.commit()
-        except Exception as e:
+            return True
+        except Exception as ex:
             db_context.session.rollback()
-            logger.error(ERROR_PROCESSING_STATUS.format(id, e))
 
-        # Start processing OCR request
-        ocr_req_msg = ocrrequest(id, iqvxml_path)
-        message_publisher.send_obj(ocr_req_msg)
+            exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS, ex)
+            received_documentprocessing_error_event(exception.__dict__)
+            logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
 
-    else:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-
-def received_ocrcomplete_event(id, iqvxml_path, message_publisher):
-    resource = get_doc_resource_by_id(id)
-
-    if resource is not None:
-        resource.percentComplete = '70'
-        resource.status = "CLASSIFICATION_STARTED"
-        resource.lastUpdated = datetime.utcnow()
-        try:
-            db_context.session.commit()
-        except Exception as e:
-            db_context.session.rollback()
-            logger.error(ERROR_PROCESSING_STATUS.format(id, e))
-
-        # Start processing Classification request
-        classification_req_msg = classificationRequest(id, iqvxml_path)
-        message_publisher.send_obj(classification_req_msg)
-    else:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-
-def received_classificationcomplete_event(id, iqvxml_path, message_publisher):
-    resource = get_doc_resource_by_id(id)
-
-    if resource is not None:
-        resource.percentComplete = '80'
-        resource.status = "ATTRIBUTEEXTRACTION_STARTED"
-        resource.lastUpdated = datetime.utcnow()
-        try:
-            db_context.session.commit()
-        except Exception as e:
-            db_context.session.rollback()
-            logger.error(ERROR_PROCESSING_STATUS.format(id, e))
-
-        # Start processing Extraction request
-        attributeextraction_req_msg = attributeextractionRequest(id, iqvxml_path)
-        message_publisher.send_obj(attributeextraction_req_msg)
-    else:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-
-def received_attributeextractioncomplete_event(id, iqvxml_path, message_publisher):
-    resource = get_doc_resource_by_id(id)
-
-    if resource is not None:
-        resource.percentComplete = '90'
-        resource.status = "FINALIZATION_STARTED"
-        resource.lastUpdated = datetime.utcnow()
-        try:
-            db_context.session.commit()
-        except Exception as e:
-            db_context.session.rollback()
-            logger.error(ERROR_PROCESSING_STATUS.format(id, e))
-
-        # Start processing finalizer request
-        finalization_req_msg = finalizationRequest(id, iqvxml_path)
-        message_publisher.send_obj(finalization_req_msg)
-    else:
-        logger.error(NO_RESOURCE_FOUND.format(id))
+    return False
 
 
 def received_feedbackcomplete_event(id):
-    resource = get_doc_resource_by_id(id)
-
-    if resource is not None:
-        resource.percentComplete = '100'
-        resource.status = "FEEDBACK_COMPLETED"
-        resource.lastUpdated = datetime.utcnow()
-        try:
-            db_context.session.commit()
-        except Exception as e:
-            db_context.session.rollback()
-            logger.error(ERROR_PROCESSING_STATUS.format(id, e))
-    else:
-        logger.error(NO_RESOURCE_FOUND.format(id))
+    if update_doc_processing_status(id, ProcessingStatus.FEEDBACK_COMPLETED):
+        # log message for feedback received is updated to DB from users/reviewers
+        logger.info("Feedback received for id is updated to DB: {}".format(id))
 
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
-    resource = get_doc_resource_by_id(id)
+    if update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED):
 
-    if resource is not None:
-        resource.isProcessing = False
-        resource.percentComplete = '100'
-        resource.status = "PROCESS_COMPLETED"
-        resource.lastUpdated = datetime.utcnow()
-        try:
-            db_context.session.commit()
-        except Exception as e:
-            db_context.session.rollback()
-            logger.error(ERROR_PROCESSING_STATUS.format(id, e))
+        resource = get_doc_resource_by_id(id)
 
-        metrics = Metric(resource.id)
+        metrics = Metric(id)
         metrics.id = finalattributes['id']
         metrics.totalProcessTime = finalattributes['total_process_time']
         metrics.queueWaitTime = finalattributes['queue_wait_time']
@@ -256,12 +180,12 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
             db_context.session.add(attributes)
             db_context.session.add(metrics)
             db_context.session.commit()
-        except Exception as e:
+        except Exception as ex:
             db_context.session.rollback()
+            exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES, ex)
+            received_documentprocessing_error_event(exception.__dict__)
             logger.error("Error while writing record to etmfa_document_attributes file in DB for ID: {},{}".format(
-                finalattributes['id'], e))
-    else:
-        logger.error(NO_RESOURCE_FOUND.format(id))
+                finalattributes['id'], ex))
 
 
 def received_documentprocessing_error_event(error_dict):
@@ -278,11 +202,9 @@ def received_documentprocessing_error_event(error_dict):
 
         try:
             db_context.session.commit()
-        except Exception as e:
+        except Exception as ex:
             db_context.session.rollback()
-            logger.error(
-                "Error while updating values to etmfa_document_process file in DB for ID: {},{}".format(error_dict['id'],
-                                                                                                        e))
+            logger.exception(f"Error while storing error message to etmfa_document_process DB table for ID: {error_dict['id']}")
     else:
         logger.error(NO_RESOURCE_FOUND.format(id))
 
@@ -312,9 +234,11 @@ def save_doc_feedback(_id, feedbackdata):
     try:
         db_context.session.add(resourcefb)
         db_context.session.commit()
-    except Exception as e:
+    except Exception as ex:
         db_context.session.rollback()
-        logger.error("Error while writing record to etmfa_document_feedback file in DB for ID: {},{}".format(_id, e))
+        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_FEEDBACK, ex)
+        received_documentprocessing_error_event(exception.__dict__)
+        logger.error("Error while writing record to etmfa_document_feedback file in DB for ID: {},{}".format(_id, ex))
 
     return resourcefb.as_dict()
 
@@ -339,13 +263,17 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
 
     if resourcefound is None:
         resource.docDuplicateFlag = 0
+
         try:
             db_context.session.add(resource)
             db_context.session.commit()
-        except Exception as e:
+        except Exception as ex:
             db_context.session.rollback()
+            exception = ManagementException(_id, ErrorCodes.ERROR_DOCUMENT_DUPLICATE, ex)
+            received_documentprocessing_error_event(exception.__dict__)
             logger.error(
-                "Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
+                "Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, ex))
+
     else:
         duplicateresource = resourcefound.id
         logger.info("Duplicate document id for the resource uploaded is: {}".format(duplicateresource))
@@ -353,12 +281,15 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
         last_updated = datetime.utcnow()
         setattr(resourcefound, 'docDuplicateFlag', doc_duplicate_flag_update)
         setattr(resourcefound, 'lastUpdated', last_updated)
+
         try:
             db_context.session.commit()
-        except Exception as e:
+        except Exception as ex:
             db_context.session.rollback()
+            exception = ManagementException(_id, ErrorCodes.ERROR_UPDATING_ATTRIBUTES, ex)
+            received_documentprocessing_error_event(exception.__dict__)
             logger.error(
-                "Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, e))
+                "Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, ex))
 
     return duplicateresource
 
@@ -391,9 +322,6 @@ def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
     else:
         resource = None
 
-    if not full_mapping:
-        return resource
-
     return resource
 
 
@@ -401,14 +329,18 @@ def save_doc_processing(request, _id, doc_path):
     resource = DocumentProcess.from_post_request(request, _id, doc_path)
 
     resource.documentFilePath = doc_path
-    resource.percentComplete = '0'
-    resource.status = "TRIAGE_STARTED"
+
+    resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
+    resource.status = ProcessingStatus.TRIAGE_STARTED.name
+
     try:
         db_context.session.add(resource)
         db_context.session.commit()
-    except Exception as e:
+    except Exception as ex:
         db_context.session.rollback()
-        logger.error(ERROR_PROCESSING_STATUS.format(_id, e))
+        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_SAVING, ex)
+        received_documentprocessing_error_event(exception.__dict__)
+        logger.error(ERROR_PROCESSING_STATUS.format(_id, ex))
 
 
 def get_doc_processing_by_id(id, full_mapping=False):
@@ -433,7 +365,7 @@ def get_doc_attributes_by_id(id):
     g.aidocid = id
     resource = Documentattributes.query.filter(Documentattributes.id.like(str(id))).first()
 
-    if resource == None:
+    if resource is None:
         logger.error(NO_RESOURCE_FOUND.format(id))
 
     return resource
@@ -443,7 +375,7 @@ def get_doc_metrics_by_id(id):
     g.aidocid = id
     resource = Metric.query.filter(Metric.id.like(str(id))).first()
 
-    if resource == None:
+    if resource is None:
         logger.error(NO_RESOURCE_FOUND.format(id))
 
     return resource
@@ -459,7 +391,7 @@ def get_doc_resource_by_id(id):
     g.aidocid = id
     resource = DocumentProcess.query.filter(DocumentProcess.id.like(str(id))).first()
 
-    if resource == None:
+    if resource is None:
         logger.error(NO_RESOURCE_FOUND.format(id))
 
     return resource
@@ -475,16 +407,18 @@ def upsert_attributevalue(doc_processing_id, namekey, value):
         try:
             setattr(doc_processing_resource, namekey, value)
             db_context.session.commit()
-        except Exception as e:
+        except Exception as ex:
             db_context.session.rollback()
+            exception = ManagementException(id, ErrorCodes.ERROR_UPDATING_ATTRIBUTES, ex)
+            received_documentprocessing_error_event(exception.__dict__)
             logger.error("Error while updating attribute to etmfa_document_attributes to DB for ID: {},{}".format(
-                doc_processing_id, e))
+                doc_processing_id, ex))
 
 
 def get_attribute_dict(doc_processing_id):
     doc_processing_resource = get_doc_resource_by_id(doc_processing_id)
 
-    if doc_processing_resource == None:
+    if doc_processing_resource is None:
         logger.error(NO_RESOURCE_FOUND.format(id))
 
     return doc_processing_resource

@@ -1,20 +1,13 @@
 import threading
+from dataclasses import asdict
+from functools import partial
 
-from etmfa.db import db_context
-from etmfa.messaging.messagelistener import MessageListener
-from etmfa.messaging.models.Triage_Request import TriageRequest
-from etmfa.messaging.models.Triage_complete import TriageComplete
-from etmfa.messaging.models.attributeextraction_complete import attributeextractionComplete
-from etmfa.messaging.models.attributeextraction_request import attributeextractionRequest
-from etmfa.messaging.models.classification_complete import classificationComplete
-from etmfa.messaging.models.classification_request import classificationRequest
-from etmfa.messaging.models.documentprocessing_error import documentprocessingerror
-from etmfa.messaging.models.feedback_complete import feedbackComplete
-from etmfa.messaging.models.finalization_complete import finalizationComplete
-from etmfa.messaging.models.finalization_request import finalizationRequest
-from etmfa.messaging.models.ocr_complete import ocrcomplete
-from etmfa.messaging.models.ocr_request import ocrrequest
 from kombu import Connection
+
+from etmfa.messaging.messagelistener import MessageListener
+from etmfa.messaging.models.generic_request import GenericRequest
+from etmfa.messaging.models.processing_status import ProcessingStatus
+from etmfa.messaging.models.queue_names import EtmfaQueues
 
 
 def msg_listening_worker(app, listener):
@@ -36,63 +29,59 @@ def initialize_msg_listeners(app, connection_str, exchange_name, logger):
         daemon_handle.setDaemon(True)
         daemon_handle.start()
         logger.info("Consuming queues...")
+
     return daemon_handle
 
 
 def build_queue_callbacks(queue_worker):
-    queue_worker.add_listener(TriageComplete.QUEUE_NAME, on_triage_complete)
-    queue_worker.add_listener(ocrcomplete.QUEUE_NAME, on_ocr_complete)
-    queue_worker.add_listener(classificationComplete.QUEUE_NAME, on_classification_complete)
-    queue_worker.add_listener(attributeextractionComplete.QUEUE_NAME, on_attributeextraction_complete)
-    queue_worker.add_listener(finalizationComplete.QUEUE_NAME, on_finalization_complete)
-    queue_worker.add_listener(feedbackComplete.QUEUE_NAME, on_feedback_complete)
-    queue_worker.add_listener(documentprocessingerror.QUEUE_NAME, on_documentprocessing_error)
+    # TODO : Triage_Complete will be replaced with EtmfaQueues queue names
+    queue_worker.add_listener("Triage_Complete", on_triage_complete)
+    queue_worker.add_listener(EtmfaQueues.OCR.complete,
+                              partial(on_generic_complete_event, status=ProcessingStatus.CLASSIFICATION_STARTED,
+                                      dest_queue_name=EtmfaQueues.CLASSIFICATION.request))
+    queue_worker.add_listener(EtmfaQueues.CLASSIFICATION.complete,
+                              partial(on_generic_complete_event,
+                                      status=ProcessingStatus.ATTRIBUTEEXTRACTION_STARTED,
+                                      dest_queue_name=EtmfaQueues.ATTRIBUTEEXTRACTION.request))
+    queue_worker.add_listener(EtmfaQueues.ATTRIBUTEEXTRACTION.complete,
+                              partial(on_generic_complete_event, status=ProcessingStatus.FINALIZATION_STARTED,
+                                      dest_queue_name=EtmfaQueues.FINALIZATION.request))
+    queue_worker.add_listener(EtmfaQueues.FINALIZATION.complete, on_finalization_complete)
+    queue_worker.add_listener(EtmfaQueues.FEEDBACK.complete, on_feedback_complete)
+    queue_worker.add_listener(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value, on_documentprocessing_error)
 
     return queue_worker
 
 
+def on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queue_name):
+    # TODO: Resolve Circular Dependency
+    from etmfa.db import update_doc_processing_status
+    update_doc_processing_status(msg_proc_obj['id'], status)
+    request = GenericRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'])
+    message_publisher.send_dict(asdict(request), dest_queue_name)
+
+
 def on_triage_complete(msg_proc_obj, message_publisher):
-    from etmfa.db import received_triagecomplete_event
-    from etmfa.db import received_ocrcomplete_event
-    db_context.session.commit()
-
-    if msg_proc_obj['OCR_Required'] == True:
-        received_triagecomplete_event(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], message_publisher)
+    if msg_proc_obj['OCR_Required']:
+        dest_queue = EtmfaQueues.OCR.request
+        status = ProcessingStatus.OCR_STARTED
     else:
-        received_ocrcomplete_event(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], message_publisher)
+        dest_queue = EtmfaQueues.CLASSIFICATION.request
+        status = ProcessingStatus.CLASSIFICATION_STARTED
 
-
-def on_ocr_complete(msg_proc_obj, message_publisher):
-    from etmfa.db import received_ocrcomplete_event
-
-    received_ocrcomplete_event(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], message_publisher)
-
-
-def on_classification_complete(msg_proc_obj, message_publisher):
-    from etmfa.db import received_classificationcomplete_event
-
-    received_classificationcomplete_event(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], message_publisher)
-
-
-def on_attributeextraction_complete(msg_proc_obj, message_publisher):
-    from etmfa.db import received_attributeextractioncomplete_event
-
-    received_attributeextractioncomplete_event(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], message_publisher)
+    return on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queue)
 
 
 def on_finalization_complete(msg_proc_obj, message_publisher):
     from etmfa.db import received_finalizationcomplete_event
-
     received_finalizationcomplete_event(msg_proc_obj['id'], msg_proc_obj, message_publisher)
 
 
 def on_feedback_complete(msg_proc_obj, message_publisher):
     from etmfa.db import received_feedbackcomplete_event
-
     received_feedbackcomplete_event(msg_proc_obj['id'])
 
 
 def on_documentprocessing_error(error_obj, message_publisher):
     from etmfa.db import received_documentprocessing_error_event
-
     received_documentprocessing_error_event(error_obj)

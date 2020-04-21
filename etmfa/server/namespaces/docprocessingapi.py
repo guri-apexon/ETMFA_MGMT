@@ -72,7 +72,6 @@ class DocumentprocessingAPI(Resource):
 
         # build file path in the processing directory
         file_path = os.path.join(processing_dir, filename)
-        print("Path of the file: {}", format(file_path))
         # Save document in the processing directory
         file.save(file_path)
         logger.info("Document saved at location: {}".format(file_path))
