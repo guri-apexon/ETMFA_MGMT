@@ -65,9 +65,7 @@ def get_root_dir():
     config = get_processing_config()
     if config is None:
         raise ValueError("Processing directory must be configured before files can be uploaded")
-
-    if not Path(config['processing_dir']):
-        Path(config['processing_dir']).mkdir(exist_ok=True, parents=True)
+    Path(config['processing_dir']).mkdir(exist_ok=True, parents=True)
 
     return config['processing_dir']
 
@@ -338,7 +336,6 @@ def save_doc_processing(request, _id, doc_path):
         db_context.session.add(resource)
         db_context.session.commit()
     except Exception as ex:
-        print('hi')
         db_context.session.rollback()
         exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_SAVING, ex)
         received_documentprocessing_error_event(exception.__dict__)
