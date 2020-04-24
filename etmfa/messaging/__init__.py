@@ -57,7 +57,7 @@ def on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queu
     # TODO: Resolve Circular Dependency
     from etmfa.db import update_doc_processing_status
     update_doc_processing_status(msg_proc_obj['id'], status)
-    request = GenericRequest(msg_proc_obj['id'], msg_proc_obj['iqvxml_path'])
+    request = GenericRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'])
     message_publisher.send_dict(asdict(request), dest_queue_name)
 
 

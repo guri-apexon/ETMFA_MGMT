@@ -1,10 +1,8 @@
 from dataclasses import dataclass
-from etmfa.messaging.models.queue_names import EtmfaQueues
 
 
 @dataclass
 class FeedbackRequest:
-    QUEUE_NAME = EtmfaQueues.TRIAGE.request
     id: str
     document_file_path: str
     feedback_source: str
