@@ -1,8 +1,9 @@
 import datetime
 import logging
-import os
 import uuid
 from pathlib import Path
+from etmfa.messaging.models.queue_names import EtmfaQueues
+from dataclasses import asdict
 
 from etmfa.consts import Consts as consts
 from etmfa.db import (
@@ -18,7 +19,7 @@ from etmfa.db import (
     upsert_attributevalue
 )
 from etmfa.messaging.messagepublisher import MessagePublisher
-from etmfa.messaging.models.Triage_Request import TriageRequest
+from etmfa.messaging.models.triage_request import TriageRequest
 from etmfa.messaging.models.feedback_request import FeedbackRequest
 from etmfa.server.api import api
 from etmfa.server.namespaces.serializers import (
@@ -95,17 +96,17 @@ class DocumentprocessingAPI(Resource):
         BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
         EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
 
-        msg_f = TriageRequest(_id, filename_main, str(file_path), customer, protocol, country, site, document_class,
-                              tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority,
-                              duplicatecheck)
+        post_req_msg = TriageRequest(_id, filename_main, str(file_path), customer, protocol, country, site,
+                                     document_class,
+                                     tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority,
+                                     duplicatecheck)
 
-        MessagePublisher(BROKER_ADDR, EXCHANGE).send_obj(msg_f)
+        MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(asdict(post_req_msg), EtmfaQueues.TRIAGE.request)
 
         # Return response object
         return get_doc_processing_by_id(_id, full_mapping=True)
 
 
-#
 @ns.route('/<string:id>/feedback')
 @ns.response(200, 'Success.')
 @ns.response(404, 'Document processing resource not found.')
@@ -144,8 +145,6 @@ class DocumentprocessingAPI(Resource):
         BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
         EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
 
-        message_publisher = MessagePublisher(BROKER_ADDR, EXCHANGE)
-
         # Send FeedbackRequest
         feedback_req_msg = FeedbackRequest(
             id_fb,
@@ -163,7 +162,7 @@ class DocumentprocessingAPI(Resource):
             document_rejected,
             attribute_auxillary_list
         )
-        message_publisher.send_obj(feedback_req_msg)
+        MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(asdict(feedback_req_msg), EtmfaQueues.FEEDBACK.request)
 
         return saved_resource
 

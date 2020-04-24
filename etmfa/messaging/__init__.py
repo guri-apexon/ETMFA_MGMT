@@ -34,8 +34,8 @@ def initialize_msg_listeners(app, connection_str, exchange_name, logger):
 
 
 def build_queue_callbacks(queue_worker):
-    # TODO : Triage_Complete will be replaced with EtmfaQueues queue names
-    queue_worker.add_listener("Triage_Complete", on_triage_complete)
+
+    queue_worker.add_listener(EtmfaQueues.TRIAGE.complete, on_triage_complete)
     queue_worker.add_listener(EtmfaQueues.OCR.complete,
                               partial(on_generic_complete_event, status=ProcessingStatus.CLASSIFICATION_STARTED,
                                       dest_queue_name=EtmfaQueues.CLASSIFICATION.request))
@@ -57,12 +57,12 @@ def on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queu
     # TODO: Resolve Circular Dependency
     from etmfa.db import update_doc_processing_status
     update_doc_processing_status(msg_proc_obj['id'], status)
-    request = GenericRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'])
+    request = GenericRequest(msg_proc_obj['id'], msg_proc_obj['iqvxml_path'])
     message_publisher.send_dict(asdict(request), dest_queue_name)
 
 
 def on_triage_complete(msg_proc_obj, message_publisher):
-    if msg_proc_obj['OCR_Required']:
+    if msg_proc_obj['ocr_required']:
         dest_queue = EtmfaQueues.OCR.request
         status = ProcessingStatus.OCR_STARTED
     else:

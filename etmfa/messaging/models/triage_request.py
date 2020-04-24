@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-
+from etmfa.messaging.models.queue_names import EtmfaQueues
 
 @dataclass
 class TriageRequest:
-    QUEUE_NAME = 'Triage_Request'
+    QUEUE_NAME = EtmfaQueues.TRIAGE.request
     
     id: str
     filename: str
