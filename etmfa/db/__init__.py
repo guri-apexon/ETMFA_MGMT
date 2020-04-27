@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+from pathlib import Path
 from datetime import datetime
 
 from filehash import FileHash
@@ -64,9 +65,7 @@ def get_root_dir():
     config = get_processing_config()
     if config is None:
         raise ValueError("Processing directory must be configured before files can be uploaded")
-
-    if not os.path.exists(config['processing_dir']):
-        os.makedirs(config['processing_dir'])
+    Path(config['processing_dir']).mkdir(exist_ok=True, parents=True)
 
     return config['processing_dir']
 

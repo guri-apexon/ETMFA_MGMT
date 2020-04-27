@@ -1,7 +1,9 @@
 import datetime
 import logging
-import os
 import uuid
+from pathlib import Path
+from etmfa.messaging.models.queue_names import EtmfaQueues
+from dataclasses import asdict
 
 from etmfa.consts import Consts as consts
 from etmfa.db import (
@@ -17,8 +19,8 @@ from etmfa.db import (
     upsert_attributevalue
 )
 from etmfa.messaging.messagepublisher import MessagePublisher
-from etmfa.messaging.models.Triage_Request import TriageRequest
-from etmfa.messaging.models.feedback_request import feedbackrequest
+from etmfa.messaging.models.triage_request import TriageRequest
+from etmfa.messaging.models.feedback_request import FeedbackRequest
 from etmfa.server.api import api
 from etmfa.server.namespaces.serializers import (
     metadata_post,
@@ -59,21 +61,15 @@ class DocumentprocessingAPI(Resource):
         logger.info("Document received for Processing from: {}".format(request.remote_addr))
 
         # get save path and output path
+        #TODO:Refactoring build_processing_dir.Taking DFS path into config.py instead from DB
         processing_dir = build_processing_dir(_id)
         file = args['file']
         filename_main = file.filename
 
-        # Convert file names to shorter length by replacing original filename with timestamp
-
-        ts = datetime.datetime.now().timestamp()
-        fileprefix = str(int(ts * 1000000))
-        filesufix = os.path.splitext(filename_main)[1]
-        filename = fileprefix + filesufix
-
         # build file path in the processing directory
-        file_path = os.path.join(processing_dir, filename)
+        file_path = processing_dir.joinpath(filename_main)
         # Save document in the processing directory
-        file.save(file_path)
+        file.save(str(file_path))
         logger.info("Document saved at location: {}".format(file_path))
 
         customer = args['customer'] if args['customer'] is not None else ' '  # customer check
@@ -88,23 +84,23 @@ class DocumentprocessingAPI(Resource):
         site_personnel_list = args['sitePersonnelList'] if args['sitePersonnelList'] is not None else ' '
         priority = args['priority'] if args['priority'] is not None else ' '  # priority check
 
-        save_doc_processing(args, _id, file_path)
-        duplicatecheck = save_doc_processing_duplicate(args, _id, filename_main, file_path)
+        save_doc_processing(args, _id, str(file_path))
+        duplicatecheck = save_doc_processing_duplicate(args, _id, filename_main, str(file_path))
 
         BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
         EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
 
-        msg_f = TriageRequest(_id, filename_main, file_path, customer, protocol, country, site, document_class,
-                              tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority,
-                              duplicatecheck)
+        post_req_msg = TriageRequest(_id, filename_main, str(file_path), customer, protocol, country, site,
+                                     document_class,
+                                     tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority,
+                                     duplicatecheck)
 
-        MessagePublisher(BROKER_ADDR, EXCHANGE).send_obj(msg_f)
+        MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(asdict(post_req_msg), EtmfaQueues.TRIAGE.request)
 
         # Return response object
         return get_doc_processing_by_id(_id, full_mapping=True)
 
 
-#
 @ns.route('/<string:id>/feedback')
 @ns.response(200, 'Success.')
 @ns.response(404, 'Document processing resource not found.')
@@ -143,10 +139,8 @@ class DocumentprocessingAPI(Resource):
         BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
         EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
 
-        message_publisher = MessagePublisher(BROKER_ADDR, EXCHANGE)
-
         # Send FeedbackRequest
-        feedback_req_msg = feedbackrequest(
+        feedback_req_msg = FeedbackRequest(
             id_fb,
             resourcefound.documentFilePath,
             feedback_source,
@@ -162,7 +156,7 @@ class DocumentprocessingAPI(Resource):
             document_rejected,
             attribute_auxillary_list
         )
-        message_publisher.send_obj(feedback_req_msg)
+        MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(asdict(feedback_req_msg), EtmfaQueues.FEEDBACK.request)
 
         return saved_resource
 
@@ -251,9 +245,7 @@ class DocumentprocessingAPI(Resource):
 
 def build_processing_dir(id):
     PROCESSING_DIR = get_root_dir()
-
-    path = os.path.join(PROCESSING_DIR, str(id) + "/")
-    if not os.path.isdir(path):
-        os.makedirs(path)
+    path = Path(PROCESSING_DIR).joinpath(str(id))
+    path.mkdir(exist_ok=True, parents=True)
 
     return path

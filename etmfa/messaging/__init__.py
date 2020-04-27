@@ -34,8 +34,8 @@ def initialize_msg_listeners(app, connection_str, exchange_name, logger):
 
 
 def build_queue_callbacks(queue_worker):
-    # TODO : Triage_Complete will be replaced with EtmfaQueues queue names
-    queue_worker.add_listener("Triage_Complete", on_triage_complete)
+
+    queue_worker.add_listener(EtmfaQueues.TRIAGE.complete, on_triage_complete)
     queue_worker.add_listener(EtmfaQueues.OCR.complete,
                               partial(on_generic_complete_event, status=ProcessingStatus.CLASSIFICATION_STARTED,
                                       dest_queue_name=EtmfaQueues.CLASSIFICATION.request))
@@ -62,7 +62,7 @@ def on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queu
 
 
 def on_triage_complete(msg_proc_obj, message_publisher):
-    if msg_proc_obj['OCR_Required']:
+    if msg_proc_obj['ocr_required']:
         dest_queue = EtmfaQueues.OCR.request
         status = ProcessingStatus.OCR_STARTED
     else:

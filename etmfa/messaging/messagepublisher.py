@@ -33,9 +33,6 @@ class MessagePublisher:
 
         logger.info("Sent message on queue: {}".format(queue_name))
 
-    def send_obj(self, msg_obj):
-        self.send_dict(msg_obj.__dict__, msg_obj.QUEUE_NAME)
-
     def send_dict(self, msg_dict, queue_name):
         try:
             assert queue_name is not None
