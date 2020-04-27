@@ -61,6 +61,7 @@ class DocumentprocessingAPI(Resource):
         logger.info("Document received for Processing from: {}".format(request.remote_addr))
 
         # get save path and output path
+        #TODO:Refactoring build_processing_dir.Taking DFS path into config.py instead from DB
         processing_dir = build_processing_dir(_id)
         file = args['file']
         filename_main = file.filename
@@ -245,8 +246,6 @@ class DocumentprocessingAPI(Resource):
 def build_processing_dir(id):
     PROCESSING_DIR = get_root_dir()
     path = Path(PROCESSING_DIR).joinpath(str(id))
-
-    if not path.is_dir():
-        path.mkdir(exist_ok=True, parents=True)
+    path.mkdir(exist_ok=True, parents=True)
 
     return path
