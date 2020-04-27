@@ -65,15 +65,8 @@ class DocumentprocessingAPI(Resource):
         file = args['file']
         filename_main = file.filename
 
-        # Convert file names to shorter length by replacing original filename with timestamp
-
-        ts = datetime.datetime.now().timestamp()
-        fileprefix = str(int(ts * 1000000))
-        filesufix = Path(filename_main).suffix
-        filename = fileprefix + filesufix
-
         # build file path in the processing directory
-        file_path = processing_dir.joinpath(filename)
+        file_path = processing_dir.joinpath(filename_main)
         # Save document in the processing directory
         file.save(str(file_path))
         logger.info("Document saved at location: {}".format(file_path))
