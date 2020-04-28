@@ -1,7 +1,6 @@
 import datetime
 import logging
 import os
-from pathlib import Path
 from datetime import datetime
 
 from filehash import FileHash
@@ -51,23 +50,6 @@ def create_processing_config(kwargs):
 
     db_context.session.commit()
     return config.as_dict()
-
-
-def get_processing_config():
-    config = Processing.query.one_or_none()
-    if config is None:
-        return None
-
-    return config.as_dict()
-
-
-def get_root_dir():
-    config = get_processing_config()
-    if config is None:
-        raise ValueError("Processing directory must be configured before files can be uploaded")
-    Path(config['processing_dir']).mkdir(exist_ok=True, parents=True)
-
-    return config['processing_dir']
 
 
 def update_doc_processing_status(id: str, process_status: ProcessingStatus):
@@ -203,7 +185,8 @@ def received_documentprocessing_error_event(error_dict):
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
-            logger.exception(f"Error while storing error message to etmfa_document_process DB table for ID: {error_dict['id']}")
+            logger.exception(
+                f"Error while storing error message to etmfa_document_process DB table for ID: {error_dict['id']}")
     else:
         logger.error(NO_RESOURCE_FOUND.format(id))
 

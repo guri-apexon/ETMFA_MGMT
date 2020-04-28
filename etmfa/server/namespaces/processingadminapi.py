@@ -1,4 +1,4 @@
-from etmfa.db import create_processing_config, get_processing_config
+from etmfa.db import create_processing_config
 from etmfa.server.api import api
 from flask import request
 from flask_restplus import Resource, fields
@@ -14,10 +14,6 @@ processing = api.model('Processing definition', {
 
 @ns.route('/')
 class ProcessingAPI(Resource):
-    @api.marshal_with(processing)
-    def get(self):
-        """Get processing configuration"""
-        return get_processing_config()
 
     @api.expect(processing)
     @api.marshal_with(processing)

@@ -1,13 +1,12 @@
-import datetime
 import logging
 import uuid
 from pathlib import Path
 from etmfa.messaging.models.queue_names import EtmfaQueues
 from dataclasses import asdict
+from etmfa.server.config import Config
 
 from etmfa.consts import Consts as consts
 from etmfa.db import (
-    get_root_dir,
     save_doc_processing,
     save_doc_processing_duplicate,
     save_doc_feedback,
@@ -62,7 +61,8 @@ class DocumentprocessingAPI(Resource):
 
         # get save path and output path
         #TODO:Refactoring build_processing_dir.Taking DFS path into config.py instead from DB
-        processing_dir = build_processing_dir(_id)
+        processing_dir = Path(Config.build_processing_dir).joinpath(_id)
+        processing_dir.mkdir(exist_ok=True, parents=True)
         file = args['file']
         filename_main = file.filename
 
@@ -239,13 +239,3 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
-
-
-# Utility Functions
-
-def build_processing_dir(id):
-    PROCESSING_DIR = get_root_dir()
-    path = Path(PROCESSING_DIR).joinpath(str(id))
-    path.mkdir(exist_ok=True, parents=True)
-
-    return path
