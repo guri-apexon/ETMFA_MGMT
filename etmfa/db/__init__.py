@@ -133,6 +133,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         attributes.docClass = finalattributes['doc_class']
         attributes.priority = finalattributes['priority']
         attributes.receivedDate = finalattributes['received_date']
+        # TODO:Storing site_personnel_list in DB
         attributes.sitePersonnelList = safe_unicode(finalattributes['site_personnel_list'])
         attributes.tmfEnvironment = finalattributes['tmf_environment']
         attributes.tmfIbr = finalattributes['tmf_ibr']
