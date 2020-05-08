@@ -45,8 +45,8 @@ def create_app(config_name, ssl_enabled=False):
     if Path(Config.DFS_UPLOAD_FOLDER).exists():
         logger.info('reading dfs path {}'.format(Config.DFS_UPLOAD_FOLDER))
     else:
-        logger.error(f'Error while reading dfs folder path.')
-        sys.exit(f'Error while reading dfs folder path.')
+        logger.error(f'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')
+        sys.exit(f'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')
 
         # register database instance
     init_db(app)
