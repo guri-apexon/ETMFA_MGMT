@@ -25,11 +25,11 @@ ERRORS = {
 
 class ManagementException:
 
-    def __init__(self, id, error_code, error_message):
+    def __init__(self, id, error_code):
         self.service_name = consts.LOGGING_NAME
         self.id = id
         self.error_code = error_code
-        self.error_message = f'{ERRORS[error_code]} {error_message}'
+        self.error_message = ERRORS[error_code]
 
     def __str__(self):
         return f'({self.service_name}, {self.id}, {self.error_code}, {self.error_message})'

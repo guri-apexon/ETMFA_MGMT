@@ -3,6 +3,7 @@ import cx_Oracle
 
 class Config(object):
     """Parent configuration class."""
+    DFS_UPLOAD_FOLDER = '//morsetmfml04d/etmfa_document_upload/'
     DEBUG = True
     host = 'moruorldb113vd'
     port = 1521
