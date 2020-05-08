@@ -13,7 +13,6 @@ from etmfa.db.models.documentattributes import Documentattributes
 from etmfa.db.models.documentduplicate import Documentduplicate
 from etmfa.db.models.documentfeedback import Documentfeedback
 from etmfa.db.models.metric import Metric
-from etmfa.db.models.processing import Processing
 from etmfa.messaging.models.processing_status import ProcessingStatus
 from etmfa.error import ManagementException
 from etmfa.error import ErrorCodes
@@ -37,21 +36,6 @@ def init_db(app):
         db_context.create_all()
 
 
-def create_processing_config(kwargs):
-    config = Processing.query.one_or_none()
-    if config is not None:
-        # update
-        for key in kwargs:
-            setattr(config, key, kwargs[key])
-    else:
-        # create
-        config = Processing(**kwargs)
-        db_context.session.add(config)
-
-    db_context.session.commit()
-    return config.as_dict()
-
-
 def update_doc_processing_status(id: str, process_status: ProcessingStatus):
     """ Receives id for the document being processed along with percent_complete and present status of document
         If the document id being processed is present in DB, this function will update the percent_complete and
@@ -70,7 +54,7 @@ def update_doc_processing_status(id: str, process_status: ProcessingStatus):
         except Exception as ex:
             db_context.session.rollback()
 
-            exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS, ex)
+            exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
 
@@ -164,7 +148,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
-            exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES, ex)
+            exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error("Error while writing record to etmfa_document_attributes file in DB for ID: {},{}".format(
                 finalattributes['id'], ex))
@@ -187,7 +171,7 @@ def received_documentprocessing_error_event(error_dict):
         except Exception as ex:
             db_context.session.rollback()
             logger.exception(
-                f"Error while storing error message to etmfa_document_process DB table for ID: {error_dict['id']}")
+                f"Error while storing error message to etmfa_document_process DB table for ID: {error_dict['id'], ex}")
     else:
         logger.error(NO_RESOURCE_FOUND.format(id))
 
@@ -219,7 +203,7 @@ def save_doc_feedback(_id, feedbackdata):
         db_context.session.commit()
     except Exception as ex:
         db_context.session.rollback()
-        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_FEEDBACK, ex)
+        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_FEEDBACK)
         received_documentprocessing_error_event(exception.__dict__)
         logger.error("Error while writing record to etmfa_document_feedback file in DB for ID: {},{}".format(_id, ex))
 
@@ -252,7 +236,7 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
-            exception = ManagementException(_id, ErrorCodes.ERROR_DOCUMENT_DUPLICATE, ex)
+            exception = ManagementException(_id, ErrorCodes.ERROR_DOCUMENT_DUPLICATE)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error(
                 "Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, ex))
@@ -269,7 +253,7 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
-            exception = ManagementException(_id, ErrorCodes.ERROR_UPDATING_ATTRIBUTES, ex)
+            exception = ManagementException(_id, ErrorCodes.ERROR_UPDATING_ATTRIBUTES)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error(
                 "Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, ex))
@@ -321,7 +305,7 @@ def save_doc_processing(request, _id, doc_path):
         db_context.session.commit()
     except Exception as ex:
         db_context.session.rollback()
-        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_SAVING, ex)
+        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_SAVING)
         received_documentprocessing_error_event(exception.__dict__)
         logger.error(ERROR_PROCESSING_STATUS.format(_id, ex))
 
@@ -392,7 +376,7 @@ def upsert_attributevalue(doc_processing_id, namekey, value):
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
-            exception = ManagementException(id, ErrorCodes.ERROR_UPDATING_ATTRIBUTES, ex)
+            exception = ManagementException(id, ErrorCodes.ERROR_UPDATING_ATTRIBUTES)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error("Error while updating attribute to etmfa_document_attributes to DB for ID: {},{}".format(
                 doc_processing_id, ex))

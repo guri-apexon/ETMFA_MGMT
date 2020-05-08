@@ -1,5 +1,7 @@
 import logging
 import os
+from pathlib import Path
+import sys
 
 from etmfa.consts import Consts
 from etmfa.db import init_db
@@ -9,6 +11,7 @@ from etmfa.server.api import api, specs_url
 # local imports
 from etmfa.server.config import app_config
 from etmfa.server.loggingconfig import initialize_logger
+from etmfa.server.config import Config
 # api
 from etmfa.server.namespaces.docprocessingapi import ns as docprocessing_namespace
 from etmfa.server.namespaces.healthprocessingapi import ns as health_namespace
@@ -39,7 +42,13 @@ def create_app(config_name, ssl_enabled=False):
     initialize_logger(app)
     logger = logging.getLogger(Consts.LOGGING_NAME)
 
-    # register database instance
+    if Path(Config.DFS_UPLOAD_FOLDER).exists():
+        logger.info('reading dfs path {}'.format(Config.DFS_UPLOAD_FOLDER))
+    else:
+        logger.error(f'Error while reading dfs folder path.')
+        sys.exit(f'Error while reading dfs folder path.')
+
+        # register database instance
     init_db(app)
 
     # CORS
@@ -69,7 +78,7 @@ def create_app(config_name, ssl_enabled=False):
 
     # read X-Forwarded headers to retrieve current host
     app.wsgi_app = ProxyFix(app.wsgi_app)
-    if (ssl_enabled):
+    if ssl_enabled:
         # https for swagger docs
         Api.specs_url = specs_url
 

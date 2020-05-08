@@ -60,7 +60,7 @@ class DocumentprocessingAPI(Resource):
         logger.info("Document received for Processing from: {}".format(request.remote_addr))
 
         # get save path and output path
-        processing_dir = Path(Config.dfs_upload_folder).joinpath(_id)
+        processing_dir = Path(Config.DFS_UPLOAD_FOLDER).joinpath(_id)
         processing_dir.mkdir(exist_ok=True, parents=True)
         file = args['file']
         filename_main = file.filename
