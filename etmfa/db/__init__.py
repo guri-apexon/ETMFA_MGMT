@@ -236,8 +236,6 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
-            exception = ManagementException(_id, ErrorCodes.ERROR_DOCUMENT_DUPLICATE)
-            received_documentprocessing_error_event(exception.__dict__)
             logger.error(
                 "Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, ex))
 
