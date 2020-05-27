@@ -236,6 +236,8 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
+            exception = ManagementException(_id, ErrorCodes.ERROR_DOCUMENT_DUPLICATE)
+            received_documentprocessing_error_event(exception.__dict__)
             logger.error(
                 "Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, ex))
 
@@ -262,20 +264,19 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
 def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
     if resourcechk.documentClass.lower() == 'core':
         resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash,
-                                                  Documentduplicate.customer == resourcechk.customer,
-                                                  Documentduplicate.protocol == resourcechk.protocol,
-                                                  Documentduplicate.documentClass == resourcechk.documentClass.lower(),
-                                                  Documentduplicate.country == None,
-                                                  Documentduplicate.site == None,
-                                                  Documentduplicate.documentRejected == False).first()
+                                               Documentduplicate.customer == resourcechk.customer,
+                                               Documentduplicate.protocol == resourcechk.protocol,
+                                               Documentduplicate.documentClass == resourcechk.documentClass.lower(),
+                                               Documentduplicate.documentRejected == False).first()
+
     elif resourcechk.documentClass.lower() == 'country':
         resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash,
                                                   Documentduplicate.customer == resourcechk.customer,
                                                   Documentduplicate.protocol == resourcechk.protocol,
                                                   Documentduplicate.documentClass == resourcechk.documentClass.lower(),
                                                   Documentduplicate.country == resourcechk.country,
-                                                  Documentduplicate.site == None,
                                                   Documentduplicate.documentRejected == False).first()
+
     elif resourcechk.documentClass.lower() == 'site':
         resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash,
                                                   Documentduplicate.customer == resourcechk.customer,
