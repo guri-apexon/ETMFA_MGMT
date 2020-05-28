@@ -262,30 +262,21 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
 
 
 def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
+    base_query = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash,
+                                               Documentduplicate.customer == resourcechk.customer,
+                                               Documentduplicate.protocol == resourcechk.protocol,
+                                               Documentduplicate.documentClass == resourcechk.documentClass.lower(),
+                                               Documentduplicate.documentRejected == False)
+
     if resourcechk.documentClass.lower() == 'core':
-        resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash,
-                                                  Documentduplicate.customer == resourcechk.customer,
-                                                  Documentduplicate.protocol == resourcechk.protocol,
-                                                  Documentduplicate.documentClass == resourcechk.documentClass.lower(),
-                                                  Documentduplicate.country == None,
-                                                  Documentduplicate.site == None,
-                                                  Documentduplicate.documentRejected == False).first()
+        resource = base_query.first()
+
     elif resourcechk.documentClass.lower() == 'country':
-        resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash,
-                                                  Documentduplicate.customer == resourcechk.customer,
-                                                  Documentduplicate.protocol == resourcechk.protocol,
-                                                  Documentduplicate.documentClass == resourcechk.documentClass.lower(),
-                                                  Documentduplicate.country == resourcechk.country,
-                                                  Documentduplicate.site == None,
-                                                  Documentduplicate.documentRejected == False).first()
+        resource = base_query.filter(Documentduplicate.country == resourcechk.country).first()
+
     elif resourcechk.documentClass.lower() == 'site':
-        resource = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash,
-                                                  Documentduplicate.customer == resourcechk.customer,
-                                                  Documentduplicate.protocol == resourcechk.protocol,
-                                                  Documentduplicate.documentClass == resourcechk.documentClass.lower(),
-                                                  Documentduplicate.country == resourcechk.country,
-                                                  Documentduplicate.site == resourcechk.site,
-                                                  Documentduplicate.documentRejected == False).first()
+        resource = base_query.filter(Documentduplicate.country == resourcechk.country,
+                                     Documentduplicate.site == resourcechk.site).first()
     else:
         resource = None
 
