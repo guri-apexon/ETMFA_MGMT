@@ -7,6 +7,7 @@ class DocumentProcess(db_context.Model):
     __tablename__ = "etmfa_document_process"
 
     id = db_context.Column(db_context.String(50), primary_key=True)
+    userId = db_context.Column(db_context.String(100))
     isProcessing = db_context.Column(db_context.Boolean())
     fileName = db_context.Column(db_context.String(300))
     documentFilePath = db_context.Column(db_context.String(500))
@@ -26,6 +27,7 @@ class DocumentProcess(db_context.Model):
         this = DocumentProcess()
         this.id = _id
         this.isProcessing = True
+        this.userId = request['userId']
         this.percentComplete = '0'
 
         if request['fileName'] is not None:

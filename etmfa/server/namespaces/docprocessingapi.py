@@ -76,12 +76,16 @@ class DocumentprocessingAPI(Resource):
         country = args['country'] if args['country'] is not None else ' '  # country check
         site = args['site'] if args['site'] is not None else ' '  # site check
         document_class = args['documentClass'] if args['documentClass'] is not None else ' '  # document class check
+        document_class = document_class.lower()
+        if document_class == 'study':
+            document_class = 'core'
         tmf_ibr = args['tmfIbr'] if args['tmfIbr'] is not None else ' '  # environment check
         blinded = args['unblinded'] if args['unblinded'] is not None else True  # document blinded/unblinded
         tmf_environment = args['tmfEnvironment'] if args['tmfEnvironment'] is not None else ' '
         received_date = args['receivedDate'] if args['receivedDate'] is not None else ' '  # received date check
         site_personnel_list = args['sitePersonnelList'] if args['sitePersonnelList'] is not None else ' '
         priority = args['priority'] if args['priority'] is not None else ' '  # priority check
+        userId = args['userId'] if args['userId'] is not None else ' '
 
         save_doc_processing(args, _id, str(file_path))
         duplicatecheck = save_doc_processing_duplicate(args, _id, filename_main, str(file_path))
@@ -91,7 +95,7 @@ class DocumentprocessingAPI(Resource):
 
         post_req_msg = TriageRequest(_id, filename_main, str(file_path), customer, protocol, country, site,
                                      document_class,
-                                     tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority,
+                                     tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority, userId,
                                      duplicatecheck)
 
         MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(asdict(post_req_msg), EtmfaQueues.TRIAGE.request)
@@ -124,6 +128,7 @@ class DocumentprocessingAPI(Resource):
         document_date = feedbackdata['documentDate']
         document_classification = feedbackdata['documentClassification']
         name = feedbackdata['name']
+        userId = feedbackdata['userId']
         language = feedbackdata['language']
         document_rejected = feedbackdata['documentRejected']
         attribute_auxillary_list = feedbackdata['attributeAuxillaryList']
@@ -153,7 +158,8 @@ class DocumentprocessingAPI(Resource):
             name,
             language,
             document_rejected,
-            attribute_auxillary_list
+            attribute_auxillary_list,
+            userId
         )
         MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(asdict(feedback_req_msg), EtmfaQueues.FEEDBACK.request)
 

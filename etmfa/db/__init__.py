@@ -62,7 +62,8 @@ def update_doc_processing_status(id: str, process_status: ProcessingStatus):
 
 
 def received_feedbackcomplete_event(id):
-    if update_doc_processing_status(id, ProcessingStatus.FEEDBACK_COMPLETED):
+    resource = get_doc_status_processing_by_id(id, full_mapping=True)
+    if update_doc_processing_status(id, resource['percentComplete']):
         # log message for feedback received is updated to DB from users/reviewers
         logger.info("Feedback received for id is updated to DB: {}".format(id))
 
@@ -108,6 +109,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
 
         attributes = Documentattributes()
         attributes.id = finalattributes['id']
+        attributes.userId = safe_unicode(finalattributes['userId'])
         attributes.fileName = safe_unicode(resource.fileName)
         attributes.documentFilePath = resource.documentFilePath
         attributes.customer = safe_unicode(finalattributes['customer'])
@@ -185,6 +187,7 @@ def save_doc_feedback(_id, feedbackdata):
     resourcefb.id = feedbackdata['id']
     resourcefb.fileName = safe_unicode(recordfound.fileName)
     resourcefb.documentFilePath = recordfound.documentFilePath
+    resourcefb.userId = feedbackdata['userId']
     resourcefb.feedbackSource = feedbackdata['feedbackSource']
     resourcefb.customer = safe_unicode(feedbackdata['customer'])
     resourcefb.protocol = safe_unicode(feedbackdata['protocol'])
@@ -215,6 +218,8 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
 
     sha512hasher = FileHash('sha512')
     resource.id = _id
+    resource.userId = safe_unicode(request['userId']) if request['userId'] is not None else ''
+    resource.site = safe_unicode(request['site']) if request['site'] is not None else ''
     resource.fileName = safe_unicode(file_name)
     resource.docHash = sha512hasher.hash_file(doc_path)
     resource.documentFilePath = doc_path
@@ -287,7 +292,7 @@ def save_doc_processing(request, _id, doc_path):
     resource = DocumentProcess.from_post_request(request, _id, doc_path)
 
     resource.documentFilePath = doc_path
-
+    resource.userId = request['userId']
     resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
     resource.status = ProcessingStatus.TRIAGE_STARTED.name
 
