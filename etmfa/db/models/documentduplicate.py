@@ -7,7 +7,7 @@ class Documentduplicate(db_context.Model):
     __tablename__ = "etmfa_document_duplicate"
 
     id = db_context.Column(db_context.String(50))
-    userId = db_context.Column(db_context.String(100))
+    userid = db_context.Column(db_context.String(100))
     fileName = db_context.Column(db_context.String(300))
     documentClass = db_context.Column(db_context.String(300), primary_key=True)
     customer = db_context.Column(db_context.String(300), primary_key=True)

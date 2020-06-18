@@ -13,7 +13,7 @@ from etmfa.db.models.documentattributes import Documentattributes
 from etmfa.db.models.documentduplicate import Documentduplicate
 from etmfa.db.models.documentfeedback import Documentfeedback
 from etmfa.db.models.metric import Metric
-from etmfa.messaging.models.processing_status import ProcessingStatus
+from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
 from etmfa.error import ManagementException
 from etmfa.error import ErrorCodes
 
@@ -61,11 +61,25 @@ def update_doc_processing_status(id: str, process_status: ProcessingStatus):
     return False
 
 
-def received_feedbackcomplete_event(id):
+def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
     resource = get_doc_status_processing_by_id(id, full_mapping=True)
-    if update_doc_processing_status(id, resource['percentComplete']):
+
+    if resource is not None:
+        resource.feedback = feedback_status.name
+        resource.lastUpdated = datetime.utcnow()
         # log message for feedback received is updated to DB from users/reviewers
         logger.info("Feedback received for id is updated to DB: {}".format(id))
+        try:
+            db_context.session.commit()
+            return True
+        except Exception as ex:
+            db_context.session.rollback()
+
+            exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS)
+            received_documentprocessing_error_event(exception.__dict__)
+            logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
+
+    return False
 
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
@@ -109,7 +123,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
 
         attributes = Documentattributes()
         attributes.id = finalattributes['id']
-        attributes.userId = safe_unicode(finalattributes['userId'])
+        attributes.userid = safe_unicode(resource.userid)
         attributes.fileName = safe_unicode(resource.fileName)
         attributes.documentFilePath = resource.documentFilePath
         attributes.customer = safe_unicode(finalattributes['customer'])
@@ -187,7 +201,7 @@ def save_doc_feedback(_id, feedbackdata):
     resourcefb.id = feedbackdata['id']
     resourcefb.fileName = safe_unicode(recordfound.fileName)
     resourcefb.documentFilePath = recordfound.documentFilePath
-    resourcefb.userId = feedbackdata['userId']
+    resourcefb.userid = feedbackdata['userId']
     resourcefb.feedbackSource = feedbackdata['feedbackSource']
     resourcefb.customer = safe_unicode(feedbackdata['customer'])
     resourcefb.protocol = safe_unicode(feedbackdata['protocol'])
@@ -218,7 +232,7 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
 
     sha512hasher = FileHash('sha512')
     resource.id = _id
-    resource.userId = safe_unicode(request['userId']) if request['userId'] is not None else ''
+    resource.userid = safe_unicode(request['userId']) if request['userId'] is not None else ''
     resource.site = safe_unicode(request['site']) if request['site'] is not None else ''
     resource.fileName = safe_unicode(file_name)
     resource.docHash = sha512hasher.hash_file(doc_path)
@@ -292,7 +306,7 @@ def save_doc_processing(request, _id, doc_path):
     resource = DocumentProcess.from_post_request(request, _id, doc_path)
 
     resource.documentFilePath = doc_path
-    resource.userId = request['userId']
+    resource.userid = request['userId']
     resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
     resource.status = ProcessingStatus.TRIAGE_STARTED.name
 

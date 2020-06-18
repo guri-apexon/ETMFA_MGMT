@@ -8,7 +8,7 @@ class Documentfeedback(db_context.Model):
 
     p_id = db_context.Column(db_context.String(50), primary_key=True)
     id = db_context.Column(db_context.String(50))
-    userId = db_context.Column(db_context.String(100))
+    userid = db_context.Column(db_context.String(100))
     fileName = db_context.Column(db_context.String(300))
     documentFilePath = db_context.Column(db_context.String(500))
     feedbackSource = db_context.Column(db_context.String(300))

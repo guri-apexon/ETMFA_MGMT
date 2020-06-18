@@ -7,7 +7,7 @@ class Documentattributes(db_context.Model):
     __tablename__ = "etmfa_document_attributes"
 
     id = db_context.Column(db_context.String(50), primary_key=True)
-    userId = db_context.Column(db_context.String(100))
+    userid = db_context.Column(db_context.String(100))
     fileName = db_context.Column(db_context.String(300))
     documentFilePath = db_context.Column(db_context.String(500))
     customer = db_context.Column(db_context.String(300))
