@@ -20,6 +20,7 @@ from etmfa.db import (
 from etmfa.messaging.messagepublisher import MessagePublisher
 from etmfa.messaging.models.triage_request import TriageRequest
 from etmfa.messaging.models.feedback_request import FeedbackRequest
+from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.server.api import api
 from etmfa.server.namespaces.serializers import (
     metadata_post,
@@ -77,15 +78,15 @@ class DocumentprocessingAPI(Resource):
         site = args['site'] if args['site'] is not None else ' '  # site check
         document_class = args['documentClass'] if args['documentClass'] is not None else ' '  # document class check
         document_class = document_class.lower()
-        if document_class == 'study':
-            document_class = 'core'
+        if document_class == DocumentClass.STUDY.value:
+            document_class = DocumentClass.CORE.value
         tmf_ibr = args['tmfIbr'] if args['tmfIbr'] is not None else ' '  # environment check
         blinded = args['unblinded'] if args['unblinded'] is not None else True  # document blinded/unblinded
         tmf_environment = args['tmfEnvironment'] if args['tmfEnvironment'] is not None else ' '
         received_date = args['receivedDate'] if args['receivedDate'] is not None else ' '  # received date check
         site_personnel_list = args['sitePersonnelList'] if args['sitePersonnelList'] is not None else ' '
         priority = args['priority'] if args['priority'] is not None else ' '  # priority check
-        userid = args['userId'] if args['userId'] is not None else ' '
+        user_id = args['userId'] if args['userId'] is not None else ' '
 
         save_doc_processing(args, _id, str(file_path))
         duplicatecheck = save_doc_processing_duplicate(args, _id, filename_main, str(file_path))
@@ -95,7 +96,7 @@ class DocumentprocessingAPI(Resource):
 
         post_req_msg = TriageRequest(_id, filename_main, str(file_path), customer, protocol, country, site,
                                      document_class,
-                                     tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority, userid,
+                                     tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority, user_id,
                                      duplicatecheck)
 
         MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(asdict(post_req_msg), EtmfaQueues.TRIAGE.request)
@@ -128,7 +129,7 @@ class DocumentprocessingAPI(Resource):
         document_date = feedbackdata['documentDate']
         document_classification = feedbackdata['documentClassification']
         name = feedbackdata['name']
-        userid = feedbackdata['userId']
+        user_id = feedbackdata['userId']
         language = feedbackdata['language']
         document_rejected = feedbackdata['documentRejected']
         attribute_auxillary_list = feedbackdata['attributeAuxillaryList']
@@ -159,7 +160,7 @@ class DocumentprocessingAPI(Resource):
             language,
             document_rejected,
             attribute_auxillary_list,
-            userid
+            user_id
         )
         MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(asdict(feedback_req_msg), EtmfaQueues.FEEDBACK.request)
 

@@ -1,5 +1,6 @@
 """Etmfa processing status enum."""
-from enum import Enum, unique
+from enum import Enum, unique, auto
+
 
 @unique
 class ProcessingStatus(Enum):
@@ -11,8 +12,8 @@ class ProcessingStatus(Enum):
     FINALIZATION_STARTED = 90
     PROCESS_COMPLETED = 100
 
+
 @unique
 class FeedbackStatus(Enum):
     """Etmfa feedback status enum capturing percentual progress of a document."""
-    FEEDBACK_COMPLETED = 100
-
+    FEEDBACK_COMPLETED = auto()

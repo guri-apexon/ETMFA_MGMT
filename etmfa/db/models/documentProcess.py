@@ -7,7 +7,7 @@ class DocumentProcess(db_context.Model):
     __tablename__ = "etmfa_document_process"
 
     id = db_context.Column(db_context.String(50), primary_key=True)
-    userid = db_context.Column(db_context.String(100))
+    userId = db_context.Column(db_context.String(100))
     isProcessing = db_context.Column(db_context.Boolean())
     fileName = db_context.Column(db_context.String(300))
     documentFilePath = db_context.Column(db_context.String(500))

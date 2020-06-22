@@ -17,4 +17,4 @@ class FeedbackRequest:
     language: str
     document_rejected: str
     attribute_auxillary_list: str
-    userid: str
+    user_id: str
