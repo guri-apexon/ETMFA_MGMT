@@ -6,7 +6,7 @@ from kombu import Connection
 
 from etmfa.messaging.messagelistener import MessageListener
 from etmfa.messaging.models.generic_request import GenericRequest
-from etmfa.messaging.models.processing_status import ProcessingStatus
+from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
 from etmfa.messaging.models.queue_names import EtmfaQueues
 
 
@@ -79,7 +79,7 @@ def on_finalization_complete(msg_proc_obj, message_publisher):
 
 def on_feedback_complete(msg_proc_obj, message_publisher):
     from etmfa.db import received_feedbackcomplete_event
-    received_feedbackcomplete_event(msg_proc_obj['id'])
+    received_feedbackcomplete_event(msg_proc_obj['id'], FeedbackStatus.FEEDBACK_COMPLETED)
 
 
 def on_documentprocessing_error(error_obj, message_publisher):

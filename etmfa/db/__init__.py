@@ -13,7 +13,8 @@ from etmfa.db.models.documentattributes import Documentattributes
 from etmfa.db.models.documentduplicate import Documentduplicate
 from etmfa.db.models.documentfeedback import Documentfeedback
 from etmfa.db.models.metric import Metric
-from etmfa.messaging.models.processing_status import ProcessingStatus
+from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
+from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.error import ManagementException
 from etmfa.error import ErrorCodes
 
@@ -61,10 +62,25 @@ def update_doc_processing_status(id: str, process_status: ProcessingStatus):
     return False
 
 
-def received_feedbackcomplete_event(id):
-    if update_doc_processing_status(id, ProcessingStatus.FEEDBACK_COMPLETED):
+def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
+    resource = get_doc_status_processing_by_id(id, full_mapping=True)
+
+    if resource is not None:
+        resource.feedback = feedback_status.name
+        resource.lastUpdated = datetime.utcnow()
         # log message for feedback received is updated to DB from users/reviewers
         logger.info("Feedback received for id is updated to DB: {}".format(id))
+        try:
+            db_context.session.commit()
+            return True
+        except Exception as ex:
+            db_context.session.rollback()
+
+            exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS)
+            received_documentprocessing_error_event(exception.__dict__)
+            logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
+
+    return False
 
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
@@ -108,6 +124,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
 
         attributes = Documentattributes()
         attributes.id = finalattributes['id']
+        attributes.userId = resource.userId
         attributes.fileName = safe_unicode(resource.fileName)
         attributes.documentFilePath = resource.documentFilePath
         attributes.customer = safe_unicode(finalattributes['customer'])
@@ -185,6 +202,7 @@ def save_doc_feedback(_id, feedbackdata):
     resourcefb.id = feedbackdata['id']
     resourcefb.fileName = safe_unicode(recordfound.fileName)
     resourcefb.documentFilePath = recordfound.documentFilePath
+    resourcefb.userId = feedbackdata['userId']
     resourcefb.feedbackSource = feedbackdata['feedbackSource']
     resourcefb.customer = safe_unicode(feedbackdata['customer'])
     resourcefb.protocol = safe_unicode(feedbackdata['protocol'])
@@ -215,6 +233,8 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
 
     sha512hasher = FileHash('sha512')
     resource.id = _id
+    resource.userId = request['userId'] if request['userId'] is not None else ''
+    resource.site = safe_unicode(request['site']) if request['site'] is not None else ''
     resource.fileName = safe_unicode(file_name)
     resource.docHash = sha512hasher.hash_file(doc_path)
     resource.documentFilePath = doc_path
@@ -243,7 +263,9 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
 
     else:
         duplicateresource = resourcefound.id
-        logger.info("Duplicate document id for the resource uploaded is: {}".format(duplicateresource))
+        user_id = resourcefound.userId
+        time_created = resourcefound.timeCreated
+        logger.info("Document previously uploaded by user: {} at time {} with file name {} having id {}".format(user_id, time_created, file_name, duplicateresource))
         doc_duplicate_flag_update = resourcefound.docDuplicateFlag + 1
         last_updated = datetime.utcnow()
         setattr(resourcefound, 'docDuplicateFlag', doc_duplicate_flag_update)
@@ -268,13 +290,13 @@ def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
                                                Documentduplicate.documentClass == resourcechk.documentClass.lower(),
                                                Documentduplicate.documentRejected == False)
 
-    if resourcechk.documentClass.lower() == 'core':
+    if resourcechk.documentClass.lower() == DocumentClass.CORE.value:
         resource = base_query.first()
 
-    elif resourcechk.documentClass.lower() == 'country':
+    elif resourcechk.documentClass.lower() == DocumentClass.COUNTRY.value:
         resource = base_query.filter(Documentduplicate.country == resourcechk.country).first()
 
-    elif resourcechk.documentClass.lower() == 'site':
+    elif resourcechk.documentClass.lower() == DocumentClass.SITE.value:
         resource = base_query.filter(Documentduplicate.country == resourcechk.country,
                                      Documentduplicate.site == resourcechk.site).first()
     else:
@@ -287,7 +309,7 @@ def save_doc_processing(request, _id, doc_path):
     resource = DocumentProcess.from_post_request(request, _id, doc_path)
 
     resource.documentFilePath = doc_path
-
+    resource.userId = request['userId']
     resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
     resource.status = ProcessingStatus.TRIAGE_STARTED.name
 

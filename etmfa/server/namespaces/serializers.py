@@ -1,6 +1,7 @@
 import werkzeug
-from etmfa.server.api import api
 from flask_restplus import fields, reqparse, inputs
+from etmfa.server.api import api
+from etmfa.messaging.models.document_class import DocumentClass
 
 kv_pair_model = api.model(' KeyValue Pair for patch ', {
     'name': fields.String(
@@ -240,8 +241,8 @@ eTMFA_object_post.add_argument('site',
 eTMFA_object_post.add_argument('documentClass',
                                type=str,
                                required=True,
-                               choices=('core','country', 'site'),
-                               help='Document Class(core/country/site)')
+                               choices=[doc_class.value for doc_class in DocumentClass],
+                               help='Document Class(core/country/site/study)')
 eTMFA_object_post.add_argument('tmfIbr',
                                type=str,
                                required=False,
@@ -266,6 +267,10 @@ eTMFA_object_post.add_argument('priority',
                                type=str,
                                required=False,
                                help='Priority')
+eTMFA_object_post.add_argument('userId',
+                               type=str,
+                               required=True,
+                               help='userId')
 eTMFA_object_post.add_argument('file',
                                type=werkzeug.datastructures.FileStorage,
                                location='files',
@@ -278,6 +283,7 @@ document_processing_object_put = api.model('Document feedback definition',
                                                                    description='The unique identifier (UUID) of a document processing job.'),
                                                'feedbackSource': fields.String(required=True,
                                                                                description='Feedback source for the processed document'),
+                                               'userId': fields.String(required=True, description='userId'),
                                                'customer': fields.String(required=True,
                                                                          description='Customer'),
                                                'protocol': fields.String(required=True,

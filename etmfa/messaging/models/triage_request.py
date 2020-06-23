@@ -17,4 +17,5 @@ class TriageRequest:
     received_date: str
     site_personnel_list: str
     priority: str
+    user_id: str
     doc_duplicate_flag: str
