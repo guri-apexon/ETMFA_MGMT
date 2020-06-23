@@ -1,6 +1,7 @@
 import werkzeug
-from etmfa.server.api import api
 from flask_restplus import fields, reqparse, inputs
+from etmfa.server.api import api
+from etmfa.messaging.models.document_class import DocumentClass
 
 kv_pair_model = api.model(' KeyValue Pair for patch ', {
     'name': fields.String(
@@ -240,8 +241,8 @@ eTMFA_object_post.add_argument('site',
 eTMFA_object_post.add_argument('documentClass',
                                type=str,
                                required=True,
-                               choices=('core','country', 'site', 'study'),
-                               help='Document Class(core/country/site)')
+                               choices=[doc_class.value for doc_class in DocumentClass],
+                               help='Document Class(core/country/site/study)')
 eTMFA_object_post.add_argument('tmfIbr',
                                type=str,
                                required=False,
