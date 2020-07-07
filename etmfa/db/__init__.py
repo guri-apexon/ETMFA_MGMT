@@ -87,6 +87,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     if update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED):
 
         resource = get_doc_resource_by_id(id)
+        resource.isProcessing = False
 
         metrics = Metric(id)
         metrics.id = finalattributes['id']
