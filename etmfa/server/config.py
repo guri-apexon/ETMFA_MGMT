@@ -3,7 +3,7 @@ import cx_Oracle
 
 class Config(object):
     """Parent configuration class."""
-    DFS_UPLOAD_FOLDER = '//morsetmfml04d/etmfa_document_upload/'
+    DFS_UPLOAD_FOLDER = '//ca2spdml01q/pd_sample_data/'
     DEBUG = True
     host = 'moruorldb113vd'
     port = 1521
@@ -21,11 +21,11 @@ class Config(object):
     }
     mquser = 'guest'
     mqpswd = 'guest'
-    mqhost = 'localhost' # 'localhost'
+    mqhost = 'ca2spdml01q' # 'localhost'
     mqport = 5672
     MESSAGE_BROKER_ADDR = "amqp://{0}:{1}@{2}:{3}".format(mquser, mqpswd, mqhost, mqport)
-    MESSAGE_BROKER_EXCHANGE = 'eTMFA'
-    LOGSTASH_HOST = 'morsetmfml01d'
+    MESSAGE_BROKER_EXCHANGE = 'PD'
+    LOGSTASH_HOST = 'ca2spdml01q'
     LOGSTASH_PORT = 5959
 
 
@@ -48,11 +48,11 @@ class DevelopmentConfig(Config):
     }
     mquser = 'guest'
     mqpswd = 'guest'
-    mqhost = 'rabbitmq-ai-etmfa-dev.work.iqvia.com'  # load balancer IP of RabbitMQ cluster
+    mqhost = 'ca2spdml01q'  # load balancer IP of RabbitMQ cluster
     mqport = 5672
     MESSAGE_BROKER_ADDR = "amqp://{0}:{1}@{2}:{3}".format(mquser, mqpswd, mqhost, mqport)
-    MESSAGE_BROKER_EXCHANGE = 'eTMFA'
-    LOGSTASH_HOST = 'morsetmfml01d'
+    MESSAGE_BROKER_EXCHANGE = 'PD'
+    LOGSTASH_HOST = 'ca2spdml01q'
     LOGSTASH_PORT = 5959
 
 
@@ -75,11 +75,11 @@ class SVTConfig(Config):
     }
     mquser = 'guest'
     mqpswd = 'guest'
-    mqhost = 'morsetmfhs06d'
+    mqhost = 'ca2spdml01q'
     mqport = 5672
     MESSAGE_BROKER_ADDR = "amqp://{0}:{1}@{2}:{3}".format(mquser, mqpswd, mqhost, mqport)
-    MESSAGE_BROKER_EXCHANGE = 'eTMFA'
-    LOGSTASH_HOST = 'morsetmfhs06d'
+    MESSAGE_BROKER_EXCHANGE = 'PD'
+    LOGSTASH_HOST = 'ca2spdml01q'
     LOGSTASH_PORT = 5959
 
 
