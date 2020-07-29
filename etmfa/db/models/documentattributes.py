@@ -4,7 +4,7 @@ from etmfa.db import db_context
 
 
 class Documentattributes(db_context.Model):
-    __tablename__ = "etmfa_document_attributes"
+    __tablename__ = "pd_document_attributes"
 
     id = db_context.Column(db_context.String(50), primary_key=True)
     userId = db_context.Column(db_context.String(100))

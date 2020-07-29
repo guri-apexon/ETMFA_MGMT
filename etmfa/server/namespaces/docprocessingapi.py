@@ -93,7 +93,7 @@ class DocumentprocessingAPI(Resource):
 
         BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
         EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
-
+        print("reached triage request sent")
         post_req_msg = TriageRequest(_id, filename_main, str(file_path), customer, protocol, country, site,
                                      document_class,
                                      tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority, user_id,

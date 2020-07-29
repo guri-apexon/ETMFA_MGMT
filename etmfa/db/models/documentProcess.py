@@ -4,7 +4,8 @@ from etmfa.db import db_context
 
 
 class DocumentProcess(db_context.Model):
-    __tablename__ = "etmfa_document_process"
+    __tablename__ = "pd_document_process"
+
 
     id = db_context.Column(db_context.String(50), primary_key=True)
     userId = db_context.Column(db_context.String(100))
@@ -18,6 +19,9 @@ class DocumentProcess(db_context.Model):
     errorReason = db_context.Column(db_context.String(1000))
     timeCreated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
     lastUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
+
+
+
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}
