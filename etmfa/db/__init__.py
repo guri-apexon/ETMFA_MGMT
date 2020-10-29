@@ -21,7 +21,7 @@ from etmfa.error import ErrorCodes
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
 NO_RESOURCE_FOUND = "No document resource was found in DB for ID: {}"
-ERROR_PROCESSING_STATUS = "Error while updating processing status to etmfa_document_process to DB for ID: {},{}"
+ERROR_PROCESSING_STATUS = "Error while updating processing status to PD_document_process to DB for ID: {},{}"
 
 
 # Global DB ORM object
@@ -168,7 +168,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
             db_context.session.rollback()
             exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES)
             received_documentprocessing_error_event(exception.__dict__)
-            logger.error("Error while writing record to etmfa_document_attributes file in DB for ID: {},{}".format(
+            logger.error("Error while writing record to PD_document_attributes file in DB for ID: {},{}".format(
                 finalattributes['id'], ex))
 
 
@@ -189,7 +189,7 @@ def received_documentprocessing_error_event(error_dict):
         except Exception as ex:
             db_context.session.rollback()
             logger.exception(
-                f"Error while storing error message to etmfa_document_process DB table for ID: {error_dict['id'], ex}")
+                f"Error while storing error message to PD_document_process DB table for ID: {error_dict['id'], ex}")
     else:
         logger.error(NO_RESOURCE_FOUND.format(id))
 
@@ -260,7 +260,7 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
             exception = ManagementException(_id, ErrorCodes.ERROR_DOCUMENT_DUPLICATE)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error(
-                "Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, ex))
+                "Error while writing record to pd_document_duplicate file in DB for ID: {},{}".format(_id, ex))
 
     else:
         duplicateresource = resourcefound.id
@@ -279,7 +279,7 @@ def save_doc_processing_duplicate(request, _id, file_name, doc_path):
             exception = ManagementException(_id, ErrorCodes.ERROR_UPDATING_ATTRIBUTES)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error(
-                "Error while writing record to etmfa_document_duplicate file in DB for ID: {},{}".format(_id, ex))
+                "Error while writing record to PD_document_duplicate file in DB for ID: {},{}".format(_id, ex))
 
     return duplicateresource
 
@@ -392,7 +392,7 @@ def upsert_attributevalue(doc_processing_id, namekey, value):
             db_context.session.rollback()
             exception = ManagementException(id, ErrorCodes.ERROR_UPDATING_ATTRIBUTES)
             received_documentprocessing_error_event(exception.__dict__)
-            logger.error("Error while updating attribute to etmfa_document_attributes to DB for ID: {},{}".format(
+            logger.error("Error while updating attribute to PD_document_attributes to DB for ID: {},{}".format(
                 doc_processing_id, ex))
 
 

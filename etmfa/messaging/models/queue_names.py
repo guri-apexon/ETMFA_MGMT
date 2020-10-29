@@ -5,10 +5,10 @@ class EtmfaQueues(Enum):
     """Enum of Etmfa queue names."""
 
     TRIAGE = "triage",
-    OCR = "ocr",
-    CLASSIFICATION = "classification",
-    ATTRIBUTEEXTRACTION = "attributeextraction",
-    FINALIZATION = "finalization",
+    DIGITIZER1 = "digitizer1"
+    DIGITIZER2 = "digitizer2"
+    EXTRACTION = "extraction",
+     # FINALIZATION = "finalization",
     FEEDBACK = "feedback",
     DOCUMENT_PROCESSING_ERROR = "documentprocessing_error"
 

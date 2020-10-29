@@ -39,7 +39,7 @@ logger = logging.getLogger(consts.LOGGING_NAME)
 DOCUMENT_NOT_FOUND = 'Document Processing resource not found for id: {}'
 SERVER_ERROR = 'Server error: {}'
 
-ns = api.namespace('eTMFA', path='/v1/documents', description='REST endpoints for eTMFA workflows.')
+ns = api.namespace('PD', path='/v1/documents', description='REST endpoints for PD workflows.')
 
 
 @ns.route('/')

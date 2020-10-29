@@ -55,7 +55,7 @@ def create_app(config_name, ssl_enabled=False):
     cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     # register API
-    api_blueprint = Blueprint('api', __name__, url_prefix='/etmfa/api')
+    api_blueprint = Blueprint('api', __name__, url_prefix='/pd/api')
 
     @api_blueprint.before_request
     def saveAidocId():
@@ -82,6 +82,6 @@ def create_app(config_name, ssl_enabled=False):
         # https for swagger docs
         Api.specs_url = specs_url
 
-    logger.info('eTMFA application start-up: complete. SSL: {}'.format(str(ssl_enabled)))
+    logger.info('PD application start-up: complete. SSL: {}'.format(str(ssl_enabled)))
 
     return app
