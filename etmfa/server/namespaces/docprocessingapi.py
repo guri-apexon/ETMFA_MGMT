@@ -30,10 +30,13 @@ from etmfa.server.namespaces.serializers import (
     eTMFA_attributes_get,
     eTMFA_object_post,
     document_processing_object_put,
-    document_processing_object_put_get
+    document_processing_object_put_get,
+    pd_object_get_summary
 )
 from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
+
+from etmfa.api_response_handlers import get_summary_api_response
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 DOCUMENT_NOT_FOUND = 'Document Processing resource not found for id: {}'
@@ -242,6 +245,26 @@ class DocumentprocessingAPI(Resource):
                 return abort(404, DOCUMENT_NOT_FOUND.format(id))
             else:
                 return resource
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
+
+@ns.route('/<string:id>/summary_section')
+@ns.response(404, 'Document Processing resource not found.')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.marshal_with(pd_object_get_summary)
+    @ns.response(200, 'Success.')
+    def get(self, id):
+        """Get summary section details from digitized documents"""
+        try:
+            g.aidocid = id
+            summary_dict, _ = get_summary_api_response(id=id, orient_type='split')
+
+            if summary_dict is None:
+                return abort(404, f"Summary section not found for [{id}]")
+            else:
+                return summary_dict
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))

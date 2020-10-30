@@ -109,3 +109,11 @@ app_config = {
     'uat': UATConfig,
     'production': ProductionConfig,
 }
+
+# API endpoint support settings
+std_tags_dict = {'KEY_IsSummaryHeader' :'IsSummaryHeader', 
+                'KEY_IsSummaryElement': 'IsSummaryElement', 
+                'KEY_TableROI': 'TableROI',
+                'KEY_SectionHeaderPrintPage': 'SectionHeaderPrintPage'}
+
+finalized_doc_prefix = 'FIN_'
