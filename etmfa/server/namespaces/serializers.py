@@ -341,3 +341,12 @@ document_processing_object_put_get = api.model('Document Processing Feedback Mod
                                                                                            description='Attribute auxillary list'),
                                                }
                                                )
+
+# API :Summary section
+pd_object_get_summary = api.model('Summary section extraction',
+{
+'id': fields.String(readOnly=True, description='The unique identifier (UUID) of PD document.'),
+'columns': fields.String(readOnly=False, description='Columns of data. Content: Indicator that the content is "Text" or "Table dict"; font_info: Font information of the "Text"'),
+'data': fields.String(readOnly=False, description='Information at row level'),
+'index': fields.String(readOnly=False, description='Index of rows')
+})
