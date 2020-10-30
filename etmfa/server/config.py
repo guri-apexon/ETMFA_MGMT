@@ -1,30 +1,13 @@
-# import cx_Oracle
-
-
 import pymysql
 
-# mysql://username:password@server/db
+
 class Config(object):
     """Parent configuration class."""
     #DFS_UPLOAD_FOLDER = '//ca2spdml01q/pd_sample_data/'
     DFS_UPLOAD_FOLDER = '//quintiles.net/enterprise/Services/protdigtest/pilot_iqvxml'
     DEBUG = True
-    # db = pymysql.connect("localhost", "root", "Mohan!380", "sakila")
-    #
-    # cursor = db.cursor()
-    # cursor.execute("SELECT VERSION()")
-    # data = cursor.fetchone()
-    # print("Database version : %s " % data)
-    # db.close()
-
-    # host = 'moruorldb113vd'
-    # port = 1521
-    # sid = 'TMFMLDEV'
-    # user = 'TMF_CLASSIFY1'
-    # password = 'd3c0d3_12'
-    # sid = cx_Oracle.makedsn(host, port, sid=sid)
-    # [DB_TYPE] + [DB_CONNECTOR]: // [USERNAME]: [PASSWORD] @ [HOST]:[PORT] / [DB_NAME]
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@localhost:3306/protocol_dig'
+    # SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@localhost:3306/protocol_dig' #local
+    SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@localhost:3306/pd_digitalization' #VM
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     PRESERVE_CONTEXT_ON_EXCEPTION = False
     PROPAGATE_EXCEPTIONS = False
@@ -32,14 +15,6 @@ class Config(object):
         "pool_pre_ping": True,
         "pool_recycle": 900,
     }
-    # mquser = 'guest'
-    # mqpswd = 'guest'
-    # mqhost = 'localhost' # 'localhost'
-    # mqport = 5672
-    # MESSAGE_BROKER_ADDR = "amqp://{0}:{1}@{2}:{3}".format(mquser, mqpswd, mqhost, mqport)
-    # MESSAGE_BROKER_EXCHANGE = 'eTMFA'
-    # LOGSTASH_HOST = 'ca2spdml01q'
-    # LOGSTASH_PORT = 5959
 
     mquser = 'guest'
     mqpswd = 'guest'

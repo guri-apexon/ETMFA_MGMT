@@ -8,8 +8,8 @@ class EtmfaQueues(Enum):
     DIGITIZER1 = "digitizer1"
     DIGITIZER2 = "digitizer2"
     EXTRACTION = "extraction",
-     # FINALIZATION = "finalization",
-    FEEDBACK = "feedback",
+    FINALIZATION = "finalization",
+    # FEEDBACK = "feedback",
     DOCUMENT_PROCESSING_ERROR = "documentprocessing_error"
 
     def __init__(self, queue_prefix):

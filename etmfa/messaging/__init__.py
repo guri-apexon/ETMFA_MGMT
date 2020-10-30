@@ -41,7 +41,11 @@ def build_queue_callbacks(queue_worker):
                                       dest_queue_name=EtmfaQueues.DIGITIZER2.request))
     queue_worker.add_listener(EtmfaQueues.DIGITIZER2.complete,
                               partial(on_generic_complete_event, status=ProcessingStatus.EXTRACTION_STARTED,
-                                      dest_queue_name = EtmfaQueues.EXTRACTION.request))
+                                      dest_queue_name=EtmfaQueues.EXTRACTION.request))
+    queue_worker.add_listener(EtmfaQueues.EXTRACTION.complete,
+                                  partial(on_generic_complete_event, status=ProcessingStatus.FINALIZATION_STARTED,
+                                          dest_queue_name=EtmfaQueues.FINALIZATION.request))
+
     # queue_worker.add_listener(EtmfaQueues.FINALIZATION.complete, on_finalization_complete)
     # queue_worker.add_listener(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value, on_documentprocessing_error)
 
