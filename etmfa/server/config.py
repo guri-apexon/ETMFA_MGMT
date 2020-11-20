@@ -1,13 +1,14 @@
 import pymysql
+from collections import defaultdict
 
 
 class Config(object):
     """Parent configuration class."""
     DFS_UPLOAD_FOLDER = '//quintiles.net/enterprise/Services/protdigtest/pilot_iqvxml'
-    # DFS_UPLOAD_FOLDER = 'C:/Users/q1020640/Desktop/PD/General/pd files/new_test' #local
     DEBUG = True
     # SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@localhost:3306/protocol_dig' #local
     SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@localhost:3306/pd_digitalization' #VM
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     PRESERVE_CONTEXT_ON_EXCEPTION = False
     PROPAGATE_EXCEPTIONS = False
@@ -110,10 +111,70 @@ app_config = {
     'production': ProductionConfig,
 }
 
-# API endpoint support settings
-std_tags_dict = {'KEY_IsSummaryHeader' :'IsSummaryHeader', 
-                'KEY_IsSummaryElement': 'IsSummaryElement', 
-                'KEY_TableROI': 'TableROI',
-                'KEY_SectionHeaderPrintPage': 'SectionHeaderPrintPage'}
 
-finalized_doc_prefix = 'FIN_'
+# API endpoint support settings
+class _SummaryConfig:
+    summary_std_tags = {'KEY_IsSummaryHeader' :'IsSummaryHeader',
+                'KEY_IsSummaryElement': 'IsSummaryElement',
+                'KEY_IsObjectiveAndEndpoint' : 'IsObjectiveAndEndpoint',
+                'KEY_IsInclusionCriteria' : 'IsInclusionCriteria',
+                'KEY_IsExclusionCriteria' : 'IsExclusionCriteria',
+                'KEY_IsNumberOfParticipants': 'IsNumberOfParticipants',
+                'KEY_IsTitle' : 'IsTitle',
+                'KEY_IsShortTitle' : 'IsShortTitle',
+                'KEY_IsPrimaryObjective' : 'IsPrimaryObjective',
+                'KEY_IsSecondaryObjective' : 'IsSecondaryObjective',
+                'KEY_IsExploratoryObjective' : 'IsExploratoryObjective',
+                'KEY_IsPrimaryEndpoint' : 'IsPrimaryEndpoint',
+                'KEY_IsSecondaryEndpoint' : 'IsSecondaryEndpoint',     
+                'KEY_IsRationale' : 'IsRationale',
+                'KEY_IsDesign': 'IsDesign',
+                'KEY_IsBriefSummary': 'IsBriefSummary',
+                'KEY_IsInterventionGroups': 'IsInterventionGroups',
+                'KEY_IsDataMonitoringCommittee': 'IsDataMonitoringCommittee',
+                'KEY_IsSchema': 'IsSchema',
+                'KEY_IsSOA': 'IsSOA',     
+                'KEY_IsFootNote':'IsFootnote',
+                'KEY_TableIndex': 'TableIndex' } 
+
+    subsection_tags = [value for key,value in summary_std_tags.items() if key not in ('KEY_IsSummaryHeader', 'KEY_IsSummaryElement', 'KEY_TableIndex')]
+
+
+class _GeneralConfig:
+    summary_std_tags = _SummaryConfig.summary_std_tags
+
+    soa_std_tags =  {
+                     'KEY_HeaderCellIndex':'IsHeaderCell',
+                     'KEY_TableIndex':'TableIndex',
+                     'KEY_RowIndex':'RowIndex',
+                     'KEY_ColIndex':'ColIndex',
+                     'KEY_IsFootnote': 'IsFootNote',
+                     'KEY_FootNoteLink':'FootNoteLink',
+                     'KEY_TableName':'TableName',
+                     'KEY_FullText':'FullText'
+                     }
+
+    toc_std_tags = { 'KEY_Toc': 'IsToc',
+                     'KEY_TableOfTable': 'IsTableOfTable',
+                     'KEY_TableOfFigure': 'IsTableOfFigure',
+                     'KEY_TableOfAppendix': 'IsTableOfAppendix',
+                   }
+
+    other_std_tags = {'KEY_SectionHeaderPrintPage': 'SectionHeaderPrintPage',
+                      'KEY_IsSectionHeader': 'IsSectionHeader',
+                      'KEY_Default': '',
+                    }
+
+    TABLE_INDEX_KEY = 'KEY_TableIndex'
+    TABLE_NAME_KEY = 'KEY_TableName'
+    FOOTNOTE_KEY = 'KEY_IsFootNote'
+    DEFAULT_KEY = ('KEY_Default', '')
+    std_tags_dict = defaultdict(lambda: _GeneralConfig.DEFAULT_KEY[1], {**summary_std_tags, **soa_std_tags, **toc_std_tags, **other_std_tags})     
+
+    finalized_doc_prefix = 'FIN_'   
+
+
+class ModuleConfig:
+    """Main module config."""
+    GENERAL = _GeneralConfig()
+    SUMMARY = _SummaryConfig()
