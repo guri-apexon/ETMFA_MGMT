@@ -219,54 +219,54 @@ eTMFA_attributes_get = api.model('Document Processing Attributes Model',
                                  )
 
 eTMFA_object_post = reqparse.RequestParser()
-eTMFA_object_post.add_argument('fileName',
+eTMFA_object_post.add_argument('sourceFileName',
                                type=str,
-                               help='Input document name')
-eTMFA_object_post.add_argument('customer',
-                               type=str,
-                               required=True,
-                               help='Customer Name')
-eTMFA_object_post.add_argument('protocol',
-                               type=str,
-                               required=True,
-                               help='Protocol')
-eTMFA_object_post.add_argument('country',
+                               help='Source Input document name')
+eTMFA_object_post.add_argument('versionNumber',
                                type=str,
                                required=False,
-                               help='Country')
-eTMFA_object_post.add_argument('site',
+                               help='Version Number')
+eTMFA_object_post.add_argument('protocolNumber',
                                type=str,
                                required=False,
-                               help='Site')
-eTMFA_object_post.add_argument('documentClass',
+                               help='Protocol number')
+eTMFA_object_post.add_argument('sponsor',
+                               type=str,
+                               required=False,
+                               help='Sponsor')
+eTMFA_object_post.add_argument('sourceSystem',
+                               type=str,
+                               required=False,
+                               help='Source system')
+eTMFA_object_post.add_argument('documentStatus',
                                type=str,
                                required=True,
                                choices=[doc_class.value for doc_class in DocumentClass],
-                               help='Document Class(core/country/site/study)')
-eTMFA_object_post.add_argument('tmfIbr',
+                               help='Document Status(Active/Final/Draft)')
+eTMFA_object_post.add_argument('studyStatus',
                                type=str,
                                required=False,
-                               help='TMF/IBR')
-eTMFA_object_post.add_argument('unblinded',
-                               type=inputs.boolean,
-                               required=False,
-                               help='Unblinded')
-eTMFA_object_post.add_argument('tmfEnvironment',
+                               help='Study Status')
+eTMFA_object_post.add_argument('amendmentNumber',
                                type=str,
                                required=False,
-                               help='TMF Environment')
-eTMFA_object_post.add_argument('receivedDate',
+                               help='Amendment Number')
+eTMFA_object_post.add_argument('projectID',
                                type=str,
                                required=False,
-                               help='Received Date')
-eTMFA_object_post.add_argument('sitePersonnelList',
+                               help='project ID')
+eTMFA_object_post.add_argument('environment',
                                type=str,
                                required=False,
-                               help='Site personnel Information')
-eTMFA_object_post.add_argument('priority',
+                               help='Environment')
+eTMFA_object_post.add_argument('indication',
                                type=str,
                                required=False,
-                               help='Priority')
+                               help='Indication')
+eTMFA_object_post.add_argument('moleculeDevice',
+                               type=str,
+                               required=False,
+                               help='Molecule Device')
 eTMFA_object_post.add_argument('userId',
                                type=str,
                                required=False,

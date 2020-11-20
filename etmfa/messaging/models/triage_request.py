@@ -4,18 +4,17 @@ from dataclasses import dataclass
 @dataclass
 class TriageRequest:
     id: str
-    filename: str
     filepath: str
-    customer: str
+    sourceFileName: str
+    version_number: str
     protocol: str
-    country: str
-    site: str
-    document_class: str
-    tmf_ibr: str
-    blinded: bool
-    tmf_environment: str
-    received_date: str
-    site_personnel_list: str
-    priority: str
+    document_status: str
+    environment: str
+    source_system: str
+    sponsor: str
+    study_status: str
+    amendment_number: str
+    project_id: str
+    indication: str
+    molecule_device: str
     user_id: str
-    doc_duplicate_flag: str

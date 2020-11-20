@@ -34,11 +34,11 @@ class DocumentProcess(db_context.Model):
         this.isProcessing = True
         this.percentComplete = '0'
 
-        if request['fileName'] is not None:
-            this.fileName = safe_unicode(request['fileName'])
+        if request['sourceFileName'] is not None:
+            this.sourceFileName = safe_unicode(request['sourceFileName'])
         else:
             file = request['file']
-            this.fileName = safe_unicode(file.filename)
+            this.sourceFileName = safe_unicode(file.filename)
 
         return this
 
