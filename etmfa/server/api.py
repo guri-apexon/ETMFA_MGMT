@@ -12,7 +12,7 @@ def specs_url(self):
 
 
 api = Api(version='0.1',
-          title='eTMF Automation Service API',
-          description='eTMF Automation Service API for document processing.',
-          contact="prathap.veera@quintiles.com"
+          title='PD Automation Service API',
+          description='PD Automation Service API for document processing.',
+          contact="jiju.mohan@quintiles.com"
           )

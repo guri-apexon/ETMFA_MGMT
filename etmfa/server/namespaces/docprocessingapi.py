@@ -30,16 +30,19 @@ from etmfa.server.namespaces.serializers import (
     eTMFA_attributes_get,
     eTMFA_object_post,
     document_processing_object_put,
-    document_processing_object_put_get
+    document_processing_object_put_get,
+    pd_object_get_summary
 )
 from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
+
+from etmfa.api_response_handlers import get_summary_api_response
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 DOCUMENT_NOT_FOUND = 'Document Processing resource not found for id: {}'
 SERVER_ERROR = 'Server error: {}'
 
-ns = api.namespace('eTMFA', path='/v1/documents', description='REST endpoints for eTMFA workflows.')
+ns = api.namespace('PD', path='/v1/documents', description='REST endpoints for PD workflows.')
 
 
 @ns.route('/')
@@ -72,32 +75,32 @@ class DocumentprocessingAPI(Resource):
         file.save(str(file_path))
         logger.info("Document saved at location: {}".format(file_path))
 
-        customer = args['customer'] if args['customer'] is not None else ' '  # customer check
-        protocol = args['protocol'] if args['protocol'] is not None else ' '  # protocol check
-        country = args['country'] if args['country'] is not None else ' '  # country check
-        site = args['site'] if args['site'] is not None else ' '  # site check
-        document_class = args['documentClass'] if args['documentClass'] is not None else ' '  # document class check
-        document_class = document_class.lower()
-        if document_class == DocumentClass.STUDY.value:
-            document_class = DocumentClass.CORE.value
-        tmf_ibr = args['tmfIbr'] if args['tmfIbr'] is not None else ' '  # environment check
-        blinded = args['unblinded'] if args['unblinded'] is not None else True  # document blinded/unblinded
-        tmf_environment = args['tmfEnvironment'] if args['tmfEnvironment'] is not None else ' '
-        received_date = args['receivedDate'] if args['receivedDate'] is not None else ' '  # received date check
-        site_personnel_list = args['sitePersonnelList'] if args['sitePersonnelList'] is not None else ' '
-        priority = args['priority'] if args['priority'] is not None else ' '  # priority check
+        source_filename = args['sourceFileName'] if args['sourceFileName'] is not None else ' '
+        version_number = args['versionNumber'] if args['versionNumber'] is not None else ' '
+        protocol = args['protocolNumber'] if args['protocolNumber'] is not None else ' '  # protocol check
+        document_status = args['documentStatus'] if args['documentStatus'] is not None else ' '  # protocol check
+        # document_status = document_status.lower()
+        environment = args['environment'] if args['environment'] is not None else ' '
+        source_system = args['sourceSystem'] if args['sourceSystem'] is not None else ' '
+        sponsor = args['sponsor'] if args['sponsor'] is not None else ' '
+        study_status = args['studyStatus'] if args['studyStatus'] is not None else ' '  # protocol check
+        amendment_number = args['amendmentNumber'] if args['amendmentNumber'] is not None else ' '
+        project_id = args['projectID'] if args['projectID'] is not None else ' '
+        indication = args['indication'] if args['indication'] is not None else ' '
+        molecule_device = args['moleculeDevice'] if args['moleculeDevice'] is not None else ' '
         user_id = args['userId'] if args['userId'] is not None else ' '
 
+
+
         save_doc_processing(args, _id, str(file_path))
-        duplicatecheck = save_doc_processing_duplicate(args, _id, filename_main, str(file_path))
+        # duplicatecheck = save_doc_processing_duplicate(args, _id, filename_main, str(file_path))#this will be taken out if duplicate check is not requested
 
         BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
         EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
-
-        post_req_msg = TriageRequest(_id, filename_main, str(file_path), customer, protocol, country, site,
-                                     document_class,
-                                     tmf_ibr, blinded, tmf_environment, received_date, site_personnel_list, priority, user_id,
-                                     duplicatecheck)
+        print("reached triage request sent")
+        post_req_msg = TriageRequest(_id, str(file_path), source_filename, version_number, protocol, document_status,
+                                     environment, source_system, sponsor, study_status, amendment_number, project_id,
+                                     indication, molecule_device, user_id)
 
         MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(asdict(post_req_msg), EtmfaQueues.TRIAGE.request)
 
@@ -242,6 +245,26 @@ class DocumentprocessingAPI(Resource):
                 return abort(404, DOCUMENT_NOT_FOUND.format(id))
             else:
                 return resource
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
+
+@ns.route('/<string:id>/summary_section')
+@ns.response(404, 'Document Processing resource not found.')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.marshal_with(pd_object_get_summary)
+    @ns.response(200, 'Success.')
+    def get(self, id):
+        """Get summary section details from digitized documents"""
+        try:
+            g.aidocid = id
+            summary_dict, _ = get_summary_api_response(id=id, orient_type='split')
+
+            if summary_dict is None:
+                return abort(404, f"Summary section not found for [{id}]")
+            else:
+                return summary_dict
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))

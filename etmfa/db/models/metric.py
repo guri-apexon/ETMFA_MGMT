@@ -4,7 +4,7 @@ from etmfa.db import db_context
 
 
 class Metric(db_context.Model):
-    __tablename__ = "etmfa_document_metrics"
+    __tablename__ = "pd_document_metrics"
 
     id = db_context.Column(db_context.String(50), primary_key=True)
     totalProcessTime = db_context.Column(db_context.String(200))

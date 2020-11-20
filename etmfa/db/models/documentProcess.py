@@ -4,7 +4,8 @@ from etmfa.db import db_context
 
 
 class DocumentProcess(db_context.Model):
-    __tablename__ = "etmfa_document_process"
+    __tablename__ = "pd_document_process"
+
 
     id = db_context.Column(db_context.String(50), primary_key=True)
     userId = db_context.Column(db_context.String(100))
@@ -19,6 +20,9 @@ class DocumentProcess(db_context.Model):
     timeCreated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
     lastUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
 
+
+
+
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         return obj
@@ -30,11 +34,11 @@ class DocumentProcess(db_context.Model):
         this.isProcessing = True
         this.percentComplete = '0'
 
-        if request['fileName'] is not None:
-            this.fileName = safe_unicode(request['fileName'])
+        if request['sourceFileName'] is not None:
+            this.sourceFileName = safe_unicode(request['sourceFileName'])
         else:
             file = request['file']
-            this.fileName = safe_unicode(file.filename)
+            this.sourceFileName = safe_unicode(file.filename)
 
         return this
 

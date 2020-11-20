@@ -36,21 +36,21 @@ def initialize_msg_listeners(app, connection_str, exchange_name, logger):
 def build_queue_callbacks(queue_worker):
 
     queue_worker.add_listener(EtmfaQueues.TRIAGE.complete, on_triage_complete)
-    queue_worker.add_listener(EtmfaQueues.OCR.complete,
-                              partial(on_generic_complete_event, status=ProcessingStatus.CLASSIFICATION_STARTED,
-                                      dest_queue_name=EtmfaQueues.CLASSIFICATION.request))
-    queue_worker.add_listener(EtmfaQueues.CLASSIFICATION.complete,
-                              partial(on_generic_complete_event,
-                                      status=ProcessingStatus.ATTRIBUTEEXTRACTION_STARTED,
-                                      dest_queue_name=EtmfaQueues.ATTRIBUTEEXTRACTION.request))
-    queue_worker.add_listener(EtmfaQueues.ATTRIBUTEEXTRACTION.complete,
-                              partial(on_generic_complete_event, status=ProcessingStatus.FINALIZATION_STARTED,
-                                      dest_queue_name=EtmfaQueues.FINALIZATION.request))
+    queue_worker.add_listener(EtmfaQueues.DIGITIZER1.complete,
+                              partial(on_generic_complete_event, status=ProcessingStatus.DIGITIZER2_STARTED,
+                                      dest_queue_name=EtmfaQueues.DIGITIZER2.request))
+    queue_worker.add_listener(EtmfaQueues.DIGITIZER2.complete,
+                              partial(on_generic_complete_event, status=ProcessingStatus.EXTRACTION_STARTED,
+                                      dest_queue_name=EtmfaQueues.EXTRACTION.request))
+    queue_worker.add_listener(EtmfaQueues.EXTRACTION.complete,
+                                  partial(on_generic_complete_event, status=ProcessingStatus.FINALIZATION_STARTED,
+                                          dest_queue_name=EtmfaQueues.FINALIZATION.request))
+
     queue_worker.add_listener(EtmfaQueues.FINALIZATION.complete, on_finalization_complete)
-    queue_worker.add_listener(EtmfaQueues.FEEDBACK.complete, on_feedback_complete)
     queue_worker.add_listener(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value, on_documentprocessing_error)
 
     return queue_worker
+
 
 
 def on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queue_name):
@@ -63,11 +63,11 @@ def on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queu
 
 def on_triage_complete(msg_proc_obj, message_publisher):
     if msg_proc_obj['ocr_required']:
-        dest_queue = EtmfaQueues.OCR.request
-        status = ProcessingStatus.OCR_STARTED
+        dest_queue = EtmfaQueues.DIGITIZER1.request
+        status = ProcessingStatus.DIGITIZER1_STARTED
     else:
-        dest_queue = EtmfaQueues.CLASSIFICATION.request
-        status = ProcessingStatus.CLASSIFICATION_STARTED
+        dest_queue = EtmfaQueues.DIGITIZER2.request
+        status = ProcessingStatus.DIGITIZER2_STARTED
 
     return on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queue)
 

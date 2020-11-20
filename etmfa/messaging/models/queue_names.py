@@ -5,11 +5,11 @@ class EtmfaQueues(Enum):
     """Enum of Etmfa queue names."""
 
     TRIAGE = "triage",
-    OCR = "ocr",
-    CLASSIFICATION = "classification",
-    ATTRIBUTEEXTRACTION = "attributeextraction",
+    DIGITIZER1 = "digitizer1"
+    DIGITIZER2 = "digitizer2"
+    EXTRACTION = "extraction",
     FINALIZATION = "finalization",
-    FEEDBACK = "feedback",
+    # FEEDBACK = "feedback",
     DOCUMENT_PROCESSING_ERROR = "documentprocessing_error"
 
     def __init__(self, queue_prefix):

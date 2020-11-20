@@ -6,9 +6,10 @@ from enum import Enum, unique, auto
 class ProcessingStatus(Enum):
     """Etmfa processing status enum capturing percentual progress of a document."""
     TRIAGE_STARTED = 0
-    OCR_STARTED = 30
-    CLASSIFICATION_STARTED = 70
-    ATTRIBUTEEXTRACTION_STARTED = 80
+    DIGITIZER1_STARTED = 30
+    DIGITIZER2_STARTED = 50
+    # CLASSIFICATION_STARTED = 00
+    EXTRACTION_STARTED = 70
     FINALIZATION_STARTED = 90
     PROCESS_COMPLETED = 100
 

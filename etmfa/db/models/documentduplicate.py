@@ -4,7 +4,7 @@ from etmfa.db import db_context
 
 
 class Documentduplicate(db_context.Model):
-    __tablename__ = "etmfa_document_duplicate"
+    __tablename__ = "pd_document_duplicate"
 
     id = db_context.Column(db_context.String(50))
     userId = db_context.Column(db_context.String(100))
@@ -21,6 +21,7 @@ class Documentduplicate(db_context.Model):
     documentRejected = db_context.Column(db_context.Boolean(), default=False)
     timeCreated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
     lastUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
+
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}
