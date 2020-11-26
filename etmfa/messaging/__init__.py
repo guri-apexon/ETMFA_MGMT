@@ -46,7 +46,7 @@ def build_queue_callbacks(queue_worker):
                                   partial(on_generic_complete_event, status=ProcessingStatus.FINALIZATION_STARTED,
                                           dest_queue_name=EtmfaQueues.FINALIZATION.request))
 
-    queue_worker.add_listener(EtmfaQueues.FINALIZATION.complete, on_finalization_complete)
+    # queue_worker.add_listener(EtmfaQueues.FINALIZATION.complete, on_finalization_complete)
     queue_worker.add_listener(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value, on_documentprocessing_error)
 
     return queue_worker

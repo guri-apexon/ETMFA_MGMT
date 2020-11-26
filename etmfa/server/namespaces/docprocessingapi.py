@@ -13,6 +13,7 @@ from etmfa.db import (
     get_doc_resource_by_id,
     get_doc_processing_by_id,
     get_doc_processed_by_id,
+    get_doc_processed_by_protocolNumber,
     get_doc_proc_metrics_by_id,
     get_doc_status_processing_by_id,
     upsert_attributevalue
@@ -170,6 +171,9 @@ class DocumentprocessingAPI(Resource):
         return saved_resource
 
 
+
+
+
 @ns.route('/<string:id>/key/value')
 @ns.response(404, 'Document Processing resource not found.')
 @ns.response(500, 'Server error.')
@@ -188,6 +192,7 @@ class DocumentprocessingAPI(Resource):
             for m in md['metadata']:
                 upsert_attributevalue(id, m['name'], m['val'])
             return get_doc_processed_by_id(id)
+
 
 
 @ns.route('/<string:id>/status')
@@ -230,17 +235,28 @@ class DocumentprocessingAPI(Resource):
             return abort(500, SERVER_ERROR.format(e))
 
 
-@ns.route('/<string:id>/attributes')
+
+@ns.route('<string:docId>/<string:protocolNumber>/<string:projectID>/<string:versionNumber>/<string:amendment>/<string:docStatus>/<string:userId>/<string:environment>/<string:sourceSystem>/<string:requestType>')
 @ns.response(200, 'Success.')
-@ns.response(404, 'Document processing resource not found.')
+@ns.response(404, 'Document Processing resource not found.')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
     @ns.marshal_with(eTMFA_attributes_get)
-    def get(self, id):
+    def get(self, docId, protocolNumber, projectID, versionNumber, amendment, docStatus, userId, environment, sourceSystem, requestType):
         """Get the document processing object attributes"""
         try:
-            g.aidocid = id
-            resource = get_doc_processed_by_id(id, full_mapping=True)
+            g.docId = docId
+            g.protocolNumber = protocolNumber
+            g.projectID = projectID
+            g.versionNumber = versionNumber
+            g.amendment = amendment
+            g.docStatus = docStatus
+            g.userId = userId
+            g.environment = environment
+            g.sourceSystem = sourceSystem
+            g.requestType = requestType
+            # resource = get_doc_processed_by_id(id, full_mapping=True)
+            resource = get_doc_processed_by_protocolNumber(protocolNumber, full_mapping=True)
             if resource is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(id))
             else:
@@ -248,6 +264,27 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
+
+
+# @ns.route('/<string:id>/attributes')
+# @ns.response(200, 'Success.')
+# @ns.response(404, 'Document processing resource not found.')
+# @ns.response(500, 'Server error.')
+# class DocumentprocessingAPI(Resource):
+#     @ns.marshal_with(eTMFA_attributes_get)
+#     def get(self, id, protocolNumber):
+#         """Get the document processing object attributes"""
+#         try:
+#             g.aidocid = id
+#             g.protocolNumber = protocolNumber
+#             resource = get_doc_processed_by_id(id, full_mapping=True)
+#             if resource is None:
+#                 return abort(404, DOCUMENT_NOT_FOUND.format(id))
+#             else:
+#                 return resource
+#         except ValueError as e:
+#             logger.error(SERVER_ERROR.format(e))
+#             return abort(500, SERVER_ERROR.format(e))
 
 @ns.route('/<string:id>/summary_section')
 @ns.response(404, 'Document Processing resource not found.')
