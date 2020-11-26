@@ -37,7 +37,7 @@ from etmfa.server.namespaces.serializers import (
 from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
 
-from etmfa.api_response_handlers import get_summary_api_response
+from etmfa.api_response_handlers import SummaryResponse
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 DOCUMENT_NOT_FOUND = 'Document Processing resource not found for id: {}'
@@ -296,7 +296,8 @@ class DocumentprocessingAPI(Resource):
         """Get summary section details from digitized documents"""
         try:
             g.aidocid = id
-            summary_dict, _ = get_summary_api_response(id=id, orient_type='split')
+            summary_response = SummaryResponse(id)
+            summary_dict, _ = summary_response.get_summary_api_response()
 
             if summary_dict is None:
                 return abort(404, f"Summary section not found for [{id}]")
