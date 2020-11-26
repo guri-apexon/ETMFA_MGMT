@@ -13,7 +13,7 @@ from etmfa.db import (
     get_doc_resource_by_id,
     get_doc_processing_by_id,
     get_doc_processed_by_id,
-    get_doc_processed_by_protocolNumber,
+    get_doc_processed_by_protocolnumber,
     get_doc_proc_metrics_by_id,
     get_doc_status_processing_by_id,
     upsert_attributevalue
@@ -236,27 +236,27 @@ class DocumentprocessingAPI(Resource):
 
 
 
-@ns.route('<string:docId>/<string:protocolNumber>/<string:projectID>/<string:versionNumber>/<string:amendment>/<string:docStatus>/<string:userId>/<string:environment>/<string:sourceSystem>/<string:requestType>')
+@ns.route('<string:docId>/<string:protocol_number>/<string:project_id>/<string:version_number>/<string:amendment>/<string:doc_status>/<string:user_id>/<string:environment>/<string:source_system>/<string:request_type>')
 @ns.response(200, 'Success.')
 @ns.response(404, 'Document Processing resource not found.')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
     @ns.marshal_with(eTMFA_attributes_get)
-    def get(self, docId, protocolNumber, projectID, versionNumber, amendment, docStatus, userId, environment, sourceSystem, requestType):
+    def get(self, docId, protocol_number, project_id, version_number, amendment, doc_status, user_id, environment, source_system, request_type):
         """Get the document processing object attributes"""
         try:
             g.docId = docId
-            g.protocolNumber = protocolNumber
-            g.projectID = projectID
-            g.versionNumber = versionNumber
+            g.protocol_number = protocol_number
+            g.project_id = project_id
+            g.version_number = version_number
             g.amendment = amendment
-            g.docStatus = docStatus
-            g.userId = userId
+            g.doc_status = doc_status
+            g.user_id = user_id
             g.environment = environment
-            g.sourceSystem = sourceSystem
-            g.requestType = requestType
+            g.source_system = source_system
+            g.request_type = request_type
             # resource = get_doc_processed_by_id(id, full_mapping=True)
-            resource = get_doc_processed_by_protocolNumber(protocolNumber, full_mapping=True)
+            resource = get_doc_processed_by_protocolnumber(protocol_number, full_mapping=True)
             if resource is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(id))
             else:
