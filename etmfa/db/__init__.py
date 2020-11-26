@@ -335,6 +335,12 @@ def get_doc_processed_by_id(id, full_mapping=True):
 
     return resource_dict
 
+def get_doc_processed_by_protocolnumber(protocolnumber, full_mapping=True):
+    resource_dict = get_doc_attributes_by_protocolnumber(protocolnumber)
+
+    return resource_dict
+
+
 
 def get_doc_proc_metrics_by_id(id, full_mapping=True):
     resource_dict = get_doc_metrics_by_id(id)
@@ -345,6 +351,15 @@ def get_doc_proc_metrics_by_id(id, full_mapping=True):
 def get_doc_attributes_by_id(id):
     g.aidocid = id
     resource = Documentattributes.query.filter(Documentattributes.id.like(str(id))).first()
+
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(id))
+
+    return resource
+
+def get_doc_attributes_by_protocolnumber(protocolnumber):
+    g.protocolnumber = protocolnumber
+    resource = Documentattributes.query.filter(Documentattributes.protocol_number.like(str(protocolnumber))).first()
 
     if resource is None:
         logger.error(NO_RESOURCE_FOUND.format(id))

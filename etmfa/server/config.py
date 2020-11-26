@@ -7,8 +7,7 @@ class Config(object):
     DFS_UPLOAD_FOLDER = '//quintiles.net/enterprise/Services/protdigtest/pilot_iqvxml'
     DEBUG = True
     # SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@localhost:3306/protocol_dig' #local
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@localhost:3306/pd_digitalization' #VM
-    
+    SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@localhost:3306/pd_digitalization' #VM?#
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     PRESERVE_CONTEXT_ON_EXCEPTION = False
     PROPAGATE_EXCEPTIONS = False
