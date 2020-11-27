@@ -335,8 +335,8 @@ def get_doc_processed_by_id(id, full_mapping=True):
 
     return resource_dict
 
-def get_doc_processed_by_protocolnumber(protocolnumber, full_mapping=True):
-    resource_dict = get_doc_attributes_by_protocolnumber(protocolnumber)
+def get_doc_processed_by_protocolnumber(protocol_number, project_id, version_number, doc_status):
+    resource_dict = get_doc_attributes_by_protocolnumber(protocol_number, project_id, version_number, doc_status)
 
     return resource_dict
 
@@ -356,15 +356,23 @@ def get_doc_attributes_by_id(id):
         logger.error(NO_RESOURCE_FOUND.format(id))
 
     return resource
-
-def get_doc_attributes_by_protocolnumber(protocolnumber):
-    g.protocolnumber = protocolnumber
-    resource = Documentattributes.query.filter(Documentattributes.protocol_number.like(str(protocolnumber))).first()
+#
+def get_doc_attributes_by_protocolnumber(protocol_number, project_id, version_number, doc_status):
+    g.protocolnumber = protocol_number
+    g.projectid = project_id
+    g.versionnumber = version_number
+    g.docstatus = doc_status
+    # to check the correct values are only extracted
+    resource = Documentattributes.query.filter(Documentattributes.protocol_number == g.protocolnumber,
+                                               Documentattributes.project_id == g.projectid,
+                                               Documentattributes.version_number == g.versionnumber,
+                                               Documentattributes.document_status == g.docstatus).first()
 
     if resource is None:
         logger.error(NO_RESOURCE_FOUND.format(id))
 
     return resource
+
 
 
 def get_doc_metrics_by_id(id):
