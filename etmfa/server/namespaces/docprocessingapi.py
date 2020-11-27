@@ -256,7 +256,7 @@ class DocumentprocessingAPI(Resource):
             g.source_system = source_system
             g.request_type = request_type
             # resource = get_doc_processed_by_id(id, full_mapping=True)
-            resource = get_doc_processed_by_protocolnumber(protocol_number, full_mapping=True)
+            resource = get_doc_processed_by_protocolnumber(protocol_number, project_id, version_number, doc_status)
             if resource is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(id))
             else:
@@ -266,25 +266,6 @@ class DocumentprocessingAPI(Resource):
             return abort(500, SERVER_ERROR.format(e))
 
 
-# @ns.route('/<string:id>/attributes')
-# @ns.response(200, 'Success.')
-# @ns.response(404, 'Document processing resource not found.')
-# @ns.response(500, 'Server error.')
-# class DocumentprocessingAPI(Resource):
-#     @ns.marshal_with(eTMFA_attributes_get)
-#     def get(self, id, protocolNumber):
-#         """Get the document processing object attributes"""
-#         try:
-#             g.aidocid = id
-#             g.protocolNumber = protocolNumber
-#             resource = get_doc_processed_by_id(id, full_mapping=True)
-#             if resource is None:
-#                 return abort(404, DOCUMENT_NOT_FOUND.format(id))
-#             else:
-#                 return resource
-#         except ValueError as e:
-#             logger.error(SERVER_ERROR.format(e))
-#             return abort(500, SERVER_ERROR.format(e))
 
 @ns.route('/<string:id>/summary_section')
 @ns.response(404, 'Document Processing resource not found.')
