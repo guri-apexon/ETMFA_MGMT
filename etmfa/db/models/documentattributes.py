@@ -25,7 +25,7 @@ class Documentattributes(db_context.Model):
     iqvdata_toc = db_context.Column(db_context.BLOB())
     iqvdata_soa = db_context.Column(db_context.BLOB())
     iqvdata_summary = db_context.Column(db_context.BLOB())
-
+    iqvdata = db_context.Column(db_context.BLOB())
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}

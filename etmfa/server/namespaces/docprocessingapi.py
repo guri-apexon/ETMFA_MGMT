@@ -14,8 +14,10 @@ from etmfa.db import (
     get_doc_processing_by_id,
     get_doc_processed_by_id,
     get_doc_processed_by_protocolnumber,
+    get_doc_attributes_by_protocolnumber,
     get_doc_proc_metrics_by_id,
     get_doc_status_processing_by_id,
+    get_mcra_attributes_by_protocolnumber,
     upsert_attributevalue
 )
 from etmfa.messaging.messagepublisher import MessagePublisher
@@ -32,7 +34,10 @@ from etmfa.server.namespaces.serializers import (
     eTMFA_object_post,
     document_processing_object_put,
     document_processing_object_put_get,
-    pd_object_get_summary
+    pd_object_get_summary,
+    eTMFA_attributes_input,
+    mCRA_attributes_get,
+    mCRA_attributes_input
 )
 from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
@@ -40,7 +45,7 @@ from flask_restplus import Resource, abort
 from etmfa.api_response_handlers import SummaryResponse
 
 logger = logging.getLogger(consts.LOGGING_NAME)
-DOCUMENT_NOT_FOUND = 'Document Processing resource not found for id: {}'
+DOCUMENT_NOT_FOUND = 'Document Processing resource not found for given data: {}'
 SERVER_ERROR = 'Server error: {}'
 
 ns = api.namespace('PD', path='/v1/documents', description='REST endpoints for PD workflows.')
@@ -79,12 +84,11 @@ class DocumentprocessingAPI(Resource):
         source_filename = args['sourceFileName'] if args['sourceFileName'] is not None else ' '
         version_number = args['versionNumber'] if args['versionNumber'] is not None else ' '
         protocol = args['protocolNumber'] if args['protocolNumber'] is not None else ' '  # protocol check
-        document_status = args['documentStatus'] if args['documentStatus'] is not None else ' '  # protocol check
-        # document_status = document_status.lower()
+        document_status = args['documentStatus'] if args['documentStatus'] is not None else ' '  # Doc status check
         environment = args['environment'] if args['environment'] is not None else ' '
         source_system = args['sourceSystem'] if args['sourceSystem'] is not None else ' '
         sponsor = args['sponsor'] if args['sponsor'] is not None else ' '
-        study_status = args['studyStatus'] if args['studyStatus'] is not None else ' '  # protocol check
+        study_status = args['studyStatus'] if args['studyStatus'] is not None else ' '  # Study status check
         amendment_number = args['amendmentNumber'] if args['amendmentNumber'] is not None else ' '
         project_id = args['projectID'] if args['projectID'] is not None else ' '
         indication = args['indication'] if args['indication'] is not None else ' '
@@ -235,30 +239,46 @@ class DocumentprocessingAPI(Resource):
             return abort(500, SERVER_ERROR.format(e))
 
 
-
-@ns.route('<string:docId>/<string:protocol_number>/<string:project_id>/<string:version_number>/<string:amendment>/<string:doc_status>/<string:user_id>/<string:environment>/<string:source_system>/<string:request_type>')
-@ns.response(200, 'Success.')
-@ns.response(404, 'Document Processing resource not found.')
+@ns.route('/attributes')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
+    @ns.expect(eTMFA_attributes_input)
     @ns.marshal_with(eTMFA_attributes_get)
-    def get(self, docId, protocol_number, project_id, version_number, amendment, doc_status, user_id, environment, source_system, request_type):
+    @ns.response(200, 'Success.')
+    @ns.response(404, 'Document Processing resource not found.')
+    def get(self):
         """Get the document processing object attributes"""
+        args = eTMFA_attributes_input.parse_args()
         try:
-            g.docId = docId
-            g.protocol_number = protocol_number
-            g.project_id = project_id
-            g.version_number = version_number
-            g.amendment = amendment
-            g.doc_status = doc_status
-            g.user_id = user_id
-            g.environment = environment
-            g.source_system = source_system
-            g.request_type = request_type
-            # resource = get_doc_processed_by_id(id, full_mapping=True)
-            resource = get_doc_processed_by_protocolnumber(protocol_number, project_id, version_number, doc_status)
+            id = args['docId'] if args['docId'] is not None else ' '
+            protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
+            project_id = args['projectId'] if args['projectId'] is not None else ' '
+            doc_status = args['docStatus'] if args['docStatus'] is not None else ' '
+            resource = get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_status)
             if resource is None:
-                return abort(404, DOCUMENT_NOT_FOUND.format(id))
+                return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
+            else:
+                return resource
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
+
+
+@ns.route('/mcraattributes')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(mCRA_attributes_input)
+    @ns.marshal_with(mCRA_attributes_get)
+    @ns.response(200, 'Success.')
+    @ns.response(404, 'Document Processing resource not found.')
+    def get(self):
+        """Get the document processing object attributes"""
+        args = mCRA_attributes_input.parse_args()
+        try:
+            protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
+            resource = get_mcra_attributes_by_protocolnumber(protocol_number)
+            if resource is None:
+                return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
             else:
                 return resource
         except ValueError as e:
