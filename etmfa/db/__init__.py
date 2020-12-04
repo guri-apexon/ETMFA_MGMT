@@ -5,6 +5,9 @@ from datetime import datetime
 
 from filehash import FileHash
 from flask import g
+from sqlalchemy import and_
+from sqlalchemy import or_
+from sqlalchemy import desc
 
 from etmfa.consts import Consts as consts
 from etmfa.db.db import db_context
@@ -335,9 +338,8 @@ def get_doc_processed_by_id(id, full_mapping=True):
 
     return resource_dict
 
-def get_doc_processed_by_protocolnumber(protocol_number, project_id, version_number, doc_status):
-    resource_dict = get_doc_attributes_by_protocolnumber(protocol_number, project_id, version_number, doc_status)
-
+def get_doc_processed_by_protocolnumber(id, protocol_number, project_id, doc_status):
+    resource_dict = get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_status)
     return resource_dict
 
 
@@ -357,22 +359,35 @@ def get_doc_attributes_by_id(id):
 
     return resource
 #
-def get_doc_attributes_by_protocolnumber(protocol_number, project_id, version_number, doc_status):
-    g.protocolnumber = protocol_number
-    g.projectid = project_id
-    g.versionnumber = version_number
-    g.docstatus = doc_status
+def get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_status):
+    documentid = id
+    protocolnumber = protocol_number
+    projectid = project_id
+    docstatus = doc_status
     # to check the correct values are only extracted
-    resource = Documentattributes.query.filter(Documentattributes.protocol_number == g.protocolnumber,
-                                               Documentattributes.project_id == g.projectid,
-                                               Documentattributes.version_number == g.versionnumber,
-                                               Documentattributes.document_status == g.docstatus).first()
+    resource = Documentattributes.query.filter(Documentattributes.id == documentid,
+                                               Documentattributes.protocol_number == protocolnumber,
+                                               Documentattributes.project_id == projectid,
+                                               Documentattributes.document_status == docstatus).first()
 
     if resource is None:
         logger.error(NO_RESOURCE_FOUND.format(id))
 
     return resource
 
+
+
+def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'active'):
+    protocolnumber = protocol_number
+    docstatus = doc_status
+    # to check the correct values are only extracted
+    resource = Documentattributes.query.filter(Documentattributes.protocol_number == protocolnumber,
+                                               Documentattributes.document_status == docstatus).order_by(desc(Documentattributes.version_number)).first()
+
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(id))
+
+    return resource
 
 
 def get_doc_metrics_by_id(id):

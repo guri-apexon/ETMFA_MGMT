@@ -140,28 +140,118 @@ eTMFA_metrics_get = api.model('Document Processing Metrics Model',
                               }
                               )
 
+
+
+eTMFA_attributes_input = reqparse.RequestParser()
+eTMFA_attributes_input.add_argument('docId',
+                               type=str,
+                               required=True,
+                               help='Source Input document name')
+eTMFA_attributes_input.add_argument('protocolNumber',
+                               type=str,
+                               required=True,
+                               help='Protocol Number')
+eTMFA_attributes_input.add_argument('projectId',
+                               type=str,
+                               required=True,
+                               help='Project ID')
+eTMFA_attributes_input.add_argument('versionNumber',
+                               type=str,
+                               required=False,
+                               help='Version Number')
+eTMFA_attributes_input.add_argument('amendment',
+                               type=str,
+                               required=False,
+                               help='Amendment')
+eTMFA_attributes_input.add_argument('docStatus',
+                               type=str,
+                               required=True,
+                               help='Document Status')
+eTMFA_attributes_input.add_argument('userId',
+                               type=str,
+                               required=False,
+                               help='User ID')
+eTMFA_attributes_input.add_argument('environment',
+                               type=str,
+                               required=False,
+                               help='Environment')
+eTMFA_attributes_input.add_argument('sourceSystem',
+                               type=str,
+                               required=False,
+                               help='Source System')
+eTMFA_attributes_input.add_argument('requestType',
+                               type=str,
+                               required=False,
+                               help='Request Type')
+
+
 eTMFA_attributes_get = api.model('Document Processing Attributes Model',
                                  {
-                                     'id': fields.String(readOnly=True,
-                                                         description='The unique identifier (UUID) of eTMFA document.'),
+                                     # 'id': fields.String(readOnly=True,
+                                     #                     description='The unique identifier (UUID) of PD document.'),#this will be used if ui request the details individually
                                      'protocol_number': fields.String(readOnly=True,
                                                          description='Protocol Number of the processed protocol.'),
                                      'project_id': fields.String(readOnly=True,
                                                          description='Project Id of processed protocol.'),
+                                     'file_name': fields.String(readOnly=True,
+                                                         description='input file name.'),
+                                     'file_path': fields.String(readOnly=True,
+                                                         description='Path of the file.'),
                                      'version_number': fields.String(readOnly=True,
                                                                     description='The version of the protocol'),
                                      'amendment_number': fields.String(readOnly=True,
                                                                       description='Amendment number of the protocol'),
                                      'document_status': fields.String(readOnly=True,
                                                                      description='Status of the protocol'),
-                                     'iqvdata_toc': fields.String(readonly=False,
-                                                              description="TOC output details for the request"),
-                                     'iqvdata_soa': fields.String(readonly=False,
-                                                              description="SOA output details for the request"),
-                                     'iqvdata_summary': fields.String(readonly=False,
-                                                              description="summary output details for the request")
+                                     'iqvdata': fields.String(readonly=False,
+                                                              description="Complete blog of TOC, Summary, SOA output details for the request")
+                                     # 'iqvdata_toc': fields.String(readonly=False,
+                                     #                          description="TOC output details for the request"), #this will be used if ui request the details individually
+                                     # 'iqvdata_soa': fields.String(readonly=False,
+                                     #                          description="SOA output details for the request"), #this will be used if ui request the details individually
+                                     # 'iqvdata_summary': fields.String(readonly=False,
+                                     #                          description="summary output details for the request") #this will be used if ui request the details individually
                                  }
                                  )
+
+
+mCRA_attributes_input = reqparse.RequestParser()
+mCRA_attributes_input.add_argument('protocolNumber',
+                                   type=str,
+                                   required=True,
+                                   help='Protocol number')
+
+
+
+mCRA_attributes_get = api.model('Document Processing Attributes Model',
+                                 {
+                                     # 'id': fields.String(readOnly=True,
+                                     #                     description='The unique identifier (UUID) of PD document.'),#this will be used if ui request the details individually
+                                     'protocol_number': fields.String(readOnly=True,
+                                                         description='Protocol Number of the processed protocol.'),
+                                     'project_id': fields.String(readOnly=True,
+                                                         description='Project Id of processed protocol.'),
+                                     'file_name': fields.String(readOnly=True,
+                                                         description='input file name.'),
+                                     'file_path': fields.String(readOnly=True,
+                                                         description='Path of the file.'),
+                                     'version_number': fields.String(readOnly=True,
+                                                                    description='The version of the protocol'),
+                                     'amendment_number': fields.String(readOnly=True,
+                                                                      description='Amendment number of the protocol'),
+                                     'document_status': fields.String(readOnly=True,
+                                                                     description='Status of the protocol'),
+                                     'iqvdata': fields.String(readonly=False,
+                                                              description="Complete blog of TOC, Summary, SOA output details for the request")
+                                     # 'iqvdata_toc': fields.String(readonly=False,
+                                     #                          description="TOC output details for the request"), #this will be used if ui request the details individually
+                                     # 'iqvdata_soa': fields.String(readonly=False,
+                                     #                          description="SOA output details for the request"),#this will be used if ui request the details individually
+                                     # 'iqvdata_summary': fields.String(readonly=False,
+                                     #                          description="summary output details for the request") #this will be used if ui request the details individually
+                                 }
+                                 )
+
 
 eTMFA_object_post = reqparse.RequestParser()
 eTMFA_object_post.add_argument('sourceFileName',
