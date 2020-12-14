@@ -47,6 +47,8 @@ def build_queue_callbacks(queue_worker):
                                           dest_queue_name=EtmfaQueues.FINALIZATION.request))
 
     # queue_worker.add_listener(EtmfaQueues.FINALIZATION.complete, on_finalization_complete)
+    # queue_worker.add_listener(EtmfaQueues.FEEDBACK.complete, on_feedback_complete)
+    queue_worker.add_listener(EtmfaQueues.COMPARE.complete, on_compare_complete)
     queue_worker.add_listener(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value, on_documentprocessing_error)
 
     return queue_worker
@@ -72,6 +74,7 @@ def on_triage_complete(msg_proc_obj, message_publisher):
     return on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queue)
 
 
+
 def on_finalization_complete(msg_proc_obj, message_publisher):
     from etmfa.db import received_finalizationcomplete_event
     received_finalizationcomplete_event(msg_proc_obj['id'], msg_proc_obj, message_publisher)
@@ -81,6 +84,10 @@ def on_feedback_complete(msg_proc_obj, message_publisher):
     from etmfa.db import received_feedbackcomplete_event
     received_feedbackcomplete_event(msg_proc_obj['id'], FeedbackStatus.FEEDBACK_COMPLETED)
 
+
+def on_compare_complete(msg_proc_obj, message_publisher):
+    from etmfa.db import received_comparecomplete_event
+    received_comparecomplete_event(msg_proc_obj, message_publisher)
 
 def on_documentprocessing_error(error_obj, message_publisher):
     from etmfa.db import received_documentprocessing_error_event
