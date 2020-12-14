@@ -7,6 +7,8 @@ class EtmfaQueues(Enum):
     TRIAGE = "triage",
     DIGITIZER1 = "digitizer1"
     DIGITIZER2 = "digitizer2"
+    I2E_OMOP_UPDATE = "i2e_omop_update" # added for i2e omop update
+    DIGITIZER2_OMOPUPDATE='digitizer2_omopupdate' # added for i2e omop update
     EXTRACTION = "extraction",
     FINALIZATION = "finalization",
     FEEDBACK = "feedback",

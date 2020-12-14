@@ -5,9 +5,12 @@ from functools import partial
 from kombu import Connection
 
 from etmfa.messaging.messagelistener import MessageListener
-from etmfa.messaging.models.generic_request import GenericRequest
+from etmfa.messaging.models.generic_request import GenericRequest,OmapRequest
 from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
 from etmfa.messaging.models.queue_names import EtmfaQueues
+# Added for OMOP
+import os
+from etmfa.server.config import Config
 
 
 def msg_listening_worker(app, listener):
@@ -39,9 +42,17 @@ def build_queue_callbacks(queue_worker):
     queue_worker.add_listener(EtmfaQueues.DIGITIZER1.complete,
                               partial(on_generic_complete_event, status=ProcessingStatus.DIGITIZER2_STARTED,
                                       dest_queue_name=EtmfaQueues.DIGITIZER2.request))
+    # added for i2e omop update
     queue_worker.add_listener(EtmfaQueues.DIGITIZER2.complete,
+                              partial(on_generic_complete_event, status=ProcessingStatus.I2E_OMOP_UPDATE_STARTED,
+                                      dest_queue_name=EtmfaQueues.I2E_OMOP_UPDATE.request))
+    queue_worker.add_listener(EtmfaQueues.I2E_OMOP_UPDATE.complete,
+                              partial(on_i2e_omop_update_complete_event, status=ProcessingStatus.DIGITIZER2_OMOPUPDATE_STARTED,
+                                      dest_queue_name=EtmfaQueues.DIGITIZER2_OMOPUPDATE.request))
+    queue_worker.add_listener(EtmfaQueues.DIGITIZER2_OMOPUPDATE.complete,
                               partial(on_generic_complete_event, status=ProcessingStatus.EXTRACTION_STARTED,
                                       dest_queue_name=EtmfaQueues.EXTRACTION.request))
+    # added till here for i2e omop update
     queue_worker.add_listener(EtmfaQueues.EXTRACTION.complete,
                                   partial(on_generic_complete_event, status=ProcessingStatus.FINALIZATION_STARTED,
                                           dest_queue_name=EtmfaQueues.FINALIZATION.request))
@@ -62,6 +73,22 @@ def on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queu
     request = GenericRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'])
     message_publisher.send_dict(asdict(request), dest_queue_name)
 
+# omap update
+def on_i2e_omop_update_complete_event(msg_proc_obj, message_publisher, status, dest_queue_name):
+
+    #from etmfa.db import update_doc_processing_status
+    #update_doc_processing_status(msg_proc_obj['id'], status)
+    try :
+        IQVXMLPath=os.path.join(Config.DFS_UPLOAD_FOLDER,msg_proc_obj['id'])
+        file =[f for f in os.listdir(IQVXMLPath) if f.startswith('D2_D1_')][0]
+        file=os.path.join(IQVXMLPath,file)
+    except Exception as e :
+        file=None
+
+    request = OmapRequest(msg_proc_obj['id'], msg_proc_obj['updated_omop_xml_path'],file,dest_queue_name)
+
+
+    message_publisher.send_dict(asdict(request), dest_queue_name)
 
 def on_triage_complete(msg_proc_obj, message_publisher):
     if msg_proc_obj['ocr_required']:

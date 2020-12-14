@@ -20,6 +20,8 @@ from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.error import ManagementException
 from etmfa.error import ErrorCodes
 
+
+
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
 NO_RESOURCE_FOUND = "No document resource was found in DB for ID: {}"
@@ -537,3 +539,4 @@ def safe_unicode(obj, *args):
         # obj is byte string
         ascii_text = str(obj).encode('string_escape')
         return str(ascii_text)
+
