@@ -269,18 +269,6 @@ pd_compare_object_post.add_argument('projectId',
                                type=str,
                                required=True,
                                help='Project id')
-# pd_compare_object_post.add_argument('versionNumber',
-#                                type=str,
-#                                required=False,
-#                                help='Version number of the document')#will add these if needed, since the input is becoming larger
-# pd_compare_object_post.add_argument('amendmentNumber',
-#                                type=str,
-#                                required=False,
-#                                help='Amendment number of the document')#will add these if needed, since the input is becoming larger
-# pd_compare_object_post.add_argument('documentStatus',
-#                                type=str,
-#                                required=False,
-#                                help='Status of the document')#will add these if needed, since the input is becoming larger
 pd_compare_object_post.add_argument('protocolNumber2',
                                type=str,
                                required=True,
@@ -293,26 +281,6 @@ pd_compare_object_post.add_argument('projectId2',
                                type=str,
                                required=True,
                                help='Project id of the 2nd document')
-# pd_compare_object_post.add_argument('versionNumber2',
-#                                type=str,
-#                                required=False,
-#                                help='Version number of the 2nd document')#will add these if needed, since the input is becoming larger
-# pd_compare_object_post.add_argument('amendmentNumber2',
-#                                type=str,
-#                                required=False,
-#                                help='Amendment number of the 2nd document')#will add these if needed, since the input is becoming larger
-# pd_compare_object_post.add_argument('documentStatus2',
-#                                type=str,
-#                                required=False,
-#                                help='Status of the 2nd document')#will add these if needed, since the input is becoming larger
-# pd_compare_object_post.add_argument('Environment',
-#                                type=str,
-#                                required=False,
-#                                help='Environment')
-# pd_compare_object_post.add_argument('sourceSystem',
-#                                type=str,
-#                                required=False,
-#                                help='source system')
 pd_compare_object_post.add_argument('userId',
                                type=str,
                                required=False,
@@ -327,24 +295,9 @@ pd_compare_post_response = api.model('Document compare ID Model',
                                  {
                                      'compare_id': fields.String(readOnly=True,
                                                          description='The unique identifier (UUID) of PD document compare.')#this will be used if ui request the details individually
-                                     # 'protocol_number': fields.String(readOnly=True,
-                                     #                     description='Protocol Number of the processed protocol.'),
-                                     # 'project_id': fields.String(readOnly=True,
-                                     #                     description='Project Id of processed protocol.'),
-                                     # 'source_file_name': fields.String(readOnly=True,
-                                     #                     description='input file name.'),
-                                     # 'document_file_path': fields.String(readOnly=True,
-                                     #                     description='Path of the file.'),
-                                     # 'version_number': fields.String(readOnly=True,
-                                     #                                description='The version of the protocol'),
-                                     # 'amendment_number': fields.String(readOnly=True,
-                                     #                                  description='Amendment number of the protocol'),
-                                     # 'document_status': fields.String(readOnly=True,
-                                     #                                 description='Status of the protocol'),
-                                     # 'iqvdata': fields.String(readonly=False,
-                                     #                          description="Complete blog of TOC, Summary, SOA output details for the request")
                                  }
                                  )
+
 pd_compare_object_input_get = reqparse.RequestParser()
 pd_compare_object_input_get.add_argument('compareid',
                                type=str,
