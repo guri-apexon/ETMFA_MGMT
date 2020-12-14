@@ -9,8 +9,10 @@ class EtmfaQueues(Enum):
     DIGITIZER2 = "digitizer2"
     EXTRACTION = "extraction",
     FINALIZATION = "finalization",
-    # FEEDBACK = "feedback",
+    FEEDBACK = "feedback",
+    COMPARE = "compare"
     DOCUMENT_PROCESSING_ERROR = "documentprocessing_error"
+
 
     def __init__(self, queue_prefix):
         """Construct queue name enum."""

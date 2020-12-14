@@ -9,6 +9,7 @@ from kombu.mixins import ConsumerMixin
 from etmfa.consts import Consts as consts
 from etmfa.consts import Globals
 from etmfa.messaging.messagepublisher import MessagePublisher
+from etmfa.messaging.models import queue_names
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -37,6 +38,10 @@ class MessageListener(ConsumerMixin):
 
     def get_consumers(self, Consumer, channel):
         return [self._create_consumer(Consumer, q) for q in self.get_queues()]
+
+
+    # def build_queue_callback(queue_names):
+    #     queue_names.add_listener(COMPARE.queues)
 
     def add_listener(self, queue_name, callback):
         """

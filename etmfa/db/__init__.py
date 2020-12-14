@@ -5,14 +5,13 @@ from datetime import datetime
 
 from filehash import FileHash
 from flask import g
-from sqlalchemy import and_
-from sqlalchemy import or_
 from sqlalchemy import desc
 
 from etmfa.consts import Consts as consts
 from etmfa.db.db import db_context
 from etmfa.db.models.documentProcess import DocumentProcess
 from etmfa.db.models.documentattributes import Documentattributes
+from etmfa.db.models.documentcompare import Documentcompare
 from etmfa.db.models.documentduplicate import Documentduplicate
 from etmfa.db.models.documentfeedback import Documentfeedback
 from etmfa.db.models.metric import Metric
@@ -84,6 +83,52 @@ def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
             logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
 
     return False
+
+
+def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_number2, project_id2, user_id):
+    compare = Documentcompare()
+    compare.compare_id = compare_req_msg['COMPARE_ID']
+    compare.doc_id = compare_req_msg['BASE_DOC_ID']
+    compare.protocol_number = protocol_number
+    compare.project_id = project_id
+    # compare.version_number = compare_req_msg['']#these will added if additional details are made mandatory
+    # compare.amendment_number = compare_req_msg['']#these will added if additional details are made mandatory
+    # compare.document_status = compare_req_msg['']#these will added if additional details are made mandatory
+    compare.doc_id2 = compare_req_msg['COMPARE_DOC_ID']
+    compare.protocol_number2 = protocol_number2
+    compare.project_id2 = project_id2
+    # compare.version_number2 = compare_req_msg['']#these will added if additional details are made mandatory
+    # compare.amendment_number2 = compare_req_msg['']#these will added if additional details are made mandatory
+    # compare.document_status2 = compare_req_msg['']#these will added if additional details are made mandatory
+    compare.user_id = user_id
+    compare.base_IQV_xml_path = compare_req_msg['BASE_IQVXML_PATH']
+    compare.compare_IQV_xml_path = compare_req_msg['COMPARE_IQVXML_PATH']
+    compare.request_type = compare_req_msg['REQUEST_TYPE']
+    try:
+        db_context.session.add(compare)
+        db_context.session.commit()
+        return compare.compare_id
+    except Exception as ex:
+        db_context.session.rollback()
+        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES)
+        received_documentprocessing_error_event(exception.__dict__)
+        logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
+            compare['compare_id'], ex))
+
+def received_comparecomplete_event(comparevalues, message_publisher):
+    resource = Documentcompare.query.filter(Documentcompare.compare_id == comparevalues['COMPARE_ID']).first()
+    if resource is not None:
+        resource.similarity_score = comparevalues['SIMILARITY_SCORE']
+        resource.updated_IQV_xml_path = comparevalues['UPDATED_BASE_IQVXML_PATH']
+        resource.iqvdata = str(comparevalues['IQVDATA']).encode('UTF-8')
+    try:
+        db_context.session.commit()
+    except Exception as ex:
+        db_context.session.rollback()
+        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES)
+        received_documentprocessing_error_event(exception.__dict__)
+        logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
+            comparevalues['compare_id'], ex))
 
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
@@ -390,6 +435,40 @@ def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'active'
     return resource
 
 
+def get_compare_documents_validation(protocol_number, project_id, document_id, protocol_number2, project_id2,
+                                             document_id2, request_type):
+    protocolnumber = protocol_number
+    projectid = project_id
+    docid = document_id
+    protocolnumber2 = protocol_number2
+    projectid2 = project_id2
+    docid2 = document_id2
+    requesttype = request_type
+    # to check the correct values are only extracted
+    resource = Documentcompare.query.filter(Documentcompare.protocol_number == protocolnumber,
+                                            Documentcompare.project_id == projectid,
+                                            Documentcompare.doc_id == docid,
+                                            Documentcompare.protocol_number2 == protocolnumber2,
+                                            Documentcompare.project_id2 == projectid2,
+                                            Documentcompare.doc_id2 == docid2,
+                                            Documentcompare.request_type == requesttype).first()
+    # if resource is None:
+    #     logger.error(NO_RESOURCE_FOUND.format())
+    return resource
+
+
+
+def get_compare_documents(compare_id):
+    compareid = compare_id
+    # to check the correct values are only extracted
+    resource = Documentcompare.query.filter(Documentcompare.compare_id == compareid).first()
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(compareid))
+    return resource
+
+
+
+
 def get_doc_metrics_by_id(id):
     g.aidocid = id
     resource = Metric.query.filter(Metric.id.like(str(id))).first()
@@ -405,6 +484,13 @@ def get_doc_status_processing_by_id(id, full_mapping=True):
 
     return resource_dict
 
+def get_compare_resource_by_compare_id(comparevalues):
+    compareid = comparevalues['COMPARE_ID']
+    resource = Documentcompare.query.filter(Documentcompare.compare_id == compareid).first()
+
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(compareid))
+    return resource
 
 def get_doc_resource_by_id(id):
     g.aidocid = id

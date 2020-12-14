@@ -254,6 +254,132 @@ mCRA_attributes_get = api.model('Document Processing Attributes Model',
                                  )
 
 
+
+
+pd_compare_object_post = reqparse.RequestParser()
+pd_compare_object_post.add_argument('protocolNumber',
+                               type=str,
+                               required=True,
+                               help='Protocol number')
+pd_compare_object_post.add_argument('docId',
+                               type=str,
+                               required=True,
+                               help='PD processed doc id')
+pd_compare_object_post.add_argument('projectId',
+                               type=str,
+                               required=True,
+                               help='Project id')
+# pd_compare_object_post.add_argument('versionNumber',
+#                                type=str,
+#                                required=False,
+#                                help='Version number of the document')#will add these if needed, since the input is becoming larger
+# pd_compare_object_post.add_argument('amendmentNumber',
+#                                type=str,
+#                                required=False,
+#                                help='Amendment number of the document')#will add these if needed, since the input is becoming larger
+# pd_compare_object_post.add_argument('documentStatus',
+#                                type=str,
+#                                required=False,
+#                                help='Status of the document')#will add these if needed, since the input is becoming larger
+pd_compare_object_post.add_argument('protocolNumber2',
+                               type=str,
+                               required=True,
+                               help='Protocol number of the other document')
+pd_compare_object_post.add_argument('docId2',
+                               type=str,
+                               required=True,
+                               help='PD processed doc id of 2nd document')
+pd_compare_object_post.add_argument('projectId2',
+                               type=str,
+                               required=True,
+                               help='Project id of the 2nd document')
+# pd_compare_object_post.add_argument('versionNumber2',
+#                                type=str,
+#                                required=False,
+#                                help='Version number of the 2nd document')#will add these if needed, since the input is becoming larger
+# pd_compare_object_post.add_argument('amendmentNumber2',
+#                                type=str,
+#                                required=False,
+#                                help='Amendment number of the 2nd document')#will add these if needed, since the input is becoming larger
+# pd_compare_object_post.add_argument('documentStatus2',
+#                                type=str,
+#                                required=False,
+#                                help='Status of the 2nd document')#will add these if needed, since the input is becoming larger
+# pd_compare_object_post.add_argument('Environment',
+#                                type=str,
+#                                required=False,
+#                                help='Environment')
+# pd_compare_object_post.add_argument('sourceSystem',
+#                                type=str,
+#                                required=False,
+#                                help='source system')
+pd_compare_object_post.add_argument('userId',
+                               type=str,
+                               required=False,
+                               help='Protocol number')
+pd_compare_object_post.add_argument('requestType',
+                               type=str,
+                               required=True,
+                               help='Type of compare needed')
+
+
+pd_compare_post_response = api.model('Document compare ID Model',
+                                 {
+                                     'compare_id': fields.String(readOnly=True,
+                                                         description='The unique identifier (UUID) of PD document compare.')#this will be used if ui request the details individually
+                                     # 'protocol_number': fields.String(readOnly=True,
+                                     #                     description='Protocol Number of the processed protocol.'),
+                                     # 'project_id': fields.String(readOnly=True,
+                                     #                     description='Project Id of processed protocol.'),
+                                     # 'source_file_name': fields.String(readOnly=True,
+                                     #                     description='input file name.'),
+                                     # 'document_file_path': fields.String(readOnly=True,
+                                     #                     description='Path of the file.'),
+                                     # 'version_number': fields.String(readOnly=True,
+                                     #                                description='The version of the protocol'),
+                                     # 'amendment_number': fields.String(readOnly=True,
+                                     #                                  description='Amendment number of the protocol'),
+                                     # 'document_status': fields.String(readOnly=True,
+                                     #                                 description='Status of the protocol'),
+                                     # 'iqvdata': fields.String(readonly=False,
+                                     #                          description="Complete blog of TOC, Summary, SOA output details for the request")
+                                 }
+                                 )
+pd_compare_object_input_get = reqparse.RequestParser()
+pd_compare_object_input_get.add_argument('compareid',
+                               type=str,
+                               required=True,
+                               help='Compare unique id')
+
+
+pd_compare_get = api.model('Document compare Model',
+                                 {
+                                     # 'id': fields.String(readOnly=True,
+                                     #                     description='The unique identifier (UUID) of PD document.'),#this will be used if ui request the details individually
+                                     'protocol_number': fields.String(readOnly=True,
+                                                         description='Protocol Number of the processed protocol.'),
+                                     'project_id': fields.String(readOnly=True,
+                                                         description='Project Id of processed protocol.'),
+                                     'source_file_name': fields.String(readOnly=True,
+                                                         description='input file name.'),
+                                     'document_file_path': fields.String(readOnly=True,
+                                                         description='Path of the file.'),
+                                     'version_number': fields.String(readOnly=True,
+                                                                    description='The version of the protocol'),
+                                     'amendment_number': fields.String(readOnly=True,
+                                                                      description='Amendment number of the protocol'),
+                                     'document_status': fields.String(readOnly=True,
+                                                                     description='Status of the protocol'),
+                                     'iqvdata': fields.String(readonly=False,
+                                                              description="Complete blog of TOC, Summary, SOA output details for the request")
+                                 }
+                                 )
+
+
+
+
+
+
 eTMFA_object_post = reqparse.RequestParser()
 eTMFA_object_post.add_argument('sourceFileName',
                                type=str,
@@ -278,7 +404,7 @@ eTMFA_object_post.add_argument('documentStatus',
                                type=str,
                                required=True,
                                choices=[doc_class.value for doc_class in DocumentClass],
-                               help='Document Status(Final/Draft)')
+                               help='Document Status(Draft/Active)')
 eTMFA_object_post.add_argument('studyStatus',
                                type=str,
                                required=False,

@@ -1,9 +1,14 @@
 import logging
 import uuid
+import os
 from pathlib import Path
 from etmfa.messaging.models.queue_names import EtmfaQueues
 from dataclasses import asdict
 from etmfa.server.config import Config
+
+
+
+from etmfa.db.models.documentcompare import Documentcompare
 
 from etmfa.consts import Consts as consts
 from etmfa.db import (
@@ -18,10 +23,14 @@ from etmfa.db import (
     get_doc_proc_metrics_by_id,
     get_doc_status_processing_by_id,
     get_mcra_attributes_by_protocolnumber,
+    get_compare_documents,
+    get_compare_documents_validation,
+    add_compare_event,
     upsert_attributevalue
 )
 from etmfa.messaging.messagepublisher import MessagePublisher
 from etmfa.messaging.models.triage_request import TriageRequest
+from etmfa.messaging.models.compare_request import CompareRequest
 from etmfa.messaging.models.feedback_request import FeedbackRequest
 from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.server.api import api
@@ -37,7 +46,11 @@ from etmfa.server.namespaces.serializers import (
     pd_object_get_summary,
     eTMFA_attributes_input,
     mCRA_attributes_get,
-    mCRA_attributes_input
+    mCRA_attributes_input,
+    pd_compare_object_post,
+    pd_compare_get,
+    pd_compare_post_response,
+    pd_compare_object_input_get
 )
 from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
@@ -47,8 +60,11 @@ from etmfa.api_response_handlers import SummaryResponse
 logger = logging.getLogger(consts.LOGGING_NAME)
 DOCUMENT_NOT_FOUND = 'Document Processing resource not found for given data: {}'
 SERVER_ERROR = 'Server error: {}'
+DOCUMENT_COMPARISON_ALREADY_PRESENT = 'Comparison already present for given protocols, use get attributes with compare id to get details: {}'
 
 ns = api.namespace('PD', path='/v1/documents', description='REST endpoints for PD workflows.')
+
+
 
 
 @ns.route('/')
@@ -176,8 +192,6 @@ class DocumentprocessingAPI(Resource):
 
 
 
-
-
 @ns.route('/<string:id>/key/value')
 @ns.response(404, 'Document Processing resource not found.')
 @ns.response(500, 'Server error.')
@@ -285,6 +299,74 @@ class DocumentprocessingAPI(Resource):
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
 
+
+@ns.route('/comparerequest')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(pd_compare_object_post)
+    @ns.marshal_with(pd_compare_post_response)
+    @ns.response(200, 'Success.')
+    @ns.response(404, 'Document Processing resource not found.')
+    def post(self):
+        """Get the document processing object attributes"""
+        _id = uuid.uuid4()
+        _id = str(_id)
+        compareid = _id
+        filedirectory = Config.DFS_UPLOAD_FOLDER
+        args = pd_compare_object_post.parse_args()
+        try:
+            protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
+            project_id = args['projectId'] if args['projectId'] is not None else ' '
+            document_id = args['docId'] if args['docId'] is not None else ' '
+            protocol_number2 = args['protocolNumber2'] if args['protocolNumber2'] is not None else ' '
+            project_id2 = args['projectId2'] if args['projectId2'] is not None else ' '
+            document_id2 = args['docId2'] if args['docId2'] is not None else ' '
+            request_type = args['requestType'] if args['requestType'] is not None else ' '
+            user_id = args['userId'] if args ['userId'] is not None else ' '
+            #check to see if compare already present for given doc id's
+            resource = get_compare_documents_validation(protocol_number, project_id, document_id, protocol_number2, project_id2,
+                                             document_id2, request_type)
+            if resource is None:
+                docid = document_id
+                docid2 = document_id2
+                lookupdir = os.path.join(filedirectory, docid)
+                lookupdir2 = os.path.join(filedirectory, docid2)
+                file1 = [os.path.join(lookupdir, f) for f in os.listdir(lookupdir) if f.startswith("FIN_")]
+                file2 = [os.path.join(lookupdir2, f) for f in os.listdir(lookupdir2) if f.startswith("FIN_")]
+                compare_req_msg = {"COMPARE_ID": compareid, "BASE_DOC_ID" : docid, "COMPARE_DOC_ID" : docid2, "BASE_IQVXML_PATH" : file1[0], "COMPARE_IQVXML_PATH" : file2[0], "REQUEST_TYPE" : "COMPARE_TOC"}
+                BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
+                EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
+                MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(compare_req_msg, EtmfaQueues.COMPARE.request)
+                compare_add = add_compare_event(compare_req_msg, protocol_number, project_id, protocol_number2, project_id2, user_id)
+                return compare_add
+            else:
+                return abort(404, DOCUMENT_COMPARISON_ALREADY_PRESENT.format(protocol_number))
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
+
+
+@ns.route('/compareattributes')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(pd_compare_object_input_get)
+    @ns.marshal_with(pd_compare_get)
+    @ns.response(200, 'Success.')
+    @ns.response(404, 'Document Processing resource not found.')
+    def get(self):
+        """Get the document processing object attributes"""
+        args = pd_compare_object_input_get.parse_args()
+        try:
+            compare_id = args['compareid'] if args['compareid'] is not None else ' '
+            #check to see if compare already present for given doc id's
+            resource = get_compare_documents(compare_id)
+            if resource is None:
+                return abort(404, DOCUMENT_NOT_FOUND.format(compare_id))
+            else:
+                return resource
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
 
 
 @ns.route('/<string:id>/summary_section')
