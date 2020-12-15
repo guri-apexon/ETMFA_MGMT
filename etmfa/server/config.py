@@ -22,7 +22,7 @@ class Config(object):
 
     mquser = 'guest'
     mqpswd = 'guest'
-    mqhost = 'ca2spdml01q' # 'localhost'
+    mqhost = 'ca2spdml01q' #'localhost' #
     mqport = 5672
     MESSAGE_BROKER_ADDR = "amqp://{0}:{1}@{2}:{3}".format(mquser, mqpswd, mqhost, mqport)
     MESSAGE_BROKER_EXCHANGE = 'PD'

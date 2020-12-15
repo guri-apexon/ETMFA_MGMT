@@ -77,6 +77,7 @@ class MessageListener(ConsumerMixin):
         try:
             self.queue_callback_dict[queue_name](
                 json.loads(body),
+                #json.loads(json.dumps(body)),
                 MessagePublisher(self.connection_str, self.exchange_name)
             )
             message.ack()
