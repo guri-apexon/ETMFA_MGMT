@@ -8,9 +8,9 @@ class Config(object):
     # DFS_UPLOAD_FOLDER = 'C:/Users/q1020640/Desktop/PD/General/pd files/test'
     DEBUG = True
     # SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@localhost:3306/protocol_dig' #local
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@/pd_digitalization' #VM?#
+    #SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@/pd_digitalization' #VM?#
 
-    # SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@ca2spdml01q/pd_digitalization'
+    SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@ca2spdml01q/pd_digitalization'
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     PRESERVE_CONTEXT_ON_EXCEPTION = False
