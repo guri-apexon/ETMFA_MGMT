@@ -13,3 +13,10 @@ class OmapRequest:
     updated_omop_xml_path: str
     IQVXMLPath: str
     dest_queue_name: str
+
+
+@dataclass
+class DIG2OMAPRequest:
+    id: str
+    omop_xml_path: str
+
