@@ -82,6 +82,7 @@ def on_digitizer2_complete_event(msg_proc_obj, message_publisher, status, dest_q
         IQVXMLPath=os.path.join(Config.DFS_UPLOAD_FOLDER,msg_proc_obj['id'])
         file =[f for f in os.listdir(IQVXMLPath) if f.endswith('.omop.xml')][0]
         file=os.path.join(IQVXMLPath,file)
+        print (file)
     except Exception as e :
         file=None
 

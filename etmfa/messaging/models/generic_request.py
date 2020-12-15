@@ -10,9 +10,9 @@ class GenericRequest:
 @dataclass
 class OmapRequest:
     id: str
-    updated_omop_xml_path: str
+    OMOPPath: str
     IQVXMLPath: str
-    dest_queue_name: str
+    QUEUE_NAME: str
 
 
 @dataclass
