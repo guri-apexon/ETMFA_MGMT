@@ -405,7 +405,7 @@ def get_doc_attributes_by_id(id):
     return resource
 #
 
-def fetch_comparae_id(id, protocol_number, project_id, doc_status):
+def fetch_compare_id(id, protocol_number, project_id, doc_status):
     documentid = id
     protocolnumber = protocol_number
     projectid = project_id
