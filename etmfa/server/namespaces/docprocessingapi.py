@@ -1,6 +1,7 @@
 import logging
 import uuid
 import os
+import json
 from pathlib import Path
 from etmfa.messaging.models.queue_names import EtmfaQueues
 from dataclasses import asdict
@@ -350,7 +351,7 @@ class DocumentprocessingAPI(Resource):
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
     @ns.expect(pd_compare_object_input_get)
-    @ns.marshal_with(pd_compare_get)
+    # @ns.marshal_with(pd_compare_get)
     @ns.response(200, 'Success.')
     @ns.response(404, 'Document Processing resource not found.')
     def get(self):
@@ -363,7 +364,7 @@ class DocumentprocessingAPI(Resource):
             if resource is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(compare_id))
             else:
-                return resource
+                return json.dumps(resource)
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))

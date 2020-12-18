@@ -23,6 +23,7 @@ class Documentcompare(db_context.Model):
     source_system = db_context.Column(db_context.String(100))
     user_id = db_context.Column(db_context.String(45))
     request_type = db_context.Column(db_context.String(45))
+    iqvdata = db_context.Column(db_context.VARCHAR(None))
     iqvdata = db_context.Column(db_context.BLOB())
     base_IQV_xml_path = db_context.Column(db_context.String(500))
     compare_IQV_xml_path = db_context.Column(db_context.String(500))
