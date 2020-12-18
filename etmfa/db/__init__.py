@@ -14,6 +14,20 @@ from etmfa.db.models.documentattributes import Documentattributes
 from etmfa.db.models.documentcompare import Documentcompare
 from etmfa.db.models.documentduplicate import Documentduplicate
 from etmfa.db.models.documentfeedback import Documentfeedback
+from etmfa.db.models.pd_users import pd_users
+from etmfa.db.models.pd_user_protocols import pd_user_protocols
+from etmfa.db.models.pd_user_protocol_documents import pd_user_protocol_documents
+from etmfa.db.models.pd_roles import pd_roles
+from etmfa.db.models.pd_protocols import pd_protocols
+from etmfa.db.models.pd_protocol_status import pd_protocol_status
+from etmfa.db.models.pd_protocol_sponsor import pd_protocol_sponsor
+from etmfa.db.models.pd_protocol_saved_search import pd_protocol_saved_search
+from etmfa.db.models.pd_protocol_recent_search import pd_protocol_recent_search
+from etmfa.db.models.pd_protocol_indications import pd_protocol_indications
+from etmfa.db.models.pd_protocol_document_status import pd_protocol_document_status
+from etmfa.db.models.pd_protocol_document_process import pd_protocol_document_process
+from etmfa.db.models.amp_server_run_info import amp_server_run_info
+
 from etmfa.db.models.metric import Metric
 from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
 from etmfa.messaging.models.document_class import DocumentClass
