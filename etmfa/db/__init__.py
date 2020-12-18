@@ -20,6 +20,8 @@ from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.error import ManagementException
 from etmfa.error import ErrorCodes
 
+
+
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
 NO_RESOURCE_FOUND = "No document resource was found in DB for ID: {}"
@@ -485,6 +487,13 @@ def get_compare_documents(compare_id):
     except Exception as e:
         logger.error(NO_RESOURCE_FOUND.format(compareid))
         return None
+
+def get_compare_documents(compare_id):
+    compareid = compare_id
+    # to check the correct values are only extracted
+    resource = Documentcompare.query.filter(Documentcompare.compare_id == compareid).first()
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(compareid))
     return resource
 
 
@@ -558,3 +567,4 @@ def safe_unicode(obj, *args):
         # obj is byte string
         ascii_text = str(obj).encode('string_escape')
         return str(ascii_text)
+

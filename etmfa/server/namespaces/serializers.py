@@ -255,7 +255,10 @@ mCRA_attributes_get = api.model('Document Processing Attributes Model',
 
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> e6fc35c70b4ae907260dd93a3e554415059e5321
 pd_compare_object_post = reqparse.RequestParser()
 pd_compare_object_post.add_argument('protocolNumber',
                                type=str,
@@ -293,7 +296,11 @@ pd_compare_object_post.add_argument('requestType',
 
 pd_compare_post_response = api.model('Document compare ID Model',
                                  {
+<<<<<<< HEAD
                                      'COMPARE_ID': fields.String(readOnly=True,
+=======
+                                     'compare_id': fields.String(readOnly=True,
+>>>>>>> e6fc35c70b4ae907260dd93a3e554415059e5321
                                                          description='The unique identifier (UUID) of PD document compare.')#this will be used if ui request the details individually
                                  }
                                  )
@@ -309,6 +316,7 @@ pd_compare_get = api.model('Document compare Model',
                                  {
                                      # 'id': fields.String(readOnly=True,
                                      #                     description='The unique identifier (UUID) of PD document.'),#this will be used if ui request the details individually
+<<<<<<< HEAD
                                      # 'protocol_number': fields.String(readOnly=True,
                                      #                     description='Protocol Number of the processed protocol.'),
                                      # 'project_id': fields.String(readOnly=True,
@@ -323,6 +331,22 @@ pd_compare_get = api.model('Document compare Model',
                                      #                                  description='Amendment number of the protocol'),
                                      # 'document_status': fields.String(readOnly=True,
                                      #                                 description='Status of the protocol'),
+=======
+                                     'protocol_number': fields.String(readOnly=True,
+                                                         description='Protocol Number of the processed protocol.'),
+                                     'project_id': fields.String(readOnly=True,
+                                                         description='Project Id of processed protocol.'),
+                                     'source_file_name': fields.String(readOnly=True,
+                                                         description='input file name.'),
+                                     'document_file_path': fields.String(readOnly=True,
+                                                         description='Path of the file.'),
+                                     'version_number': fields.String(readOnly=True,
+                                                                    description='The version of the protocol'),
+                                     'amendment_number': fields.String(readOnly=True,
+                                                                      description='Amendment number of the protocol'),
+                                     'document_status': fields.String(readOnly=True,
+                                                                     description='Status of the protocol'),
+>>>>>>> e6fc35c70b4ae907260dd93a3e554415059e5321
                                      'iqvdata': fields.String(readonly=False,
                                                               description="Complete blog of TOC, Summary, SOA output details for the request")
                                  }

@@ -2,7 +2,6 @@ import logging
 import uuid
 import os
 import json
-from json import JSONEncoder
 from pathlib import Path
 from etmfa.messaging.models.queue_names import EtmfaQueues
 from dataclasses import asdict
