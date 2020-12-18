@@ -10,4 +10,8 @@ pyodbc==4.0.30
 python-logstash-async==1.5.1
 wincertstore==0.2
 Werkzeug==0.16.1
+PyMySQL==0.10.0
+mysqlclient==2.0.1
+gevent==1.4.0
+greenlet==0.4.16
 etmfa-core
