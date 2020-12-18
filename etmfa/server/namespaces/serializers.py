@@ -223,7 +223,6 @@ mCRA_attributes_input.add_argument('protocolNumber',
                                    help='Protocol number')
 
 
-
 mCRA_attributes_get = api.model('Document Processing Attributes Model',
                                  {
                                      # 'id': fields.String(readOnly=True,
@@ -293,7 +292,7 @@ pd_compare_object_post.add_argument('requestType',
 
 pd_compare_post_response = api.model('Document compare ID Model',
                                  {
-                                     'compare_id': fields.String(readOnly=True,
+                                     'COMPARE_ID': fields.String(readOnly=True,
                                                          description='The unique identifier (UUID) of PD document compare.')#this will be used if ui request the details individually
                                  }
                                  )
@@ -307,8 +306,6 @@ pd_compare_object_input_get.add_argument('compareid',
 
 pd_compare_get = api.model('Document compare Model',
                                  {
-                                     # 'id': fields.String(readOnly=True,
-                                     #                     description='The unique identifier (UUID) of PD document.'),#this will be used if ui request the details individually
                                      'protocol_number': fields.String(readOnly=True,
                                                          description='Protocol Number of the processed protocol.'),
                                      'project_id': fields.String(readOnly=True,

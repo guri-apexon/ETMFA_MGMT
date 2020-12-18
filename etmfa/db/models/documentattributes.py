@@ -1,5 +1,7 @@
 import datetime
 
+# from sqlalchemy import VARCHAR
+
 from etmfa.db import db_context
 
 
@@ -22,10 +24,10 @@ class Documentattributes(db_context.Model):
     environment = db_context.Column(db_context.String(300))
     indication = db_context.Column(db_context.String(300))
     molecule_device = db_context.Column(db_context.String(300))
-    iqvdata_toc = db_context.Column(db_context.BLOB())
-    iqvdata_soa = db_context.Column(db_context.BLOB())
-    iqvdata_summary = db_context.Column(db_context.BLOB())
-    iqvdata = db_context.Column(db_context.BLOB())
+    iqvdata_toc = db_context.Column(db_context.VARCHAR(None))
+    iqvdata_soa = db_context.Column(db_context.VARCHAR(None))
+    iqvdata_summary = db_context.Column(db_context.VARCHAR(None))
+    iqvdata = db_context.Column(db_context.VARCHAR(None))
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}
