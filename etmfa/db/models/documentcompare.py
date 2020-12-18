@@ -1,4 +1,5 @@
 import datetime
+# from sqlalchemy import VARCHAR
 
 from etmfa.db import db_context
 
@@ -23,7 +24,7 @@ class Documentcompare(db_context.Model):
     source_system = db_context.Column(db_context.String(100))
     user_id = db_context.Column(db_context.String(45))
     request_type = db_context.Column(db_context.String(45))
-    iqvdata = db_context.Column(db_context.BLOB())
+    iqvdata = db_context.Column(db_context.VARCHAR(None))
     base_IQV_xml_path = db_context.Column(db_context.String(500))
     compare_IQV_xml_path = db_context.Column(db_context.String(500))
     updated_IQV_xml_path = db_context.Column(db_context.String(500))

@@ -21,11 +21,13 @@ from flask_cors import CORS
 from flask_restplus import Api
 from werkzeug.contrib.fixers import ProxyFix
 
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 app = Flask(__name__, instance_relative_config=True, instance_path=dir_path)
 app.config.from_object(app_config['development'])
 app.config['RESTPLUS_MASK_SWAGGER'] = False
 app.config['ERROR_404_HELP'] = False
+CORS(app)
 
 
 def load_app_config(config_name):

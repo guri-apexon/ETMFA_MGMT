@@ -107,7 +107,7 @@ def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_num
     try:
         db_context.session.add(compare)
         db_context.session.commit()
-        return compare.compare_id
+        return compare_req_msg
     except Exception as ex:
         db_context.session.rollback()
         exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES)
@@ -404,6 +404,26 @@ def get_doc_attributes_by_id(id):
 
     return resource
 #
+
+def fetch_comparae_id(id, protocol_number, project_id, doc_status):
+    documentid = id
+    protocolnumber = protocol_number
+    projectid = project_id
+    docstatus = doc_status
+    # to check the correct values are only extracted
+    resource = Documentattributes.query.filter(Documentattributes.id == documentid,
+                                               Documentattributes.protocol_number == protocolnumber,
+                                               Documentattributes.project_id == projectid,
+                                               Documentattributes.document_status == docstatus).first()
+
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(id))
+
+    return resource
+
+
+
+
 def get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_status):
     documentid = id
     protocolnumber = protocol_number
@@ -457,13 +477,14 @@ def get_compare_documents_validation(protocol_number, project_id, document_id, p
     return resource
 
 
-
 def get_compare_documents(compare_id):
     compareid = compare_id
-    # to check the correct values are only extracted
     resource = Documentcompare.query.filter(Documentcompare.compare_id == compareid).first()
-    if resource is None:
+    try:
+        resource = eval(resource.iqvdata.decode())['data']
+    except Exception as e:
         logger.error(NO_RESOURCE_FOUND.format(compareid))
+        return None
     return resource
 
 

@@ -5,6 +5,11 @@ from sys import argv
 from etmfa.server import create_app
 from etmfa.server.config import app_config
 from gevent.pywsgi import WSGIServer
+# from flask_cors import CORS
+# #
+# app = Flask(__name__)
+# CORS(app)
+
 
 if __name__ == '__main__':
     config_name = 'development'
