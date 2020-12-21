@@ -495,18 +495,15 @@ def get_compare_documents_validation(protocol_number, project_id, document_id, p
 
 def get_compare_documents(compare_id):
     compareid = compare_id
+    resource_IQVdata = None
     resource = Documentcompare.query.filter(Documentcompare.compare_id == compareid).first()
     #to check none
-    resource1 = resource.iqvdata if resource else logger.error(NO_RESOURCE_FOUND.format(compare_id))
-    return resource1
+    if resource is not None:
+        resource_IQVdata = resource.iqvdata
+    else:
+        logger.error(NO_RESOURCE_FOUND.format(compare_id))
+    return resource_IQVdata
 
-def get_compare_documents(compare_id):
-    compareid = compare_id
-    # to check the correct values are only extracted
-    resource = Documentcompare.query.filter(Documentcompare.compare_id == compareid).first()
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(compareid))
-    return resource
 
 def get_compare_documents_by_docid(doc_id1, doc_id2):
     document_id1 = doc_id1
