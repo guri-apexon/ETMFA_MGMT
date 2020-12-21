@@ -326,8 +326,15 @@ pd_compare_get = api.model('Document compare Model',
                                  )
 
 
-
-
+pd_compare_by_docid_object_get = reqparse.RequestParser()
+pd_compare_by_docid_object_get.add_argument('docId1',
+                               type=str,
+                               required=True,
+                               help='PD processed doc id of 1st document')
+pd_compare_by_docid_object_get.add_argument('docId2',
+                               type=str,
+                               required=True,
+                               help='PD processed doc id of 2nd document')
 
 
 eTMFA_object_post = reqparse.RequestParser()

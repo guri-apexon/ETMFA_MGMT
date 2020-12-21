@@ -1,4 +1,5 @@
 import logging
+import requests
 import uuid
 import os
 import json
@@ -6,9 +7,7 @@ from pathlib import Path
 from etmfa.messaging.models.queue_names import EtmfaQueues
 from dataclasses import asdict
 from etmfa.server.config import Config
-import ast
 
-# from etmfa.db.models.documentcompare import document_compare
 
 from etmfa.consts import Consts as consts
 from etmfa.db import (
@@ -26,7 +25,8 @@ from etmfa.db import (
     get_compare_documents,
     get_compare_documents_validation,
     add_compare_event,
-    upsert_attributevalue
+    upsert_attributevalue,
+    get_compare_documents_by_docid
 )
 from etmfa.messaging.messagepublisher import MessagePublisher
 from etmfa.messaging.models.triage_request import TriageRequest
@@ -50,7 +50,8 @@ from etmfa.server.namespaces.serializers import (
     pd_compare_object_post,
     pd_compare_get,
     pd_compare_post_response,
-    pd_compare_object_input_get
+    pd_compare_object_input_get,
+    pd_compare_by_docid_object_get
 )
 from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
@@ -111,22 +112,30 @@ class DocumentprocessingAPI(Resource):
         molecule_device = args['moleculeDevice'] if args['moleculeDevice'] is not None else ' '
         user_id = args['userId'] if args['userId'] is not None else ' '
 
-
-
         save_doc_processing(args, _id, str(file_path))
         # duplicatecheck = save_doc_processing_duplicate(args, _id, filename_main, str(file_path))#this will be taken out if duplicate check is not requested
+        parameters = {
+                        "sponser": sponsor,
+                        "protocol": protocol,
+                        "VersionNumber": version_number,
+                        "Amendment": amendment_number
+                    }
+        #TODO- Make API URL configurable based on environment
+        response = requests.get("http://ca2spdml01q:8000/api/duplicate_check/", params=parameters)
+        if response.json():
+            return response.json()
+        else:
+            BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
+            EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
+            print("reached triage request sent")
+            post_req_msg = TriageRequest(_id, str(file_path), source_filename, version_number, protocol, document_status,
+                                        environment, source_system, sponsor, study_status, amendment_number, project_id,
+                                        indication, molecule_device, user_id)
 
-        BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
-        EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
-        print("reached triage request sent")
-        post_req_msg = TriageRequest(_id, str(file_path), source_filename, version_number, protocol, document_status,
-                                     environment, source_system, sponsor, study_status, amendment_number, project_id,
-                                     indication, molecule_device, user_id)
+            MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(asdict(post_req_msg), EtmfaQueues.TRIAGE.request)
 
-        MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(asdict(post_req_msg), EtmfaQueues.TRIAGE.request)
-
-        # Return response object
-        return get_doc_processing_by_id(_id, full_mapping=True)
+            # Return response object
+            return get_doc_processing_by_id(_id, full_mapping=True)
 
 
 @ns.route('/<string:id>/feedback')
@@ -362,6 +371,30 @@ class DocumentprocessingAPI(Resource):
             resource = get_compare_documents(compare_id)
             if resource is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(compare_id))
+            else:
+                return json.dumps(resource)
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
+
+
+@ns.route('/comparedocuments')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(pd_compare_by_docid_object_get)
+    # @ns.marshal_with(pd_compare_get)
+    @ns.response(200, 'Success.')
+    @ns.response(404, 'Document Processing resource not found.')
+    def get(self):
+        """Get the document processing object attributes"""
+        args = pd_compare_by_docid_object_get.parse_args()
+        try:
+            document_id1 = args['docId1'] if args['docId1'] is not None else ' '
+            document_id2 = args['docId2'] if args['docId2'] is not None else ' '
+            #retrieve documets for given doc id's
+            resource = get_compare_documents_by_docid(document_id1, document_id2)
+            if resource is None:
+                return abort(404, DOCUMENT_NOT_FOUND.format(document_id1))
             else:
                 return json.dumps(resource)
         except ValueError as e:
