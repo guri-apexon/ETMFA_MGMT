@@ -355,7 +355,6 @@ class DocumentprocessingAPI(Resource):
     @ns.response(404, 'Document Processing resource not found.')
     def get(self):
         """Get the document processing object attributes"""
-        # abc =[]
         args = pd_compare_object_input_get.parse_args()
         try:
             compare_id = args['compareid'] if args['compareid'] is not None else ' '
