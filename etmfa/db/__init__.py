@@ -510,7 +510,14 @@ def get_compare_documents(compare_id):
         logger.error(NO_RESOURCE_FOUND.format(compareid))
     return resource
 
-
+def get_compare_documents_by_docid(doc_id1, doc_id2):
+    document_id1 = doc_id1
+    document_id2 = doc_id2
+    # to check the correct values are only extracted
+    resource = Documentcompare.query.filter(Documentcompare.doc_id == document_id1).filter(Documentcompare.doc_id2 == document_id2).first()
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND)
+    return resource
 
 
 def get_doc_metrics_by_id(id):
@@ -544,7 +551,6 @@ def get_doc_resource_by_id(id):
         logger.error(NO_RESOURCE_FOUND.format(id))
 
     return resource
-
 
 def upsert_attributevalue(doc_processing_id, namekey, value):
     g.aidocid = id
@@ -581,4 +587,24 @@ def safe_unicode(obj, *args):
         # obj is byte string
         ascii_text = str(obj).encode('string_escape')
         return str(ascii_text)
+
+def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
+    resource = get_doc_status_processing_by_id(id, full_mapping=True)
+
+    if resource is not None:
+        resource.feedback = feedback_status.name
+        resource.lastUpdated = datetime.utcnow()
+        # log message for feedback received is updated to DB from users/reviewers
+        logger.info("Feedback received for id is updated to DB: {}".format(id))
+        try:
+            db_context.session.commit()
+            return True
+        except Exception as ex:
+            db_context.session.rollback()
+
+            exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS)
+            received_documentprocessing_error_event(exception.__dict__)
+            logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
+
+    return False
 
