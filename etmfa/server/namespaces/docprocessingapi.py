@@ -8,10 +8,6 @@ from etmfa.messaging.models.queue_names import EtmfaQueues
 from dataclasses import asdict
 from etmfa.server.config import Config
 
-
-
-from etmfa.db.models.documentcompare import Documentcompare
-
 from etmfa.consts import Consts as consts
 from etmfa.db import (
     save_doc_processing,
