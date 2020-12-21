@@ -13,3 +13,4 @@ Werkzeug==0.16.1
 PyMySQL==0.10.0
 mysqlclient==2.0.1
 etmfa-core
+requests==2.22.0
