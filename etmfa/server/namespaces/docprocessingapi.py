@@ -6,10 +6,9 @@ from pathlib import Path
 from etmfa.messaging.models.queue_names import EtmfaQueues
 from dataclasses import asdict
 from etmfa.server.config import Config
+import ast
 
-
-
-from etmfa.db.models.documentcompare import Documentcompare
+# from etmfa.db.models.documentcompare import document_compare
 
 from etmfa.consts import Consts as consts
 from etmfa.db import (
@@ -356,6 +355,7 @@ class DocumentprocessingAPI(Resource):
     @ns.response(404, 'Document Processing resource not found.')
     def get(self):
         """Get the document processing object attributes"""
+        # abc =[]
         args = pd_compare_object_input_get.parse_args()
         try:
             compare_id = args['compareid'] if args['compareid'] is not None else ' '

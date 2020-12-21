@@ -136,7 +136,7 @@ def received_comparecomplete_event(comparevalues, message_publisher):
     if resource is not None:
         resource.similarity_score = comparevalues['SIMILARITY_SCORE']
         resource.updated_IQV_xml_path = comparevalues['UPDATED_BASE_IQVXML_PATH']
-        resource.iqvdata = str(comparevalues['IQVDATA']).encode('UTF-8')
+        resource.iqvdata = str(comparevalues['IQVDATA'])
     try:
         db_context.session.commit()
     except Exception as ex:
@@ -496,21 +496,8 @@ def get_compare_documents_validation(protocol_number, project_id, document_id, p
 def get_compare_documents(compare_id):
     compareid = compare_id
     resource = Documentcompare.query.filter(Documentcompare.compare_id == compareid).first()
-    try:
-        resource = eval(resource.iqvdata.decode())['data']
-    except Exception as e:
-        logger.error(NO_RESOURCE_FOUND.format(compareid))
-        return None
-
-def get_compare_documents(compare_id):
-    compareid = compare_id
-    # to check the correct values are only extracted
-    resource = Documentcompare.query.filter(Documentcompare.compare_id == compareid).first()
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(compareid))
-    return resource
-
-
+    resource1 = resource.iqvdata if resource else logger.error(NO_RESOURCE_FOUND.format(compare_id))
+    return resource1
 
 
 def get_doc_metrics_by_id(id):
