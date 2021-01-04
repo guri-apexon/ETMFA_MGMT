@@ -144,7 +144,7 @@ eTMFA_metrics_get = api.model('Document Processing Metrics Model',
 
 
 eTMFA_attributes_input = reqparse.RequestParser()
-eTMFA_attributes_input.add_argument('docId',
+eTMFA_attributes_input.add_argument('id',
                                type=str,
                                required=True,
                                help='Source Input document name')
@@ -260,7 +260,7 @@ pd_compare_object_post.add_argument('protocolNumber',
                                type=str,
                                required=True,
                                help='Protocol number')
-pd_compare_object_post.add_argument('docId',
+pd_compare_object_post.add_argument('id1',
                                type=str,
                                required=True,
                                help='PD processed doc id')
@@ -272,7 +272,7 @@ pd_compare_object_post.add_argument('protocolNumber2',
                                type=str,
                                required=True,
                                help='Protocol number of the other document')
-pd_compare_object_post.add_argument('docId2',
+pd_compare_object_post.add_argument('id2',
                                type=str,
                                required=True,
                                help='PD processed doc id of 2nd document')
@@ -298,7 +298,7 @@ pd_compare_post_response = api.model('Document compare ID Model',
                                  )
 
 pd_compare_object_input_get = reqparse.RequestParser()
-pd_compare_object_input_get.add_argument('compareid',
+pd_compare_object_input_get.add_argument('compareId',
                                type=str,
                                required=True,
                                help='Compare unique id')
@@ -326,17 +326,6 @@ pd_compare_get = api.model('Document compare Model',
                                  )
 
 
-pd_compare_by_docid_object_get = reqparse.RequestParser()
-pd_compare_by_docid_object_get.add_argument('docId1',
-                               type=str,
-                               required=True,
-                               help='PD processed doc id of 1st document')
-pd_compare_by_docid_object_get.add_argument('docId2',
-                               type=str,
-                               required=True,
-                               help='PD processed doc id of 2nd document')
-
-
 eTMFA_object_post = reqparse.RequestParser()
 eTMFA_object_post.add_argument('sourceFileName',
                                type=str,
@@ -361,7 +350,7 @@ eTMFA_object_post.add_argument('documentStatus',
                                type=str,
                                required=True,
                                choices=[doc_class.value for doc_class in DocumentClass],
-                               help='Document Status(Draft/Active)')
+                               help='Document Status(Draft/Final)')
 eTMFA_object_post.add_argument('studyStatus',
                                type=str,
                                required=False,
