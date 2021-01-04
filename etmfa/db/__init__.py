@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import json
 from datetime import datetime
 
 from filehash import FileHash
@@ -9,25 +10,15 @@ from sqlalchemy import desc
 
 from etmfa.consts import Consts as consts
 from etmfa.db.db import db_context
-from etmfa.db.models.documentProcess import DocumentProcess
-from etmfa.db.models.documentattributes import Documentattributes
 from etmfa.db.models.documentcompare import Documentcompare
-from etmfa.db.models.documentduplicate import Documentduplicate
-from etmfa.db.models.documentfeedback import Documentfeedback
-from etmfa.db.models.pd_users import pd_users
-from etmfa.db.models.pd_user_protocols import pd_user_protocols
-from etmfa.db.models.pd_user_protocol_documents import pd_user_protocol_documents
-from etmfa.db.models.pd_roles import pd_roles
-from etmfa.db.models.pd_protocols import pd_protocols
-from etmfa.db.models.pd_protocol_status import pd_protocol_status
-from etmfa.db.models.pd_protocol_sponsor import pd_protocol_sponsor
-from etmfa.db.models.pd_protocol_saved_search import pd_protocol_saved_search
-from etmfa.db.models.pd_protocol_recent_search import pd_protocol_recent_search
-from etmfa.db.models.pd_protocol_indications import pd_protocol_indications
-from etmfa.db.models.pd_protocol_document_status import pd_protocol_document_status
-from etmfa.db.models.pd_protocol_document_process import pd_protocol_document_process
+from etmfa.db.models.pd_user_protocols import PDUserProtocols
+from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
+from etmfa.db.models.pd_protocol_data import Protocoldata
+from etmfa.db.models.pd_protocol_sponsor import PDProtocolSponsor
+from etmfa.db.models.pd_protocol_saved_search import PDProtocolSavedSearch
+from etmfa.db.models.pd_protocol_recent_search import PDProtocolRecentSearch
+from etmfa.db.models.pd_protocol_indications import PDProtocolIndication
 from etmfa.db.models.amp_server_run_info import amp_server_run_info
-
 from etmfa.db.models.metric import Metric
 from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
 from etmfa.messaging.models.document_class import DocumentClass
@@ -65,6 +56,7 @@ def update_doc_processing_status(id: str, process_status: ProcessingStatus):
     if resource is not None:
         resource.percentComplete = process_status.value
         resource.status = process_status.name
+        print(resource.status)
         resource.lastUpdated = datetime.utcnow()
 
         try:
@@ -103,23 +95,23 @@ def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
 
 def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_number2, project_id2, user_id):
     compare = Documentcompare()
-    compare.compare_id = compare_req_msg['COMPARE_ID']
-    compare.doc_id = compare_req_msg['BASE_DOC_ID']
-    compare.protocol_number = protocol_number
-    compare.project_id = project_id
+    compare.compareId = compare_req_msg['COMPARE_ID']
+    compare.id = compare_req_msg['BASE_DOC_ID']
+    compare.protocolNumber = protocol_number
+    compare.projectId = project_id
     # compare.version_number = compare_req_msg['']#these will added if additional details are made mandatory
     # compare.amendment_number = compare_req_msg['']#these will added if additional details are made mandatory
     # compare.document_status = compare_req_msg['']#these will added if additional details are made mandatory
-    compare.doc_id2 = compare_req_msg['COMPARE_DOC_ID']
-    compare.protocol_number2 = protocol_number2
-    compare.project_id2 = project_id2
+    compare.id2 = compare_req_msg['COMPARE_DOC_ID']
+    compare.protocolNumber2 = protocol_number2
+    compare.projectId2 = project_id2
     # compare.version_number2 = compare_req_msg['']#these will added if additional details are made mandatory
     # compare.amendment_number2 = compare_req_msg['']#these will added if additional details are made mandatory
     # compare.document_status2 = compare_req_msg['']#these will added if additional details are made mandatory
-    compare.user_id = user_id
-    compare.base_IQV_xml_path = compare_req_msg['BASE_IQVXML_PATH']
-    compare.compare_IQV_xml_path = compare_req_msg['COMPARE_IQVXML_PATH']
-    compare.request_type = compare_req_msg['REQUEST_TYPE']
+    compare.userId = user_id
+    compare.baseIqvXmlPath = compare_req_msg['BASE_IQVXML_PATH']
+    compare.compareIqvXmlPath = compare_req_msg['COMPARE_IQVXML_PATH']
+    compare.requestType = compare_req_msg['REQUEST_TYPE']
     try:
         db_context.session.add(compare)
         db_context.session.commit()
@@ -132,10 +124,10 @@ def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_num
             compare['compare_id'], ex))
 
 def received_comparecomplete_event(comparevalues, message_publisher):
-    resource = Documentcompare.query.filter(Documentcompare.compare_id == comparevalues['COMPARE_ID']).first()
+    resource = Documentcompare.query.filter(Documentcompare.compareId == comparevalues['COMPARE_ID']).first()
     if resource is not None:
-        resource.similarity_score = comparevalues['SIMILARITY_SCORE']
-        resource.updated_IQV_xml_path = comparevalues['UPDATED_BASE_IQVXML_PATH']
+        resource.similarityScore = comparevalues['SIMILARITY_SCORE']
+        resource.updatedIqvXmlPath = comparevalues['UPDATED_BASE_IQVXML_PATH']
         resource.iqvdata = str(comparevalues['IQVDATA'])
     try:
         db_context.session.commit()
@@ -152,81 +144,27 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
 
         resource = get_doc_resource_by_id(id)
         resource.isProcessing = False
+        resource.isActive = True
 
-        metrics = Metric(id)
-        metrics.id = finalattributes['id']
-        metrics.totalProcessTime = finalattributes['total_process_time']
-        metrics.queueWaitTime = finalattributes['queue_wait_time']
-        metrics.triageMachineName = finalattributes['triage_machine_name']
-        metrics.triageVersion = finalattributes['triage_version']
-        metrics.triageStartTime = finalattributes['triage_start_time']
-        metrics.triageEndTime = finalattributes['triage_end_time']
-        metrics.triageProcTime = finalattributes['triage_proc_time']
-        metrics.digitizerMachineName = finalattributes['digitizer_machine_name']
-        metrics.digitizerVersion = finalattributes['digitizer_version']
-        metrics.digitizerStartTime = finalattributes['digitizer_start_time']
-        metrics.digitizerEndTime = finalattributes['digitizer_end_time']
-        metrics.digitizerProcTime = finalattributes['digitizer_proc_time']
-        metrics.classificationMachineName = finalattributes['classification_machine_name']
-        metrics.classificationVersion = finalattributes['classification_version']
-        metrics.classificationStartTime = finalattributes['classification_start_time']
-        metrics.classificationEndTime = finalattributes['classification_end_time']
-        metrics.classificationProcTime = finalattributes['classification_proc_time']
-        metrics.attExtractionMachineName = finalattributes['att_extraction_machine_name']
-        metrics.attExtractionVersion = finalattributes['att_extraction_version']
-        metrics.attExtractionStartTime = finalattributes['att_extraction_start_time']
-        metrics.attExtractionEndTime = finalattributes['att_extraction_end_time']
-        metrics.attExtractionProcTime = finalattributes['att_extraction_proc_time']
-        metrics.finalizationMachineName = finalattributes['finalization_machine_name']
-        metrics.finalizationVersion = finalattributes['finalization_version']
-        metrics.finalizationStartTime = finalattributes['finalization_start_time']
-        metrics.finalizationEndTime = finalattributes['finalization_end_time']
-        metrics.finalizationProcTime = finalattributes['finalization_proc_time']
-        metrics.docType = finalattributes['doc_type']
-        metrics.docTypeOriginal = finalattributes['doc_type_original']
-        metrics.docSegments = finalattributes['doc_segments']
-        metrics.docPages = finalattributes['doc_pages']
+        resource2 = get_user_protocol_by_id(id)
+        resource.isActive = True
 
-        attributes = Documentattributes()
-        attributes.id = finalattributes['id']
-        attributes.userId = resource.userId
-        attributes.fileName = safe_unicode(resource.fileName)
-        attributes.documentFilePath = resource.documentFilePath
-        attributes.customer = safe_unicode(finalattributes['customer'])
-        attributes.protocol = safe_unicode(finalattributes['protocol'])
-        attributes.country = safe_unicode(finalattributes['country'])
-        attributes.site = safe_unicode(finalattributes['site'])
-        attributes.docClass = finalattributes['doc_class']
-        attributes.priority = finalattributes['priority']
-        attributes.receivedDate = finalattributes['received_date']
-        # TODO:Storing site_personnel_list in DB
-        attributes.sitePersonnelList = safe_unicode(finalattributes['site_personnel_list'])
-        attributes.tmfEnvironment = finalattributes['tmf_environment']
-        attributes.tmfIbr = finalattributes['tmf_ibr']
 
-        attributes.docCompConf = finalattributes['doc_comp_conf']
-        attributes.docClassification = finalattributes['doc_classification']
-        attributes.docClassificationConf = finalattributes['doc_classification_conf']
-        attributes.docDate = finalattributes['doc_date']
-        attributes.docDateConf = finalattributes['doc_date_conf']
-        attributes.docDateType = finalattributes['doc_date_type']
-        attributes.name = safe_unicode(finalattributes['name'])
-        attributes.nameConf = finalattributes['name_conf']
-        attributes.language = finalattributes['language']
-        attributes.languageConf = finalattributes['language_conf']
-        attributes.subject = safe_unicode(finalattributes['subject'])
-        attributes.subjectConf = finalattributes['subject_conf']
-        attributes.alcoacCheckError = finalattributes['alcoac_check_error']
-        attributes.alcoacCheckCompScore = finalattributes['alcoac_check_comp_score']
-        attributes.alcoacCheckCompScoreConf = finalattributes['alcoac_check_comp_score_conf']
-        attributes.docSubclassification = finalattributes['doc_subclassification']
-        attributes.docSubclassificationConf = finalattributes['doc_subclassification_conf']
-        attributes.docClassificationElvis = finalattributes['doc_classification_elvis']
-        attributes.unblinded = finalattributes['blinded']
+        protocoldata = Protocoldata()
+        
+        finalattributes = finalattributes['db_data']
+        protocoldata.id = finalattributes['AiDocId']
+        protocoldata.userId = finalattributes['UserId']
+        protocoldata.fileName = finalattributes['SourceFileName']
+        protocoldata.documentFilePath = finalattributes['documentPath']
+        protocoldata.iqvdataToc = str(json.dumps(finalattributes['toc']))
+        protocoldata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
+        #protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['iqvdataSoaStd']))
+        protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
+        #protocoldata.iqvdata = finalattributes['iqvdata']
 
         try:
-            db_context.session.add(attributes)
-            db_context.session.add(metrics)
+            db_context.session.add(protocoldata)
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
@@ -258,128 +196,34 @@ def received_documentprocessing_error_event(error_dict):
         logger.error(NO_RESOURCE_FOUND.format(id))
 
 
-def save_doc_feedback(_id, feedbackdata):
-    recordfound = get_doc_resource_by_id(_id)
-
-    resourcefb = Documentfeedback()
-
-    resourcefb.p_id = str(int((datetime.now().timestamp()) * 1000000))
-    resourcefb.id = feedbackdata['id']
-    resourcefb.fileName = safe_unicode(recordfound.fileName)
-    resourcefb.documentFilePath = recordfound.documentFilePath
-    resourcefb.userId = feedbackdata['userId']
-    resourcefb.feedbackSource = feedbackdata['feedbackSource']
-    resourcefb.customer = safe_unicode(feedbackdata['customer'])
-    resourcefb.protocol = safe_unicode(feedbackdata['protocol'])
-    resourcefb.country = safe_unicode(feedbackdata['country'])
-    resourcefb.site = safe_unicode(feedbackdata['site'])
-    resourcefb.documentClass = feedbackdata['documentClass']
-    resourcefb.documentDate = feedbackdata['documentDate']
-    resourcefb.documentClassification = feedbackdata['documentClassification']
-    resourcefb.name = safe_unicode(feedbackdata['name'])
-    resourcefb.language = feedbackdata['language']
-    resourcefb.documentRejected = feedbackdata['documentRejected']
-    resourcefb.attributeAuxillaryList = safe_unicode(str(feedbackdata['attributeAuxillaryList']))
-
-    try:
-        db_context.session.add(resourcefb)
-        db_context.session.commit()
-    except Exception as ex:
-        db_context.session.rollback()
-        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_FEEDBACK)
-        received_documentprocessing_error_event(exception.__dict__)
-        logger.error("Error while writing record to etmfa_document_feedback file in DB for ID: {},{}".format(_id, ex))
-
-    return resourcefb.as_dict()
-
-
-def save_doc_processing_duplicate(request, _id, file_name, doc_path):
-    resource = Documentduplicate()
-
-    sha512hasher = FileHash('sha512')
-    resource.id = _id
-    resource.userId = request['userId'] if request['userId'] is not None else ''
-    resource.site = safe_unicode(request['site']) if request['site'] is not None else ''
-    resource.fileName = safe_unicode(file_name)
-    resource.docHash = sha512hasher.hash_file(doc_path)
-    resource.documentFilePath = doc_path
-    resource.customer = safe_unicode(request['customer']) if request['customer'] is not None else ''
-    resource.protocol = safe_unicode(request['protocol']) if request['protocol'] is not None else ''
-    resource.country = safe_unicode(request['country']) if request['country'] is not None else ''
-    resource.site = safe_unicode(request['site']) if request['site'] is not None else ''
-    resource.documentClass = request['documentClass'] if request['documentClass'] is not None else ''
-    resource.receivedDate = request['receivedDate'] if request['receivedDate'] is not None else ''
-
-    resourcefound = get_doc_duplicate_by_id(resource)
-    duplicateresource = ' '
-
-    if resourcefound is None:
-        resource.docDuplicateFlag = 0
-
-        try:
-            db_context.session.add(resource)
-            db_context.session.commit()
-        except Exception as ex:
-            db_context.session.rollback()
-            exception = ManagementException(_id, ErrorCodes.ERROR_DOCUMENT_DUPLICATE)
-            received_documentprocessing_error_event(exception.__dict__)
-            logger.error(
-                "Error while writing record to pd_document_duplicate file in DB for ID: {},{}".format(_id, ex))
-
-    else:
-        duplicateresource = resourcefound.id
-        user_id = resourcefound.userId
-        time_created = resourcefound.timeCreated
-        logger.info("Document previously uploaded by user: {} at time {} with file name {} having id {}".format(user_id, time_created, file_name, duplicateresource))
-        doc_duplicate_flag_update = resourcefound.docDuplicateFlag + 1
-        last_updated = datetime.utcnow()
-        setattr(resourcefound, 'docDuplicateFlag', doc_duplicate_flag_update)
-        setattr(resourcefound, 'lastUpdated', last_updated)
-
-        try:
-            db_context.session.commit()
-        except Exception as ex:
-            db_context.session.rollback()
-            exception = ManagementException(_id, ErrorCodes.ERROR_UPDATING_ATTRIBUTES)
-            received_documentprocessing_error_event(exception.__dict__)
-            logger.error(
-                "Error while writing record to PD_document_duplicate file in DB for ID: {},{}".format(_id, ex))
-
-    return duplicateresource
-
-
-def get_doc_duplicate_by_id(resourcechk, full_mapping=False):
-    base_query = Documentduplicate.query.filter(Documentduplicate.docHash == resourcechk.docHash,
-                                               Documentduplicate.customer == resourcechk.customer,
-                                               Documentduplicate.protocol == resourcechk.protocol,
-                                               Documentduplicate.documentClass == resourcechk.documentClass.lower(),
-                                               Documentduplicate.documentRejected == False)
-
-    if resourcechk.documentClass.lower() == DocumentClass.CORE.value:
-        resource = base_query.first()
-
-    elif resourcechk.documentClass.lower() == DocumentClass.COUNTRY.value:
-        resource = base_query.filter(Documentduplicate.country == resourcechk.country).first()
-
-    elif resourcechk.documentClass.lower() == DocumentClass.SITE.value:
-        resource = base_query.filter(Documentduplicate.country == resourcechk.country,
-                                     Documentduplicate.site == resourcechk.site).first()
-    else:
-        resource = None
-
-    return resource
-
-
-def save_doc_processing(request, _id, doc_path):
-    resource = DocumentProcess.from_post_request(request, _id, doc_path)
+def save_doc_processing(request, _id, doc_path, draftVersion):
+    resource = PDProtocolMetadata.from_post_request(request, _id, doc_path)
 
     resource.documentFilePath = doc_path
     resource.userId = request['userId']
+    resource.fileName = request['sourceFileName']
+    resource.versionNumber = request['versionNumber']
+    resource.protocol = request['protocolNumber']
+    resource.sponsor = request['sponsor']
+    resource.sourceSystem = request['sourceSystem']
+    resource.documentStatus = request['documentStatus']
+    resource.studyStatus = request['studyStatus']
+    resource.amendment = request['amendmentNumber']
+    resource.projectId = request['projectID']
+    resource.environment = request['environment']
+    resource.indication = request['indication']
+    resource.moleculeDevice = request['moleculeDevice']
+    resource.draftVersion = draftVersion
     resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
     resource.status = ProcessingStatus.TRIAGE_STARTED.name
 
+    resource2 = PDUserProtocols.from_post_request(request, _id, doc_path)
+    resource2.userId = request['userId']
+    resource2.protocol = request['protocolNumber']
+
     try:
         db_context.session.add(resource)
+        db_context.session.add(resource2)
         db_context.session.commit()
     except Exception as ex:
         db_context.session.rollback()
@@ -428,9 +272,9 @@ def fetch_compare_id(id, protocol_number, project_id, doc_status):
     docstatus = doc_status
     # to check the correct values are only extracted
     resource = Documentattributes.query.filter(Documentattributes.id == documentid,
-                                               Documentattributes.protocol_number == protocolnumber,
-                                               Documentattributes.project_id == projectid,
-                                               Documentattributes.document_status == docstatus).first()
+                                               Documentattributes.protocolNumber == protocolnumber,
+                                               Documentattributes.projectId == projectid,
+                                               Documentattributes.documentStatus == docstatus).first()
 
     if resource is None:
         logger.error(NO_RESOURCE_FOUND.format(id))
@@ -447,9 +291,9 @@ def get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_st
     docstatus = doc_status
     # to check the correct values are only extracted
     resource = Documentattributes.query.filter(Documentattributes.id == documentid,
-                                               Documentattributes.protocol_number == protocolnumber,
-                                               Documentattributes.project_id == projectid,
-                                               Documentattributes.document_status == docstatus).first()
+                                               Documentattributes.protocolNumber == protocolnumber,
+                                               Documentattributes.projectId == projectid,
+                                               Documentattributes.documentStatus == docstatus).first()
 
     if resource is None:
         logger.error(NO_RESOURCE_FOUND.format(id))
@@ -458,12 +302,12 @@ def get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_st
 
 
 
-def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'active'):
+def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'final'):
     protocolnumber = protocol_number
     docstatus = doc_status
     # to check the correct values are only extracted
-    resource = Documentattributes.query.filter(Documentattributes.protocol_number == protocolnumber,
-                                               Documentattributes.document_status == docstatus).order_by(desc(Documentattributes.version_number)).first()
+    resource = Documentattributes.query.filter(Documentattributes.protocolNumber == protocolnumber,
+                                               Documentattributes.documentStatus == docstatus).order_by(desc(Documentattributes.versionNumber)).first()
 
     if resource is None:
         logger.error(NO_RESOURCE_FOUND.format(id))
@@ -481,13 +325,13 @@ def get_compare_documents_validation(protocol_number, project_id, document_id, p
     docid2 = document_id2
     requesttype = request_type
     # to check the correct values are only extracted
-    resource = Documentcompare.query.filter(Documentcompare.protocol_number == protocolnumber,
-                                            Documentcompare.project_id == projectid,
-                                            Documentcompare.doc_id == docid,
-                                            Documentcompare.protocol_number2 == protocolnumber2,
-                                            Documentcompare.project_id2 == projectid2,
-                                            Documentcompare.doc_id2 == docid2,
-                                            Documentcompare.request_type == requesttype).first()
+    resource = Documentcompare.query.filter(Documentcompare.protocolNumber == protocolnumber,
+                                            Documentcompare.projectId == projectid,
+                                            Documentcompare.id1 == docid,
+                                            Documentcompare.protocolNumber2 == protocolnumber2,
+                                            Documentcompare.projectId2 == projectid2,
+                                            Documentcompare.id2 == docid2,
+                                            Documentcompare.requestType == requesttype).first()
     # if resource is None:
     #     logger.error(NO_RESOURCE_FOUND.format())
     return resource
@@ -496,23 +340,13 @@ def get_compare_documents_validation(protocol_number, project_id, document_id, p
 def get_compare_documents(compare_id):
     compareid = compare_id
     resource_IQVdata = None
-    resource = Documentcompare.query.filter(Documentcompare.compare_id == compareid).first()
+    resource = Documentcompare.query.filter(Documentcompare.compareId == compareid).first()
     #to check none
     if resource is not None:
         resource_IQVdata = resource.iqvdata
     else:
         logger.error(NO_RESOURCE_FOUND.format(compare_id))
     return resource_IQVdata
-
-
-def get_compare_documents_by_docid(doc_id1, doc_id2):
-    document_id1 = doc_id1
-    document_id2 = doc_id2
-    # to check the correct values are only extracted
-    resource = Documentcompare.query.filter(Documentcompare.doc_id == document_id1).filter(Documentcompare.doc_id2 == document_id2).first()
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND)
-    return resource
 
 
 def get_doc_metrics_by_id(id):
@@ -532,7 +366,7 @@ def get_doc_status_processing_by_id(id, full_mapping=True):
 
 def get_compare_resource_by_compare_id(comparevalues):
     compareid = comparevalues['COMPARE_ID']
-    resource = Documentcompare.query.filter(Documentcompare.compare_id == compareid).first()
+    resource = Documentcompare.query.filter(Documentcompare.compareId == compareid).first()
 
     if resource is None:
         logger.error(NO_RESOURCE_FOUND.format(compareid))
@@ -540,7 +374,16 @@ def get_compare_resource_by_compare_id(comparevalues):
 
 def get_doc_resource_by_id(id):
     g.aidocid = id
-    resource = DocumentProcess.query.filter(DocumentProcess.id.like(str(id))).first()
+    resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.id.like(str(id))).first()
+
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(id))
+
+    return resource
+
+def get_user_protocol_by_id(id):
+    g.aidocid = id
+    resource = PDUserProtocols.query.filter(PDUserProtocols.id.like(str(id))).first()
 
     if resource is None:
         logger.error(NO_RESOURCE_FOUND.format(id))
@@ -583,23 +426,27 @@ def safe_unicode(obj, *args):
         ascii_text = str(obj).encode('string_escape')
         return str(ascii_text)
 
-def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
-    resource = get_doc_status_processing_by_id(id, full_mapping=True)
+def get_latest_record(sponsor, protocol_number, version_number):
+    # to get the latest record based on sponsor, protocol_number, version_number
+    resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.sponsor == sponsor,
+                                               PDProtocolMetadata.protocol == protocol_number,
+                                               PDProtocolMetadata.versionNumber == version_number).order_by(PDProtocolMetadata.timeCreated.desc()).first()
 
-    if resource is not None:
-        resource.feedback = feedback_status.name
-        resource.lastUpdated = datetime.utcnow()
-        # log message for feedback received is updated to DB from users/reviewers
-        logger.info("Feedback received for id is updated to DB: {}".format(id))
-        try:
-            db_context.session.commit()
-            return True
-        except Exception as ex:
-            db_context.session.rollback()
+    return resource
 
-            exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS)
-            received_documentprocessing_error_event(exception.__dict__)
-            logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
+def set_draft_version(document_status, sponsor, protocol, version_number):
+    # to set draft version for documents
+    if document_status == 'draft':
+        resource = get_latest_record(sponsor, protocol, version_number)
 
-    return False
-
+        if resource is None:
+            draftVersion = float(version_number) + 0.01
+        else:
+            if resource.documentStatus == 'draft':
+                old_draftVersion = resource.draftVersion
+                draftVersion = float(old_draftVersion) + 0.01
+            else:
+                draftVersion = float(version_number) + 0.01
+    else:
+        draftVersion = None
+    return draftVersion    

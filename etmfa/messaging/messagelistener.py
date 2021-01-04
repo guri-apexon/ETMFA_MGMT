@@ -82,4 +82,6 @@ class MessageListener(ConsumerMixin):
             )
             message.ack()
         except Exception as ex:
-            logger.error("Fatal message error while processing queue: {}".format(queue_name), ex)
+            logger.error("Fatal message error while processing queue: {}, {}".format(queue_name, ex))
+
+
