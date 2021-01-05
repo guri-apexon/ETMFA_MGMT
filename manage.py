@@ -17,7 +17,6 @@ manager = Manager(app)
 manager.add_option('-l', '--level', dest='level', required=False)
 def create_app(level=None):
     app = load_app_config(level)
-    print(level)
     return app
 
 manager.add_command('db', MigrateCommand)

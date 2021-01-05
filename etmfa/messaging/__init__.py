@@ -71,7 +71,7 @@ def on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queu
     from etmfa.db import update_doc_processing_status
     update_doc_processing_status(msg_proc_obj['id'], status)
     request = GenericRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'])
-    print ('generic:{}'.format(asdict(request)))
+
     message_publisher.send_dict(asdict(request), dest_queue_name)
 
 # omap update
@@ -82,12 +82,12 @@ def on_digitizer2_complete_event(msg_proc_obj, message_publisher, status, dest_q
         IQVXMLPath=os.path.join(Config.DFS_UPLOAD_FOLDER,msg_proc_obj['id'])
         file =[f for f in os.listdir(IQVXMLPath) if f.endswith('.omop.xml')][0]
         file=os.path.join(IQVXMLPath,file)
-        print (file)
+
     except Exception as e :
         file=None
 
     request = DIG2OMAPRequest(msg_proc_obj['id'],file)
-    print ('DIG2OMAPRequest:{}'.format(asdict(request)))
+
     message_publisher.send_dict(asdict(request), dest_queue_name)
 
 
@@ -103,7 +103,7 @@ def on_i2e_omop_update_complete_event(msg_proc_obj, message_publisher, status, d
         file=None
 
     request = OmapRequest(msg_proc_obj['id'], msg_proc_obj['updated_omop_xml_path'],file,dest_queue_name)
-    print ('OmapRequest:{}'.format(asdict(request)))
+
 
     message_publisher.send_dict(asdict(request), dest_queue_name)
 
@@ -114,12 +114,11 @@ def on_triage_complete(msg_proc_obj, message_publisher):
     else:
         dest_queue = EtmfaQueues.DIGITIZER2.request
         status = ProcessingStatus.DIGITIZER2_STARTED
-    print ('OmapRequest:{}'.format(msg_proc_obj))
+
     return on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queue)
 
 def on_finalization_complete(msg_proc_obj, message_publisher):
     from etmfa.db import received_finalizationcomplete_event
-    print ('on_finalization_complete:{}'.format(msg_proc_obj))
     received_finalizationcomplete_event(msg_proc_obj['id'], msg_proc_obj, message_publisher)
 
 

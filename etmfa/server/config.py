@@ -12,8 +12,8 @@ class Config(object):
     # SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@/pd_digitalization' #VM?#
     #SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@/pd_digitalization' #VM?#
 
-    SQLALCHEMY_DATABASE_URI = 'mssql+pyodbc://APP_TMSDEV:app$tmsdev@USADC-VSSQLA0\SSQL03/PD_UI?driver=SQL+Server'
-    # SQLALCHEMY_DATABASE_URI = 'mssql+pyodbc://pd_dev_dbo:$1457abxd@CA2SPDSQL01Q\PDSSQL001D/PD_Dev?driver=SQL+Server'
+    #SQLALCHEMY_DATABASE_URI = 'mssql+pyodbc://APP_TMSDEV:app$tmsdev@USADC-VSSQLA0\SSQL03/PD_UI?driver=SQL+Server'
+    SQLALCHEMY_DATABASE_URI = 'mssql+pyodbc://pd_dev_dbo:$1457abxd@CA2SPDSQL01Q\PDSSQL001D/PD_Dev?driver=SQL+Server'
 
 
 
@@ -27,7 +27,7 @@ class Config(object):
 
     mquser = 'guest'
     mqpswd = 'guest'
-    mqhost = 'ca2spdml01q'  # 'localhost'
+    mqhost = 'ca2spdml01q'
     mqport = 5672
     MESSAGE_BROKER_ADDR = "amqp://{0}:{1}@{2}:{3}".format(mquser, mqpswd, mqhost, mqport)
     MESSAGE_BROKER_EXCHANGE = 'PD'

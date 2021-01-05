@@ -66,6 +66,7 @@ class MessageListener(ConsumerMixin):
     def _on_message(self, body, message):
         queue_name = message.delivery_info['routing_key']
         try:
+
             message_body = json.loads(body)
 
             Globals.THREAD_LOCAL.aidocid = message_body.get('id')
