@@ -56,7 +56,7 @@ def update_doc_processing_status(id: str, process_status: ProcessingStatus):
     if resource is not None:
         resource.percentComplete = process_status.value
         resource.status = process_status.name
-        print(resource.status)
+
         resource.lastUpdated = datetime.utcnow()
 
         try:

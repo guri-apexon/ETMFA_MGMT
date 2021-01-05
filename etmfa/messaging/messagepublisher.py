@@ -42,5 +42,3 @@ class MessagePublisher:
 
         jsonstruct = json.dumps(msg_dict)
         self.send_str(jsonstruct, queue_name)
-        # print(self.send_str(jsonstruct, queue_name))
-        # print("$$$$$")

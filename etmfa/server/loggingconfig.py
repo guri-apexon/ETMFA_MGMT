@@ -10,7 +10,6 @@ from logstash_async.handler import AsynchronousLogstashHandler
 
 @api.errorhandler
 def handle_global_errors(error):
-    # print("error raised globally",type(error))
     logger = logging.getLogger(Consts.LOGGING_NAME)
 
     try:
