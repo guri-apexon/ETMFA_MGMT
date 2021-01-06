@@ -143,7 +143,6 @@ class DocumentprocessingAPI(Resource):
             return get_doc_processed_by_id(id)
 
 
-
 @ns.route('/<string:id>/status')
 @ns.response(404, 'Document Processing resource not found.')
 @ns.response(500, 'Server error.')
@@ -157,51 +156,6 @@ class DocumentprocessingAPI(Resource):
             resource = get_doc_status_processing_by_id(id, full_mapping=True)
             if resource is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(id))
-            else:
-                return resource
-        except ValueError as e:
-            logger.error(SERVER_ERROR.format(e))
-            return abort(500, SERVER_ERROR.format(e))
-
-
-@ns.route('/<string:id>/metrics')
-@ns.response(200, 'Success.')
-@ns.response(404, 'Document processing resource not found.')
-@ns.response(500, 'Server error.')
-class DocumentprocessingAPI(Resource):
-    @ns.marshal_with(eTMFA_metrics_get)
-    def get(self, id):
-        """Returns metrics of document processed"""
-        try:
-            g.aidocid = id
-            resource = get_doc_proc_metrics_by_id(id, full_mapping=True)
-            if resource is None:
-                return abort(404, 'Document Processing resource not found id: {}'.format(id))
-            else:
-                return resource
-        except ValueError as e:
-            logger.error(SERVER_ERROR.format(e))
-            return abort(500, SERVER_ERROR.format(e))
-
-
-@ns.route('/attributes')
-@ns.response(500, 'Server error.')
-class DocumentprocessingAPI(Resource):
-    @ns.expect(eTMFA_attributes_input)
-    @ns.marshal_with(eTMFA_attributes_get)
-    @ns.response(200, 'Success.')
-    @ns.response(404, 'Document Processing resource not found.')
-    def get(self):
-        """Get the document processing object attributes"""
-        args = eTMFA_attributes_input.parse_args()
-        try:
-            id = args['id'] if args['id'] is not None else ' '
-            protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
-            project_id = args['projectId'] if args['projectId'] is not None else ' '
-            doc_status = args['docStatus'] if args['docStatus'] is not None else ' '
-            resource = get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_status)
-            if resource is None:
-                return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
             else:
                 return resource
         except ValueError as e:
