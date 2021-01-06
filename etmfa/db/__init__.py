@@ -13,13 +13,14 @@ from etmfa.db.db import db_context
 from etmfa.db.models.documentcompare import Documentcompare
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
+from etmfa.db.models.pd_roles import PDRoles
+from etmfa.db.models.pd_users import PDUsers
 from etmfa.db.models.pd_protocol_data import Protocoldata
 from etmfa.db.models.pd_protocol_sponsor import PDProtocolSponsor
 from etmfa.db.models.pd_protocol_saved_search import PDProtocolSavedSearch
 from etmfa.db.models.pd_protocol_recent_search import PDProtocolRecentSearch
 from etmfa.db.models.pd_protocol_indications import PDProtocolIndication
 from etmfa.db.models.amp_server_run_info import amp_server_run_info
-from etmfa.db.models.metric import Metric
 from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
 from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.error import ManagementException
@@ -30,7 +31,7 @@ from etmfa.error import ErrorCodes
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
 NO_RESOURCE_FOUND = "No document resource was found in DB for ID: {}"
-ERROR_PROCESSING_STATUS = "Error while updating processing status to PD_document_process to DB for ID: {},{}"
+ERROR_PROCESSING_STATUS = "Error while updating processing status to pd_protocol_metadata to DB for ID: {},{}"
 
 
 # Global DB ORM object
@@ -118,7 +119,7 @@ def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_num
         return compare_req_msg
     except Exception as ex:
         db_context.session.rollback()
-        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES)
+        exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
         received_documentprocessing_error_event(exception.__dict__)
         logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
             compare['compare_id'], ex))
@@ -133,7 +134,7 @@ def received_comparecomplete_event(comparevalues, message_publisher):
         db_context.session.commit()
     except Exception as ex:
         db_context.session.rollback()
-        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES)
+        exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
         received_documentprocessing_error_event(exception.__dict__)
         logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
             comparevalues['compare_id'], ex))
@@ -161,14 +162,13 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         protocoldata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
         #protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['iqvdataSoaStd']))
         protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
-        #protocoldata.iqvdata = finalattributes['iqvdata']
 
         try:
             db_context.session.add(protocoldata)
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
-            exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES)
+            exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error("Error while writing record to PD_document_attributes file in DB for ID: {},{}".format(
                 finalattributes['id'], ex))
@@ -191,7 +191,7 @@ def received_documentprocessing_error_event(error_dict):
         except Exception as ex:
             db_context.session.rollback()
             logger.exception(
-                f"Error while storing error message to PD_document_process DB table for ID: {error_dict['id'], ex}")
+                f"Error while storing error message to pd_protocol_metadata DB table for ID: {error_dict['id'], ex}")
     else:
         logger.error(NO_RESOURCE_FOUND.format(id))
 
@@ -404,7 +404,7 @@ def upsert_attributevalue(doc_processing_id, namekey, value):
             db_context.session.rollback()
             exception = ManagementException(id, ErrorCodes.ERROR_UPDATING_ATTRIBUTES)
             received_documentprocessing_error_event(exception.__dict__)
-            logger.error("Error while updating attribute to PD_document_attributes to DB for ID: {},{}".format(
+            logger.error("Error while updating attribute to PD_protocol_data to DB for ID: {},{}".format(
                 doc_processing_id, ex))
 
 
