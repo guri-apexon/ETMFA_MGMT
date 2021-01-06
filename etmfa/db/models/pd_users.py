@@ -3,20 +3,20 @@ import datetime
 from etmfa.db import db_context
 
 
-class pd_users(db_context.Model):
+class PDUsers(db_context.Model):
     __tablename__ = "pd_users"
 
-    user_id = db_context.Column(db_context.Integer(), primary_key=True)
-    role_id = db_context.Column(db_context.Integer(), db_context.ForeignKey("pd_roles.id"), nullable=False)
-    is_sso_enabled = db_context.Column(db_context.Boolean(), default=False)
-    email_id = db_context.Column(db_context.String(256))
+    userId = db_context.Column(db_context.String(50), primary_key=True)
+    roleId = db_context.Column(db_context.String(50), primary_key=True)
+    isSsoEnabled = db_context.Column(db_context.Boolean(), default=False)
+    emailId = db_context.Column(db_context.String(256))
     password = db_context.Column(db_context.String(256))
-    is_active = db_context.Column(db_context.Boolean(), default=False)
-    is_locked = db_context.Column(db_context.Boolean(), default=False)
-    created_by = db_context.Column(db_context.String(100))
-    created_on = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
-    modified_by = db_context.Column(db_context.String(100))
-    modified_on = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
+    isActive = db_context.Column(db_context.Boolean(), default=False)
+    isLocked = db_context.Column(db_context.Boolean(), default=False)
+    timeCreated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
+    lastUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
+    userCreated = db_context.Column(db_context.String(200))
+    userUpdated = db_context.Column(db_context.String(200))
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}

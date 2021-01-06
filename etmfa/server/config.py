@@ -6,14 +6,14 @@ from collections import defaultdict
 class Config(object):
     """Parent configuration class."""
     DFS_UPLOAD_FOLDER = '//quintiles.net/enterprise/Services/protdigtest/pilot_iqvxml'
-    #DFS_UPLOAD_FOLDER = 'C:/Users/q1020640/Desktop/PD/General/pd files/test'
+    #DFS_UPLOAD_FOLDER = '//INKOCWL000200/Users/q1036048/Desktop/__pycache__/PD/pd-management/'
     DEBUG = True
     # SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@localhost:3306/protocol_dig' #local
     # SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@/pd_digitalization' #VM?#
     #SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@/pd_digitalization' #VM?#
 
-
-    SQLALCHEMY_DATABASE_URI = 'mssql+pyodbc://pd_dev_dbo:$1457abxd@CA2SPDSQL01Q\PDSSQL001D/PD_Dev?driver=SQL+Server'
+    #SQLALCHEMY_DATABASE_URI = 'mssql+pyodbc://APP_TMSDEV:app$tmsdev@USADC-VSSQLA0\SSQL03/PD_UI?driver=ODBC+Driver+17+for+SQL+Server'
+    SQLALCHEMY_DATABASE_URI = 'mssql+pyodbc://pd_dev_dbo:$1457abxd@CA2SPDSQL01Q\PDSSQL001D/PD_Dev?driver=ODBC+Driver+17+for+SQL+Server'
 
 
 
@@ -27,7 +27,7 @@ class Config(object):
 
     mquser = 'guest'
     mqpswd = 'guest'
-    mqhost = 'ca2spdml01q' #'localhost' #
+    mqhost = 'ca2spdml01q'
     mqport = 5672
     MESSAGE_BROKER_ADDR = "amqp://{0}:{1}@{2}:{3}".format(mquser, mqpswd, mqhost, mqport)
     MESSAGE_BROKER_EXCHANGE = 'PD'

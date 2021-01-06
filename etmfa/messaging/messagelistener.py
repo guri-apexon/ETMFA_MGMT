@@ -66,6 +66,7 @@ class MessageListener(ConsumerMixin):
     def _on_message(self, body, message):
         queue_name = message.delivery_info['routing_key']
         try:
+
             message_body = json.loads(body)
 
             Globals.THREAD_LOCAL.aidocid = message_body.get('id')
@@ -82,4 +83,6 @@ class MessageListener(ConsumerMixin):
             )
             message.ack()
         except Exception as ex:
-            logger.error("Fatal message error while processing queue: {}".format(queue_name), ex)
+            logger.error("Fatal message error while processing queue: {}, {}".format(queue_name, ex))
+
+
