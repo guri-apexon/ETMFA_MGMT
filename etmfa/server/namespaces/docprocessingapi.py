@@ -31,7 +31,6 @@ from etmfa.server.namespaces.serializers import (
     metadata_post,
     eTMFA_object_get,
     eTMFA_object_get_status,
-    eTMFA_metrics_get,
     eTMFA_attributes_get,
     eTMFA_object_post,
     pd_object_get_summary,
@@ -45,6 +44,7 @@ from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
 
 from etmfa.api_response_handlers import SummaryResponse
+
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 DOCUMENT_NOT_FOUND = 'Document Processing resource not found for given data: {}'

@@ -4,6 +4,7 @@ import os
 import json
 from datetime import datetime
 
+from filehash import FileHash
 from flask import g
 from sqlalchemy import desc
 
@@ -21,6 +22,7 @@ from etmfa.db.models.pd_protocol_recent_search import PDProtocolRecentSearch
 from etmfa.db.models.pd_protocol_indications import PDProtocolIndication
 from etmfa.db.models.amp_server_run_info import amp_server_run_info
 from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
+from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.error import ManagementException
 from etmfa.error import ErrorCodes
 
@@ -152,7 +154,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
 
 
         protocoldata = Protocoldata()
-        
+
         finalattributes = finalattributes['db_data']
         protocoldata.id = finalattributes['AiDocId']
         protocoldata.userId = finalattributes['UserId']
@@ -162,7 +164,6 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         protocoldata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
         #protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['iqvdataSoaStd']))
         protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
-        # protocoldata.iqvdata = 'Summary:{},SOA:{},TOC:{}'.format(protocoldata.iqvdataToc, protocoldata.iqvdataSoa, protocoldata.iqvdataSummary)
 
         try:
             db_context.session.add(protocoldata)
@@ -218,13 +219,9 @@ def save_doc_processing(request, _id, doc_path, draftVersion):
     resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
     resource.status = ProcessingStatus.TRIAGE_STARTED.name
 
-    resource2 = PDUserProtocols.from_post_request(request, _id, doc_path)
-    resource2.userId = request['userId']
-    resource2.protocol = request['protocolNumber']
 
     try:
         db_context.session.add(resource)
-        db_context.session.add(resource2)
         db_context.session.commit()
     except Exception as ex:
         db_context.session.rollback()
@@ -244,28 +241,11 @@ def get_doc_processed_by_id(id, full_mapping=True):
 
     return resource_dict
 
-def get_doc_processed_by_protocolnumber(id, protocol_number, project_id, doc_status):
-    resource_dict = get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_status)
-    return resource_dict
-
-
 
 def get_doc_proc_metrics_by_id(id, full_mapping=True):
     resource_dict = get_doc_metrics_by_id(id)
 
     return resource_dict
-
-
-def get_doc_attributes_by_id(id):
-    g.aidocid = id
-    resource = Documentattributes.query.filter(Documentattributes.id.like(str(id))).first()
-
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-    return resource
-
-
 
 def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'final'):
     protocolnumber = protocol_number
@@ -299,8 +279,6 @@ def get_compare_documents_validation(protocol_number, project_id, document_id, p
                                             Documentcompare.projectId2 == projectid2,
                                             Documentcompare.id2 == docid2,
                                             Documentcompare.requestType == requesttype).first()
-    # if resource is None:
-    #     logger.error(NO_RESOURCE_FOUND.format())
     return resource
 
 
@@ -425,4 +403,4 @@ def set_draft_version(document_status, sponsor, protocol, version_number):
                 draftVersion = float(version_number) + 0.01
     else:
         draftVersion = None
-    return draftVersion    
+    return draftVersion
