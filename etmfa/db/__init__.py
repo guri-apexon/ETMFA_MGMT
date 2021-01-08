@@ -127,6 +127,8 @@ def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_num
 def received_comparecomplete_event(comparevalues, message_publisher):
     resource = Documentcompare.query.filter(Documentcompare.compareId == comparevalues['COMPARE_ID']).first()
     if resource is not None:
+        resource.similarity_score = comparevalues['SIMILARITY_SCORE']
+        resource.updated_IQV_xml_path = comparevalues['UPDATED_BASE_IQVXML_PATH']
         resource.similarityScore = comparevalues['SIMILARITY_SCORE']
         resource.updatedIqvXmlPath = comparevalues['UPDATED_BASE_IQVXML_PATH']
         resource.iqvdata = str(comparevalues['IQVDATA'])
@@ -152,7 +154,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
 
 
         protocoldata = Protocoldata()
-        
+
         finalattributes = finalattributes['db_data']
         protocoldata.id = finalattributes['AiDocId']
         protocoldata.userId = finalattributes['UserId']
@@ -217,13 +219,9 @@ def save_doc_processing(request, _id, doc_path, draftVersion):
     resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
     resource.status = ProcessingStatus.TRIAGE_STARTED.name
 
-    resource2 = PDUserProtocols.from_post_request(request, _id, doc_path)
-    resource2.userId = request['userId']
-    resource2.protocol = request['protocolNumber']
 
     try:
         db_context.session.add(resource)
-        db_context.session.add(resource2)
         db_context.session.commit()
     except Exception as ex:
         db_context.session.rollback()
@@ -243,76 +241,25 @@ def get_doc_processed_by_id(id, full_mapping=True):
 
     return resource_dict
 
-def get_doc_processed_by_protocolnumber(id, protocol_number, project_id, doc_status):
-    resource_dict = get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_status)
-    return resource_dict
-
-
 
 def get_doc_proc_metrics_by_id(id, full_mapping=True):
     resource_dict = get_doc_metrics_by_id(id)
 
     return resource_dict
 
-
-def get_doc_attributes_by_id(id):
-    g.aidocid = id
-    resource = Documentattributes.query.filter(Documentattributes.id.like(str(id))).first()
-
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-    return resource
-#
-
-def fetch_compare_id(id, protocol_number, project_id, doc_status):
-    documentid = id
-    protocolnumber = protocol_number
-    projectid = project_id
-    docstatus = doc_status
-    # to check the correct values are only extracted
-    resource = Documentattributes.query.filter(Documentattributes.id == documentid,
-                                               Documentattributes.protocolNumber == protocolnumber,
-                                               Documentattributes.projectId == projectid,
-                                               Documentattributes.documentStatus == docstatus).first()
-
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-    return resource
-
-
-
-
-def get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_status):
-    documentid = id
-    protocolnumber = protocol_number
-    projectid = project_id
-    docstatus = doc_status
-    # to check the correct values are only extracted
-    resource = Documentattributes.query.filter(Documentattributes.id == documentid,
-                                               Documentattributes.protocolNumber == protocolnumber,
-                                               Documentattributes.projectId == projectid,
-                                               Documentattributes.documentStatus == docstatus).first()
-
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-    return resource
-
-
-
 def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'final'):
     protocolnumber = protocol_number
     docstatus = doc_status
     # to check the correct values are only extracted
-    resource = Documentattributes.query.filter(Documentattributes.protocolNumber == protocolnumber,
-                                               Documentattributes.documentStatus == docstatus).order_by(desc(Documentattributes.versionNumber)).first()
-
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-    return resource
+    try:
+        resource = db_context.session.query(PDProtocolMetadata, Protocoldata.iqvdataToc).filter(PDProtocolMetadata.protocol == protocolnumber,
+                                               PDProtocolMetadata.documentStatus == docstatus, PDProtocolMetadata.percentComplete == '100', PDProtocolMetadata.isActive == True).order_by(desc(PDProtocolMetadata.versionNumber))\
+                                               .join(Protocoldata, Protocoldata.id ==PDProtocolMetadata.id).first()
+        result = resource[1]
+    except Exception as e:
+        logger.error(NO_RESOURCE_FOUND.format(protocolnumber))
+        result = None
+    return result
 
 
 def get_compare_documents_validation(protocol_number, project_id, document_id, protocol_number2, project_id2,
@@ -332,8 +279,6 @@ def get_compare_documents_validation(protocol_number, project_id, document_id, p
                                             Documentcompare.projectId2 == projectid2,
                                             Documentcompare.id2 == docid2,
                                             Documentcompare.requestType == requesttype).first()
-    # if resource is None:
-    #     logger.error(NO_RESOURCE_FOUND.format())
     return resource
 
 
@@ -348,6 +293,15 @@ def get_compare_documents(compare_id):
         logger.error(NO_RESOURCE_FOUND.format(compare_id))
     return resource_IQVdata
 
+
+def get_compare_documents_by_docid(doc_id1, doc_id2):
+    document_id1 = doc_id1
+    document_id2 = doc_id2
+    # to check the correct values are only extracted
+    resource = Documentcompare.query.filter(Documentcompare.doc_id == document_id1).filter(Documentcompare.doc_id2 == document_id2).first()
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND)
+    return resource
 
 def get_doc_metrics_by_id(id):
     g.aidocid = id
@@ -449,4 +403,4 @@ def set_draft_version(document_status, sponsor, protocol, version_number):
                 draftVersion = float(version_number) + 0.01
     else:
         draftVersion = None
-    return draftVersion    
+    return draftVersion
