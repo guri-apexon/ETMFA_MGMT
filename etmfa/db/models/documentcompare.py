@@ -24,17 +24,14 @@ class Documentcompare(db_context.Model):
     userId = db_context.Column(db_context.String(45))
     requestType = db_context.Column(db_context.String(45))
     iqvdata = db_context.Column(db_context.VARCHAR(None))
-<<<<<<< HEAD
     base_IQV_xml_path = db_context.Column(db_context.String(500))
     compare_IQV_xml_path = db_context.Column(db_context.String(500))
     updated_IQV_xml_path = db_context.Column(db_context.String(500))
     similarity_score = db_context.Column(db_context.Integer())
-=======
     baseIqvXmlPath = db_context.Column(db_context.String(500))
     compareIqvXmlPath = db_context.Column(db_context.String(500))
     updatedIqvXmlPath = db_context.Column(db_context.String(500))
     similarityScore = db_context.Column(db_context.Integer())
->>>>>>> c6d668b276b7ccbc897ec865ef956e1e6a0c5049
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}
