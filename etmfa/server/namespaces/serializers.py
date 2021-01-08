@@ -225,10 +225,34 @@ mCRA_attributes_input.add_argument('protocolNumber',
 
 mCRA_attributes_get = api.model('Document Processing Attributes Model',
                                  {
-                                     'iqvdataTOC': fields.String(readonly=False,
+                                     # 'id': fields.String(readOnly=True,
+                                     #                     description='The unique identifier (UUID) of PD document.'),#this will be used if ui request the details individually
+                                     'protocol_number': fields.String(readOnly=True,
+                                                         description='Protocol Number of the processed protocol.'),
+                                     'project_id': fields.String(readOnly=True,
+                                                         description='Project Id of processed protocol.'),
+                                     'source_file_name': fields.String(readOnly=True,
+                                                         description='input file name.'),
+                                     'document_file_path': fields.String(readOnly=True,
+                                                         description='Path of the file.'),
+                                     'version_number': fields.String(readOnly=True,
+                                                                    description='The version of the protocol'),
+                                     'amendment_number': fields.String(readOnly=True,
+                                                                      description='Amendment number of the protocol'),
+                                     'document_status': fields.String(readOnly=True,
+                                                                     description='Status of the protocol'),
+                                     'iqvdata': fields.String(readonly=False,
                                                               description="Complete blog of TOC, Summary, SOA output details for the request")
-                                     }
+                                     # 'iqvdata_toc': fields.String(readonly=False,
+                                     #                          description="TOC output details for the request"), #this will be used if ui request the details individually
+                                     # 'iqvdata_soa': fields.String(readonly=False,
+                                     #                          description="SOA output details for the request"),#this will be used if ui request the details individually
+                                     # 'iqvdata_summary': fields.String(readonly=False,
+                                     #                          description="summary output details for the request") #this will be used if ui request the details individually
+                                 }
                                  )
+
+
 
 
 pd_compare_object_post = reqparse.RequestParser()

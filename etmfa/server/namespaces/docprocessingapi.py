@@ -14,6 +14,9 @@ from etmfa.db import (
     get_doc_resource_by_id,
     get_doc_processing_by_id,
     get_doc_processed_by_id,
+    get_doc_processed_by_protocolnumber,
+    get_doc_attributes_by_protocolnumber,
+    get_doc_proc_metrics_by_id,
     get_doc_status_processing_by_id,
     get_mcra_attributes_by_protocolnumber,
     get_compare_documents,
@@ -34,7 +37,11 @@ from etmfa.server.namespaces.serializers import (
     eTMFA_metrics_get,
     eTMFA_attributes_get,
     eTMFA_object_post,
+    document_processing_object_put,
+    document_processing_object_put_get,
     pd_object_get_summary,
+    eTMFA_attributes_input,
+    mCRA_attributes_get,
     mCRA_attributes_input,
     pd_compare_object_post,
     pd_compare_get,
@@ -160,6 +167,7 @@ class DocumentprocessingAPI(Resource):
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
     @ns.expect(mCRA_attributes_input)
+    @ns.marshal_with(mCRA_attributes_get)
     @ns.response(200, 'Success.')
     @ns.response(404, 'Document Processing resource not found.')
     def get(self):
