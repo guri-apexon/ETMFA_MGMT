@@ -4,7 +4,6 @@ import os
 import json
 from datetime import datetime
 
-from filehash import FileHash
 from flask import g
 from sqlalchemy import desc
 
@@ -22,7 +21,6 @@ from etmfa.db.models.pd_protocol_recent_search import PDProtocolRecentSearch
 from etmfa.db.models.pd_protocol_indications import PDProtocolIndication
 from etmfa.db.models.amp_server_run_info import amp_server_run_info
 from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
-from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.error import ManagementException
 from etmfa.error import ErrorCodes
 
@@ -127,6 +125,8 @@ def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_num
 def received_comparecomplete_event(comparevalues, message_publisher):
     resource = Documentcompare.query.filter(Documentcompare.compareId == comparevalues['COMPARE_ID']).first()
     if resource is not None:
+        resource.similarity_score = comparevalues['SIMILARITY_SCORE']
+        resource.updated_IQV_xml_path = comparevalues['UPDATED_BASE_IQVXML_PATH']
         resource.similarityScore = comparevalues['SIMILARITY_SCORE']
         resource.updatedIqvXmlPath = comparevalues['UPDATED_BASE_IQVXML_PATH']
         resource.iqvdata = str(comparevalues['IQVDATA'])
@@ -162,6 +162,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         protocoldata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
         #protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['iqvdataSoaStd']))
         protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
+        # protocoldata.iqvdata = 'Summary:{},SOA:{},TOC:{}'.format(protocoldata.iqvdataToc, protocoldata.iqvdataSoa, protocoldata.iqvdataSummary)
 
         try:
             db_context.session.add(protocoldata)
@@ -263,42 +264,6 @@ def get_doc_attributes_by_id(id):
         logger.error(NO_RESOURCE_FOUND.format(id))
 
     return resource
-#
-
-def fetch_compare_id(id, protocol_number, project_id, doc_status):
-    documentid = id
-    protocolnumber = protocol_number
-    projectid = project_id
-    docstatus = doc_status
-    # to check the correct values are only extracted
-    resource = Documentattributes.query.filter(Documentattributes.id == documentid,
-                                               Documentattributes.protocolNumber == protocolnumber,
-                                               Documentattributes.projectId == projectid,
-                                               Documentattributes.documentStatus == docstatus).first()
-
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-    return resource
-
-
-
-
-def get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_status):
-    documentid = id
-    protocolnumber = protocol_number
-    projectid = project_id
-    docstatus = doc_status
-    # to check the correct values are only extracted
-    resource = Documentattributes.query.filter(Documentattributes.id == documentid,
-                                               Documentattributes.protocolNumber == protocolnumber,
-                                               Documentattributes.projectId == projectid,
-                                               Documentattributes.documentStatus == docstatus).first()
-
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-    return resource
 
 
 
@@ -306,13 +271,15 @@ def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'final')
     protocolnumber = protocol_number
     docstatus = doc_status
     # to check the correct values are only extracted
-    resource = Documentattributes.query.filter(Documentattributes.protocolNumber == protocolnumber,
-                                               Documentattributes.documentStatus == docstatus).order_by(desc(Documentattributes.versionNumber)).first()
-
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-    return resource
+    try:
+        resource = db_context.session.query(PDProtocolMetadata, Protocoldata.iqvdataToc).filter(PDProtocolMetadata.protocol == protocolnumber,
+                                               PDProtocolMetadata.documentStatus == docstatus, PDProtocolMetadata.percentComplete == '100', PDProtocolMetadata.isActive == True).order_by(desc(PDProtocolMetadata.versionNumber))\
+                                               .join(Protocoldata, Protocoldata.id ==PDProtocolMetadata.id).first()
+        result = resource[1]
+    except Exception as e:
+        logger.error(NO_RESOURCE_FOUND.format(protocolnumber))
+        result = None
+    return result
 
 
 def get_compare_documents_validation(protocol_number, project_id, document_id, protocol_number2, project_id2,
@@ -348,6 +315,15 @@ def get_compare_documents(compare_id):
         logger.error(NO_RESOURCE_FOUND.format(compare_id))
     return resource_IQVdata
 
+
+def get_compare_documents_by_docid(doc_id1, doc_id2):
+    document_id1 = doc_id1
+    document_id2 = doc_id2
+    # to check the correct values are only extracted
+    resource = Documentcompare.query.filter(Documentcompare.doc_id == document_id1).filter(Documentcompare.doc_id2 == document_id2).first()
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND)
+    return resource
 
 def get_doc_metrics_by_id(id):
     g.aidocid = id
