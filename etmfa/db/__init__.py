@@ -390,6 +390,7 @@ def get_latest_record(sponsor, protocol_number, version_number):
 
 def set_draft_version(document_status, sponsor, protocol, version_number):
     # to set draft version for documents
+    version_number = '-0.01'
     if document_status == 'draft':
         resource = get_latest_record(sponsor, protocol, version_number)
 
