@@ -13,13 +13,14 @@ from etmfa.db.db import db_context
 from etmfa.db.models.documentcompare import Documentcompare
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
+from etmfa.db.models.pd_roles import PDRoles
+from etmfa.db.models.pd_users import PDUsers
 from etmfa.db.models.pd_protocol_data import Protocoldata
 from etmfa.db.models.pd_protocol_sponsor import PDProtocolSponsor
 from etmfa.db.models.pd_protocol_saved_search import PDProtocolSavedSearch
 from etmfa.db.models.pd_protocol_recent_search import PDProtocolRecentSearch
 from etmfa.db.models.pd_protocol_indications import PDProtocolIndication
 from etmfa.db.models.amp_server_run_info import amp_server_run_info
-from etmfa.db.models.metric import Metric
 from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
 from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.error import ManagementException
@@ -30,7 +31,7 @@ from etmfa.error import ErrorCodes
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
 NO_RESOURCE_FOUND = "No document resource was found in DB for ID: {}"
-ERROR_PROCESSING_STATUS = "Error while updating processing status to PD_document_process to DB for ID: {},{}"
+ERROR_PROCESSING_STATUS = "Error while updating processing status to pd_protocol_metadata to DB for ID: {},{}"
 
 
 # Global DB ORM object
@@ -118,7 +119,7 @@ def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_num
         return compare_req_msg
     except Exception as ex:
         db_context.session.rollback()
-        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES)
+        exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
         received_documentprocessing_error_event(exception.__dict__)
         logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
             compare['compare_id'], ex))
@@ -126,6 +127,8 @@ def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_num
 def received_comparecomplete_event(comparevalues, message_publisher):
     resource = Documentcompare.query.filter(Documentcompare.compareId == comparevalues['COMPARE_ID']).first()
     if resource is not None:
+        resource.similarity_score = comparevalues['SIMILARITY_SCORE']
+        resource.updated_IQV_xml_path = comparevalues['UPDATED_BASE_IQVXML_PATH']
         resource.similarityScore = comparevalues['SIMILARITY_SCORE']
         resource.updatedIqvXmlPath = comparevalues['UPDATED_BASE_IQVXML_PATH']
         resource.iqvdata = str(comparevalues['IQVDATA'])
@@ -133,7 +136,7 @@ def received_comparecomplete_event(comparevalues, message_publisher):
         db_context.session.commit()
     except Exception as ex:
         db_context.session.rollback()
-        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES)
+        exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
         received_documentprocessing_error_event(exception.__dict__)
         logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
             comparevalues['compare_id'], ex))
@@ -151,7 +154,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
 
 
         protocoldata = Protocoldata()
-        
+
         finalattributes = finalattributes['db_data']
         protocoldata.id = finalattributes['AiDocId']
         protocoldata.userId = finalattributes['UserId']
@@ -161,14 +164,13 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         protocoldata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
         #protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['iqvdataSoaStd']))
         protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
-        #protocoldata.iqvdata = finalattributes['iqvdata']
 
         try:
             db_context.session.add(protocoldata)
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
-            exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES)
+            exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error("Error while writing record to PD_document_attributes file in DB for ID: {},{}".format(
                 finalattributes['id'], ex))
@@ -191,7 +193,7 @@ def received_documentprocessing_error_event(error_dict):
         except Exception as ex:
             db_context.session.rollback()
             logger.exception(
-                f"Error while storing error message to PD_document_process DB table for ID: {error_dict['id'], ex}")
+                f"Error while storing error message to pd_protocol_metadata DB table for ID: {error_dict['id'], ex}")
     else:
         logger.error(NO_RESOURCE_FOUND.format(id))
 
@@ -217,13 +219,9 @@ def save_doc_processing(request, _id, doc_path, draftVersion):
     resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
     resource.status = ProcessingStatus.TRIAGE_STARTED.name
 
-    resource2 = PDUserProtocols.from_post_request(request, _id, doc_path)
-    resource2.userId = request['userId']
-    resource2.protocol = request['protocolNumber']
 
     try:
         db_context.session.add(resource)
-        db_context.session.add(resource2)
         db_context.session.commit()
     except Exception as ex:
         db_context.session.rollback()
@@ -243,76 +241,25 @@ def get_doc_processed_by_id(id, full_mapping=True):
 
     return resource_dict
 
-def get_doc_processed_by_protocolnumber(id, protocol_number, project_id, doc_status):
-    resource_dict = get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_status)
-    return resource_dict
-
-
 
 def get_doc_proc_metrics_by_id(id, full_mapping=True):
     resource_dict = get_doc_metrics_by_id(id)
 
     return resource_dict
 
-
-def get_doc_attributes_by_id(id):
-    g.aidocid = id
-    resource = Documentattributes.query.filter(Documentattributes.id.like(str(id))).first()
-
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-    return resource
-#
-
-def fetch_compare_id(id, protocol_number, project_id, doc_status):
-    documentid = id
-    protocolnumber = protocol_number
-    projectid = project_id
-    docstatus = doc_status
-    # to check the correct values are only extracted
-    resource = Documentattributes.query.filter(Documentattributes.id == documentid,
-                                               Documentattributes.protocolNumber == protocolnumber,
-                                               Documentattributes.projectId == projectid,
-                                               Documentattributes.documentStatus == docstatus).first()
-
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-    return resource
-
-
-
-
-def get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_status):
-    documentid = id
-    protocolnumber = protocol_number
-    projectid = project_id
-    docstatus = doc_status
-    # to check the correct values are only extracted
-    resource = Documentattributes.query.filter(Documentattributes.id == documentid,
-                                               Documentattributes.protocolNumber == protocolnumber,
-                                               Documentattributes.projectId == projectid,
-                                               Documentattributes.documentStatus == docstatus).first()
-
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-    return resource
-
-
-
 def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'final'):
     protocolnumber = protocol_number
     docstatus = doc_status
     # to check the correct values are only extracted
-    resource = Documentattributes.query.filter(Documentattributes.protocolNumber == protocolnumber,
-                                               Documentattributes.documentStatus == docstatus).order_by(desc(Documentattributes.versionNumber)).first()
-
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(id))
-
-    return resource
+    try:
+        resource = db_context.session.query(PDProtocolMetadata, Protocoldata.iqvdataToc).filter(PDProtocolMetadata.protocol == protocolnumber,
+                                               PDProtocolMetadata.documentStatus == docstatus, PDProtocolMetadata.percentComplete == '100', PDProtocolMetadata.isActive == True).order_by(desc(PDProtocolMetadata.versionNumber))\
+                                               .join(Protocoldata, Protocoldata.id ==PDProtocolMetadata.id).first()
+        result = resource[1]
+    except Exception as e:
+        logger.error(NO_RESOURCE_FOUND.format(protocolnumber))
+        result = None
+    return result
 
 
 def get_compare_documents_validation(protocol_number, project_id, document_id, protocol_number2, project_id2,
@@ -332,8 +279,6 @@ def get_compare_documents_validation(protocol_number, project_id, document_id, p
                                             Documentcompare.projectId2 == projectid2,
                                             Documentcompare.id2 == docid2,
                                             Documentcompare.requestType == requesttype).first()
-    # if resource is None:
-    #     logger.error(NO_RESOURCE_FOUND.format())
     return resource
 
 
@@ -348,6 +293,15 @@ def get_compare_documents(compare_id):
         logger.error(NO_RESOURCE_FOUND.format(compare_id))
     return resource_IQVdata
 
+
+def get_compare_documents_by_docid(doc_id1, doc_id2):
+    document_id1 = doc_id1
+    document_id2 = doc_id2
+    # to check the correct values are only extracted
+    resource = Documentcompare.query.filter(Documentcompare.doc_id == document_id1).filter(Documentcompare.doc_id2 == document_id2).first()
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND)
+    return resource
 
 def get_doc_metrics_by_id(id):
     g.aidocid = id
@@ -404,7 +358,7 @@ def upsert_attributevalue(doc_processing_id, namekey, value):
             db_context.session.rollback()
             exception = ManagementException(id, ErrorCodes.ERROR_UPDATING_ATTRIBUTES)
             received_documentprocessing_error_event(exception.__dict__)
-            logger.error("Error while updating attribute to PD_document_attributes to DB for ID: {},{}".format(
+            logger.error("Error while updating attribute to PD_protocol_data to DB for ID: {},{}".format(
                 doc_processing_id, ex))
 
 
@@ -436,6 +390,7 @@ def get_latest_record(sponsor, protocol_number, version_number):
 
 def set_draft_version(document_status, sponsor, protocol, version_number):
     # to set draft version for documents
+    version_number = '-0.01'
     if document_status == 'draft':
         resource = get_latest_record(sponsor, protocol, version_number)
 
@@ -449,4 +404,4 @@ def set_draft_version(document_status, sponsor, protocol, version_number):
                 draftVersion = float(version_number) + 0.01
     else:
         draftVersion = None
-    return draftVersion    
+    return draftVersion

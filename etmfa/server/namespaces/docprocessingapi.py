@@ -14,9 +14,6 @@ from etmfa.db import (
     get_doc_resource_by_id,
     get_doc_processing_by_id,
     get_doc_processed_by_id,
-    get_doc_processed_by_protocolnumber,
-    get_doc_attributes_by_protocolnumber,
-    get_doc_proc_metrics_by_id,
     get_doc_status_processing_by_id,
     get_mcra_attributes_by_protocolnumber,
     get_compare_documents,
@@ -34,14 +31,9 @@ from etmfa.server.namespaces.serializers import (
     metadata_post,
     eTMFA_object_get,
     eTMFA_object_get_status,
-    eTMFA_metrics_get,
     eTMFA_attributes_get,
     eTMFA_object_post,
-    document_processing_object_put,
-    document_processing_object_put_get,
     pd_object_get_summary,
-    eTMFA_attributes_input,
-    mCRA_attributes_get,
     mCRA_attributes_input,
     pd_compare_object_post,
     pd_compare_get,
@@ -52,6 +44,7 @@ from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
 
 from etmfa.api_response_handlers import SummaryResponse
+
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 DOCUMENT_NOT_FOUND = 'Document Processing resource not found for given data: {}'
@@ -143,7 +136,6 @@ class DocumentprocessingAPI(Resource):
             return get_doc_processed_by_id(id)
 
 
-
 @ns.route('/<string:id>/status')
 @ns.response(404, 'Document Processing resource not found.')
 @ns.response(500, 'Server error.')
@@ -164,56 +156,10 @@ class DocumentprocessingAPI(Resource):
             return abort(500, SERVER_ERROR.format(e))
 
 
-@ns.route('/<string:id>/metrics')
-@ns.response(200, 'Success.')
-@ns.response(404, 'Document processing resource not found.')
-@ns.response(500, 'Server error.')
-class DocumentprocessingAPI(Resource):
-    @ns.marshal_with(eTMFA_metrics_get)
-    def get(self, id):
-        """Returns metrics of document processed"""
-        try:
-            g.aidocid = id
-            resource = get_doc_proc_metrics_by_id(id, full_mapping=True)
-            if resource is None:
-                return abort(404, 'Document Processing resource not found id: {}'.format(id))
-            else:
-                return resource
-        except ValueError as e:
-            logger.error(SERVER_ERROR.format(e))
-            return abort(500, SERVER_ERROR.format(e))
-
-
-@ns.route('/attributes')
-@ns.response(500, 'Server error.')
-class DocumentprocessingAPI(Resource):
-    @ns.expect(eTMFA_attributes_input)
-    @ns.marshal_with(eTMFA_attributes_get)
-    @ns.response(200, 'Success.')
-    @ns.response(404, 'Document Processing resource not found.')
-    def get(self):
-        """Get the document processing object attributes"""
-        args = eTMFA_attributes_input.parse_args()
-        try:
-            id = args['id'] if args['id'] is not None else ' '
-            protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
-            project_id = args['projectId'] if args['projectId'] is not None else ' '
-            doc_status = args['docStatus'] if args['docStatus'] is not None else ' '
-            resource = get_doc_attributes_by_protocolnumber(id, protocol_number, project_id, doc_status)
-            if resource is None:
-                return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
-            else:
-                return resource
-        except ValueError as e:
-            logger.error(SERVER_ERROR.format(e))
-            return abort(500, SERVER_ERROR.format(e))
-
-
 @ns.route('/mcraattributes')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
     @ns.expect(mCRA_attributes_input)
-    @ns.marshal_with(mCRA_attributes_get)
     @ns.response(200, 'Success.')
     @ns.response(404, 'Document Processing resource not found.')
     def get(self):

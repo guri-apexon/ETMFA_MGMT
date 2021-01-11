@@ -2,7 +2,7 @@ from etmfa.consts import Consts as consts
 class ErrorCodes:
     UNKNOWN_ERROR = 600
     ERROR_PROCESSING_STATUS = 601
-    ERROR_DOCUMENT_ATTRIBUTES = 602
+    ERROR_PROTOCOL_DATA = 602
     ERROR_DOCUMENT_PROCESS_ERROR = 603
     ERROR_DOCUMENT_FEEDBACK = 604
     ERROR_DOCUMENT_DUPLICATE = 605
@@ -12,13 +12,10 @@ class ErrorCodes:
 
 ERRORS = {
     ErrorCodes.UNKNOWN_ERROR: "Unknown error",
-    ErrorCodes.ERROR_PROCESSING_STATUS: "Error while updating processing status to etmfa_document_process file in DB",
-    ErrorCodes.ERROR_DOCUMENT_ATTRIBUTES: "Error while writing record to etmfa_document_attributes file in DB",
+    ErrorCodes.ERROR_PROCESSING_STATUS: "Error while updating processing status to pd_protocol_metadata file in DB",
+    ErrorCodes.ERROR_PROTOCOL_DATA: "Error while writing record to pd_protocol_data file in DB",
     ErrorCodes.ERROR_DOCUMENT_PROCESS_ERROR: "Error while writing record to document_processing_error_event file in DB",
-    ErrorCodes.ERROR_DOCUMENT_FEEDBACK: "Error while writing record to etmfa_document_feedback file in DB",
-    ErrorCodes.ERROR_DOCUMENT_DUPLICATE: "Error while writing record to etmfa_document_duplicate file in DB",
-
-    ErrorCodes.ERROR_UPDATING_ATTRIBUTES: "Error while updating attribute to etmfa_document_attributes to DB ",
+    ErrorCodes.ERROR_UPDATING_ATTRIBUTES: "Error while updating attribute to pd_protocol_data to DB ",
     ErrorCodes.ERROR_DOCUMENT_SAVING: "Error while saving attributes to DB"
 }
 

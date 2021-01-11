@@ -12,8 +12,8 @@ class Config(object):
     # SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@/pd_digitalization' #VM?#
     #SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@/pd_digitalization' #VM?#
 
-    #SQLALCHEMY_DATABASE_URI = 'mssql+pyodbc://APP_TMSDEV:app$tmsdev@USADC-VSSQLA0\SSQL03/PD_UI?driver=SQL+Server'
-    SQLALCHEMY_DATABASE_URI = 'mssql+pyodbc://pd_dev_dbo:$1457abxd@CA2SPDSQL01Q\PDSSQL001D/PD_Dev?driver=SQL+Server'
+    #SQLALCHEMY_DATABASE_URI = 'mssql+pyodbc://APP_TMSDEV:app$tmsdev@USADC-VSSQLA0\SSQL03/PD_UI?driver=ODBC+Driver+17+for+SQL+Server'
+    SQLALCHEMY_DATABASE_URI = 'mssql+pyodbc://pd_dev_dbo:$1457abxd@CA2SPDSQL01Q\PDSSQL001D/PD_Dev?driver=ODBC+Driver+17+for+SQL+Server'
 
 
 
