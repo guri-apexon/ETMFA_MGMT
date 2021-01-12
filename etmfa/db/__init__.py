@@ -132,7 +132,7 @@ def received_comparecomplete_event(comparevalues, message_publisher):
         resource.updated_IQV_xml_path = comparevalues['UPDATED_BASE_IQVXML_PATH']
         resource.similarityScore = comparevalues['SIMILARITY_SCORE']
         resource.updatedIqvXmlPath = comparevalues['UPDATED_BASE_IQVXML_PATH']
-        resource.iqvdata = str(comparevalues['IQVDATA'])
+        resource.iqvdata = str(json.dumps(comparevalues['IQVDATA']))
     try:
         db_context.session.commit()
     except Exception as ex:
