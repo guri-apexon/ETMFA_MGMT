@@ -97,7 +97,15 @@ def on_i2e_omop_update_complete_event(msg_proc_obj, message_publisher, status, d
     #update_doc_processing_status(msg_proc_obj['id'], status)
     try :
         IQVXMLPath=os.path.join(Config.DFS_UPLOAD_FOLDER,msg_proc_obj['id'])
-        file =[f for f in os.listdir(IQVXMLPath) if f.startswith('D2_D1_')][0]
+        for f in os.listdir(IQVXMLPath):
+            if f.startswith('D2_D1_'):
+                file = f
+                break
+            elif f.startswith('D2_'):
+                file=f
+                break
+
+       # file =[f for f in os.listdir(IQVXMLPath) if f.startswith('D2_D1_')][0]
         file=os.path.join(IQVXMLPath,file)
     except Exception as e :
         file=None
