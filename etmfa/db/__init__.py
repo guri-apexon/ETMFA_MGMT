@@ -95,9 +95,10 @@ def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
 
 
 def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_number2, project_id2, user_id):
+    # print(compare_req_msg)
     compare = Documentcompare()
     compare.compareId = compare_req_msg['COMPARE_ID']
-    compare.id = compare_req_msg['BASE_DOC_ID']
+    compare.id1 = compare_req_msg['BASE_DOC_ID']
     compare.protocolNumber = protocol_number
     compare.projectId = project_id
     # compare.version_number = compare_req_msg['']#these will added if additional details are made mandatory
