@@ -47,6 +47,11 @@ def init_db(app):
         db_context.create_all()
 
 
+def fetch_protocol_number(id: str):
+    resource = get_doc_resource_by_id(id)
+    if resource is not None:
+
+
 def update_doc_processing_status(id: str, process_status: ProcessingStatus):
     """ Receives id for the document being processed along with percent_complete and present status of document
         If the document id being processed is present in DB, this function will update the percent_complete and

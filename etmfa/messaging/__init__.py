@@ -115,6 +115,9 @@ def on_i2e_omop_update_complete_event(msg_proc_obj, message_publisher, status, d
 
     message_publisher.send_dict(asdict(request), dest_queue_name)
 
+# def on_extractor_complete_event(msg_proc_obj, message_publisher, status, dest_queue_name):
+
+
 def on_triage_complete(msg_proc_obj, message_publisher):
     if msg_proc_obj['ocr_required']:
         dest_queue = EtmfaQueues.DIGITIZER1.request
