@@ -95,9 +95,10 @@ def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
 
 
 def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_number2, project_id2, user_id):
+    # print(compare_req_msg)
     compare = Documentcompare()
     compare.compareId = compare_req_msg['COMPARE_ID']
-    compare.id = compare_req_msg['BASE_DOC_ID']
+    compare.id1 = compare_req_msg['BASE_DOC_ID']
     compare.protocolNumber = protocol_number
     compare.projectId = project_id
     # compare.version_number = compare_req_msg['']#these will added if additional details are made mandatory
@@ -131,7 +132,7 @@ def received_comparecomplete_event(comparevalues, message_publisher):
         resource.updated_IQV_xml_path = comparevalues['UPDATED_BASE_IQVXML_PATH']
         resource.similarityScore = comparevalues['SIMILARITY_SCORE']
         resource.updatedIqvXmlPath = comparevalues['UPDATED_BASE_IQVXML_PATH']
-        resource.iqvdata = str(comparevalues['IQVDATA'])
+        resource.iqvdata = str(json.dumps(comparevalues['IQVDATA']))
     try:
         db_context.session.commit()
     except Exception as ex:
@@ -144,18 +145,13 @@ def received_comparecomplete_event(comparevalues, message_publisher):
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     if update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED):
-
+        
+        finalattributes = finalattributes['db_data']
         resource = get_doc_resource_by_id(id)
         resource.isProcessing = False
         resource.isActive = True
 
-        resource2 = get_user_protocol_by_id(id)
-        resource.isActive = True
-
-
         protocoldata = Protocoldata()
-
-        finalattributes = finalattributes['db_data']
         protocoldata.id = finalattributes['AiDocId']
         protocoldata.userId = finalattributes['UserId']
         protocoldata.fileName = finalattributes['SourceFileName']
@@ -165,6 +161,8 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         #protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['iqvdataSoaStd']))
         protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
 
+        update_user_protocols(finalattributes['UserId'], finalattributes['ProjectId'], finalattributes['ProtocolNo'])
+
         try:
             db_context.session.add(protocoldata)
             db_context.session.commit()
@@ -173,7 +171,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
             exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error("Error while writing record to PD_document_attributes file in DB for ID: {},{}".format(
-                finalattributes['id'], ex))
+                finalattributes['AiDocId'], ex))
 
 
 def received_documentprocessing_error_event(error_dict):
@@ -390,7 +388,9 @@ def get_latest_record(sponsor, protocol_number, version_number):
 
 def set_draft_version(document_status, sponsor, protocol, version_number):
     # to set draft version for documents
-    version_number = '-0.01'
+    if not version_number:
+        version_number = '-0.01'
+
     if document_status == 'draft':
         resource = get_latest_record(sponsor, protocol, version_number)
 
@@ -404,4 +404,49 @@ def set_draft_version(document_status, sponsor, protocol, version_number):
                 draftVersion = float(version_number) + 0.01
     else:
         draftVersion = None
-    return draftVersion
+    return draftVersion 
+
+def get_record_by_userid_protocol(user_id, protocol_number):
+    # get record from user_protocol table on userid and protocol fields
+    resource = PDUserProtocols.query.filter(PDUserProtocols.userId == user_id).filter(PDUserProtocols.protocol == protocol_number).all()
+
+    return resource
+
+def get_record_by_userid_projectid(user_id, project_id):
+    # get record from user_protocol table on userid and projectid fields
+    resource = PDUserProtocols.query.filter(PDUserProtocols.userId == user_id, PDUserProtocols.projectId == project_id).all()
+
+    return resource
+
+def update_user_protocols(user_id, project_id, protocol_number):
+    userprotocols = PDUserProtocols()
+
+    if protocol_number:
+        records = get_record_by_userid_protocol(user_id, protocol_number)
+    
+    if not protocol_number and project_id is not None:
+        records = get_record_by_userid_projectid(user_id, project_id)
+    
+    if not records:
+        userprotocols.isActive = True
+        userprotocols.userId = user_id
+        userprotocols.projectId = project_id
+        userprotocols.protocol = protocol_number
+        try:
+            db_context.session.add(userprotocols)
+            db_context.session.commit()
+        except Exception as ex:
+            db_context.session.rollback()
+            logger.error("Error while writing record to PD_user_protocol file in DB for user id: {},{}".format(
+                user_id, ex))
+    else:
+        for record in records:
+            if record.isActive == False:
+                record.isActive = True
+            else:
+                continue
+            try:
+                db_context.session.commit()
+            except Exception as ex:
+                db_context.session.rollback()
+                logger.error("Error while updating record to PD_user_protocol file in DB for user id: {},{}".format(user_id, ex))

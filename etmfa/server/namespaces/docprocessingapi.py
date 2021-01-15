@@ -49,7 +49,7 @@ from etmfa.api_response_handlers import SummaryResponse
 logger = logging.getLogger(consts.LOGGING_NAME)
 DOCUMENT_NOT_FOUND = 'Document Processing resource not found for given data: {}'
 SERVER_ERROR = 'Server error: {}'
-DOCUMENT_COMPARISON_ALREADY_PRESENT = 'Comparison already present for given protocols, use get attributes with compare id to get details: {}'
+DOCUMENT_COMPARISON_ALREADY_PRESENT = 'Comparison already present for given protocols'
 
 ns = api.namespace('PD', path='/v1/documents', description='REST endpoints for PD workflows.')
 
@@ -87,7 +87,7 @@ class DocumentprocessingAPI(Resource):
         logger.info("Document saved at location: {}".format(file_path))
 
         source_filename = args['sourceFileName'] if args['sourceFileName'] is not None else ' '
-        version_number = args['versionNumber'] if args['versionNumber'] is not None else ' '
+        version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
         protocol = args['protocolNumber'] if args['protocolNumber'] is not None else ' '  # protocol check
         document_status = args['documentStatus'] if args['documentStatus'] is not None else ' '  # Doc status check
         environment = args['environment'] if args['environment'] is not None else ' '
@@ -197,7 +197,7 @@ class DocumentprocessingAPI(Resource):
             document_id = args['id1'] if args['id1'] is not None else ' '
             protocol_number2 = args['protocolNumber2'] if args['protocolNumber2'] is not None else ' '
             project_id2 = args['projectId2'] if args['projectId2'] is not None else ' '
-            document_id2 = args['id2'] if args['1d2'] is not None else ' '
+            document_id2 = args['id2'] if args['id2'] is not None else ' '
             request_type = args['requestType'] if args['requestType'] is not None else ' '
             user_id = args['userId'] if args ['userId'] is not None else ' '
             #check to see if compare already present for given doc id's
