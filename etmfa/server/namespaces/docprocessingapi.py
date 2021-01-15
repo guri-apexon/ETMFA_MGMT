@@ -87,7 +87,7 @@ class DocumentprocessingAPI(Resource):
         logger.info("Document saved at location: {}".format(file_path))
 
         source_filename = args['sourceFileName'] if args['sourceFileName'] is not None else ' '
-        version_number = args['versionNumber'] if args['versionNumber'] is not None else ' '
+        version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
         protocol = args['protocolNumber'] if args['protocolNumber'] is not None else ' '  # protocol check
         document_status = args['documentStatus'] if args['documentStatus'] is not None else ' '  # Doc status check
         environment = args['environment'] if args['environment'] is not None else ' '
