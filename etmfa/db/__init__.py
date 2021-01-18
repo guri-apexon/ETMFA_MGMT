@@ -144,8 +144,6 @@ def received_comparecomplete_event(comparevalues, message_publisher):
 
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
-    if update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED):
-        
         finalattributes = finalattributes['db_data']
         resource = get_doc_resource_by_id(id)
         resource.isProcessing = False
@@ -166,6 +164,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         try:
             db_context.session.add(protocoldata)
             db_context.session.commit()
+            update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED)
         except Exception as ex:
             db_context.session.rollback()
             exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
