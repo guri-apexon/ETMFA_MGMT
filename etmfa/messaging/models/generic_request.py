@@ -20,3 +20,10 @@ class DIG2OMAPRequest:
     id: str
     omop_xml_path: str
 
+@dataclass
+class CompareRequest:
+    id: str
+    IQVXMLPath: str
+    protocol: str
+
+
