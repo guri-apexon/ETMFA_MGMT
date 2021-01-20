@@ -5,7 +5,7 @@ from functools import partial
 from kombu import Connection
 
 from etmfa.messaging.messagelistener import MessageListener
-from etmfa.messaging.models.generic_request import GenericRequest,OmapRequest,DIG2OMAPRequest
+from etmfa.messaging.models.generic_request import GenericRequest,OmapRequest,DIG2OMAPRequest, CompareRequest
 from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
 from etmfa.messaging.models.queue_names import EtmfaQueues
 # Added for OMOP
@@ -53,13 +53,15 @@ def build_queue_callbacks(queue_worker):
                               partial(on_generic_complete_event, status=ProcessingStatus.EXTRACTION_STARTED,
                                       dest_queue_name=EtmfaQueues.EXTRACTION.request))
     # added till here for i2e omop update
+    # queue_worker.add_listener(EtmfaQueues.EXTRACTION.complete, on_extraction_complete_event)
+
     queue_worker.add_listener(EtmfaQueues.EXTRACTION.complete,
-                                  partial(on_generic_complete_event, status=ProcessingStatus.FINALIZATION_STARTED,
-                                          dest_queue_name=EtmfaQueues.FINALIZATION.request))
+                              partial(on_generic_complete_event, status=ProcessingStatus.FINALIZATION_STARTED,
+                                      dest_queue_name=EtmfaQueues.FINALIZATION.request))
 
     queue_worker.add_listener(EtmfaQueues.FINALIZATION.complete, on_finalization_complete)
     # queue_worker.add_listener(EtmfaQueues.FEEDBACK.complete, on_feedback_complete)
-    queue_worker.add_listener(EtmfaQueues.COMPARE.complete, on_compare_complete)
+    # queue_worker.add_listener(EtmfaQueues.COMPARE.complete, on_compare_complete)
     queue_worker.add_listener(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value, on_documentprocessing_error)
 
     return queue_worker
@@ -91,6 +93,22 @@ def on_digitizer2_complete_event(msg_proc_obj, message_publisher, status, dest_q
     message_publisher.send_dict(asdict(request), dest_queue_name)
 
 
+# def on_extraction_complete_event(msg_proc_obj, message_publisher):
+#     from etmfa.db import get_doc_resource_by_id, update_doc_processing_status
+#
+#     resource = get_doc_resource_by_id(msg_proc_obj['id'])
+#     if resource.protocol is not None:
+#         dest_queue_name = EtmfaQueues.COMPARE.request
+#         request = CompareRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], resource.protocol)
+#     else:
+#         dest_queue_name = EtmfaQueues.FINALIZATION.request
+#         status = ProcessingStatus.FINALIZATION_STARTED
+#         update_doc_processing_status(msg_proc_obj['id'], status)
+#         request = GenericRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'])
+#
+#     message_publisher.send_dict(asdict(request), dest_queue_name)
+
+
 def on_i2e_omop_update_complete_event(msg_proc_obj, message_publisher, status, dest_queue_name):
 
     #from etmfa.db import update_doc_processing_status
@@ -114,6 +132,9 @@ def on_i2e_omop_update_complete_event(msg_proc_obj, message_publisher, status, d
 
 
     message_publisher.send_dict(asdict(request), dest_queue_name)
+
+# def on_extractor_complete_event(msg_proc_obj, message_publisher, status, dest_queue_name):
+
 
 def on_triage_complete(msg_proc_obj, message_publisher):
     if msg_proc_obj['ocr_required']:

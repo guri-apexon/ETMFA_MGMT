@@ -47,6 +47,11 @@ def init_db(app):
         db_context.create_all()
 
 
+# def fetch_protocol_number(id: str):
+#     resource = get_doc_resource_by_id(id)
+#     if resource is not None:
+
+
 def update_doc_processing_status(id: str, process_status: ProcessingStatus):
     """ Receives id for the document being processed along with percent_complete and present status of document
         If the document id being processed is present in DB, this function will update the percent_complete and
@@ -144,8 +149,6 @@ def received_comparecomplete_event(comparevalues, message_publisher):
 
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
-    if update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED):
-        
         finalattributes = finalattributes['db_data']
         resource = get_doc_resource_by_id(id)
         resource.isProcessing = False
@@ -166,6 +169,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         try:
             db_context.session.add(protocoldata)
             db_context.session.commit()
+            update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED)
         except Exception as ex:
             db_context.session.rollback()
             exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
