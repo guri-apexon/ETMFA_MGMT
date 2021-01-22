@@ -47,7 +47,8 @@ from etmfa.api_response_handlers import SummaryResponse
 
 
 logger = logging.getLogger(consts.LOGGING_NAME)
-DOCUMENT_NOT_FOUND = 'Document Processing resource not found for given data: {}'
+DOCUMENT_NOT_FOUND = 'Document Processing resource not found for given data: {}, {}'
+Compare_feature_notavail = 'Comparison for the given base_id {} and compare_id {} not available'
 SERVER_ERROR = 'Server error: {}'
 DOCUMENT_COMPARISON_ALREADY_PRESENT = 'Comparison already present for given protocols'
 
@@ -234,11 +235,12 @@ class DocumentprocessingAPI(Resource):
         """Get the document processing object attributes"""
         args = pd_compare_object_input_get.parse_args()
         try:
-            compare_id = args['compareId'] if args['compareId'] is not None else ' '
+            base_doc_id = args['Base_doc_id'] if args['Base_doc_id'] is not None else ' '
+            compare_doc_id = args['Compare_doc_id'] if args['Compare_doc_id'] is not None else ' '
             #check to see if compare already present for given doc id's
-            resource = get_compare_documents(compare_id)
+            resource = get_compare_documents(base_doc_id, compare_doc_id)
             if resource is None:
-                return abort(404, DOCUMENT_NOT_FOUND.format(compare_id))
+                return abort(404, Compare_feature_notavail.format(base_doc_id, compare_doc_id))
             else:
                 return json.dumps(resource)
         except ValueError as e:
