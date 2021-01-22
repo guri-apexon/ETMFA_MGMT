@@ -52,12 +52,9 @@ def build_queue_callbacks(queue_worker):
     queue_worker.add_listener(EtmfaQueues.DIGITIZER2_OMOPUPDATE.complete,
                               partial(on_generic_complete_event, status=ProcessingStatus.EXTRACTION_STARTED,
                                       dest_queue_name=EtmfaQueues.EXTRACTION.request))
-    # added till here for i2e omop update
-    # queue_worker.add_listener(EtmfaQueues.EXTRACTION.complete, on_extraction_complete_event)
+    queue_worker.add_listener(EtmfaQueues.EXTRACTION.complete, on_extraction_complete_event)
 
-    queue_worker.add_listener(EtmfaQueues.EXTRACTION.complete,
-                              partial(on_generic_complete_event, status=ProcessingStatus.FINALIZATION_STARTED,
-                                      dest_queue_name=EtmfaQueues.FINALIZATION.request))
+    queue_worker.add_listener(EtmfaQueues.COMPARE.complete,on_compare_complete)
 
     queue_worker.add_listener(EtmfaQueues.FINALIZATION.complete, on_finalization_complete)
     # queue_worker.add_listener(EtmfaQueues.FEEDBACK.complete, on_feedback_complete)
@@ -93,20 +90,20 @@ def on_digitizer2_complete_event(msg_proc_obj, message_publisher, status, dest_q
     message_publisher.send_dict(asdict(request), dest_queue_name)
 
 
-# def on_extraction_complete_event(msg_proc_obj, message_publisher):
-#     from etmfa.db import get_doc_resource_by_id, update_doc_processing_status
-#
-#     resource = get_doc_resource_by_id(msg_proc_obj['id'])
-#     if resource.protocol is not None:
-#         dest_queue_name = EtmfaQueues.COMPARE.request
-#         request = CompareRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], resource.protocol)
-#     else:
-#         dest_queue_name = EtmfaQueues.FINALIZATION.request
-#         status = ProcessingStatus.FINALIZATION_STARTED
-#         update_doc_processing_status(msg_proc_obj['id'], status)
-#         request = GenericRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'])
-#
-#     message_publisher.send_dict(asdict(request), dest_queue_name)
+def on_extraction_complete_event(msg_proc_obj, message_publisher):
+    from etmfa.db import get_doc_resource_by_id, update_doc_processing_status
+
+    resource = get_doc_resource_by_id(msg_proc_obj['id'])
+    if resource.protocol is not None:
+        dest_queue_name = EtmfaQueues.COMPARE.request
+        request = CompareRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], resource.protocol)
+    else:
+        dest_queue_name = EtmfaQueues.FINALIZATION.request
+        status = ProcessingStatus.FINALIZATION_STARTED
+        update_doc_processing_status(msg_proc_obj['id'], status)
+        request = GenericRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'])
+
+    message_publisher.send_dict(asdict(request), dest_queue_name)
 
 
 def on_i2e_omop_update_complete_event(msg_proc_obj, message_publisher, status, dest_queue_name):
@@ -133,9 +130,6 @@ def on_i2e_omop_update_complete_event(msg_proc_obj, message_publisher, status, d
 
     message_publisher.send_dict(asdict(request), dest_queue_name)
 
-# def on_extractor_complete_event(msg_proc_obj, message_publisher, status, dest_queue_name):
-
-
 def on_triage_complete(msg_proc_obj, message_publisher):
     if msg_proc_obj['ocr_required']:
         dest_queue = EtmfaQueues.DIGITIZER1.request
@@ -159,6 +153,13 @@ def on_feedback_complete(msg_proc_obj, message_publisher):
 def on_compare_complete(msg_proc_obj, message_publisher):
     from etmfa.db import received_comparecomplete_event
     received_comparecomplete_event(msg_proc_obj, message_publisher)
+    dest_queue_name = EtmfaQueues.FINALIZATION.request
+    status = ProcessingStatus.FINALIZATION_STARTED
+    #request = GenericRequest(msg_proc_obj['ID'], msg_proc_obj['UPDATED_IQVXML_PATH'])
+    #msg_proc_obj['UPDATED_IQVXML_PATH']='\\\\quintiles.net\\enterprise\\Services\\protdigtest\\pilot_iqvxml\\af85d4ab-c42f-46fa-8c88-0ba33c203e40\\SE_OU_D2_Protocol-2013-07-26-VER-000002.20210120144620.xml.zip'
+    request = GenericRequest(msg_proc_obj['ID'], msg_proc_obj['UPDATED_IQVXML_PATH'])
+    message_publisher.send_dict(asdict(request), dest_queue_name)
+
 
 def on_documentprocessing_error(error_obj, message_publisher):
     from etmfa.db import received_documentprocessing_error_event

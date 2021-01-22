@@ -6,7 +6,7 @@ from etmfa.db import db_context
 class Documentcompare(db_context.Model):
     __tablename__ = "pd_document_compare"
 
-    compareId = db_context.Column(db_context.String(300), primary_key=True)
+    compareId = db_context.Column(db_context.Integer())
     id1 = db_context.Column(db_context.String(300), primary_key=True)
     protocolNumber = db_context.Column(db_context.String(45))
     projectId = db_context.Column(db_context.String(45))

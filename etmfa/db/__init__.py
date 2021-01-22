@@ -25,12 +25,13 @@ from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackS
 from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.error import ManagementException
 from etmfa.error import ErrorCodes
+import ast
 
 
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
-NO_RESOURCE_FOUND = "No document resource was found in DB for ID: {}"
+NO_RESOURCE_FOUND = "No document resource was found in DB for ID: {}, {}"
 ERROR_PROCESSING_STATUS = "Error while updating processing status to pd_protocol_metadata to DB for ID: {},{}"
 
 
@@ -130,15 +131,34 @@ def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_num
         logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
             compare['compare_id'], ex))
 
-def received_comparecomplete_event(comparevalues, message_publisher):
-    resource = Documentcompare.query.filter(Documentcompare.compareId == comparevalues['COMPARE_ID']).first()
-    if resource is not None:
-        resource.similarity_score = comparevalues['SIMILARITY_SCORE']
-        resource.updated_IQV_xml_path = comparevalues['UPDATED_BASE_IQVXML_PATH']
-        resource.similarityScore = comparevalues['SIMILARITY_SCORE']
-        resource.updatedIqvXmlPath = comparevalues['UPDATED_BASE_IQVXML_PATH']
-        resource.iqvdata = str(json.dumps(comparevalues['IQVDATA']))
+def insert_compare(comparevalues,comparedata,UPDATED_IQVXML_PATH):
+
+    resource = Documentcompare()
+    resource.id1=comparevalues[0]
+    resource.protocolNumber=comparevalues[1]
+    resource.projectId=comparevalues[2]
+    resource.versionNumber=comparevalues[3]
+    resource.amendmentNumber=comparevalues[4]
+    resource.documentStatus=comparevalues[5]
+    resource.id2=comparevalues[6]
+    resource.protocolNumber2=comparevalues[7]
+    resource.projectId2=comparevalues[8]
+    resource.versionNumber2=comparevalues[9]
+    resource.amendmentNumber2=comparevalues[10]
+    resource.documentStatus2=comparevalues[11]
+    #         resource.environment=comparevalues[]
+    #         resource.sourceSystem=comparevalues[]
+    #         resource.userId=comparevalues[]
+    #         resource.requestType=comparevalues[]
+    #
+    #         resource.baseIqvXmlPath=comparevalues[]
+    #         resource.compareIqvXmlPath=comparevalues[]
+    resource.updatedIqvXmlPath=UPDATED_IQVXML_PATH
+    resource.iqvdata=str(json.dumps(comparedata))
+    resource.similarityScore=comparevalues[12]
     try:
+        #db_context.session.commit()
+        db_context.session.add(resource)
         db_context.session.commit()
     except Exception as ex:
         db_context.session.rollback()
@@ -146,6 +166,16 @@ def received_comparecomplete_event(comparevalues, message_publisher):
         received_documentprocessing_error_event(exception.__dict__)
         logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
             comparevalues['compare_id'], ex))
+
+
+def received_comparecomplete_event(msg_comparevalues, message_publisher):
+    for comparevalues,comparedata in msg_comparevalues['ALL_COMPARISONS'].items():
+        insert_compare(ast.literal_eval(comparevalues),comparedata,msg_comparevalues['UPDATED_IQVXML_PATH'])
+
+
+
+
+
 
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
@@ -302,23 +332,30 @@ def get_compare_documents_validation(protocol_number, project_id, document_id, p
 def get_compare_documents(compare_id):
     compareid = compare_id
     resource_IQVdata = None
-    resource = Documentcompare.query.filter(Documentcompare.compareId == compareid).first()
+    resource = Documentcompare.query.filter(Documentcompare.id1 == basedocid, Documentcompare.id2 == comparedocid).first()
+    flag_order=1
+    if resource is None:
+        resource = Documentcompare.query.filter(Documentcompare.id1 == comparedocid,
+                                                Documentcompare.id2 == basedocid).first()
+        flag_order=-1
+
+    else:
+        None
     #to check none
     if resource is not None:
         resource_IQVdata = resource.iqvdata
     else:
-        logger.error(NO_RESOURCE_FOUND.format(compare_id))
-    return resource_IQVdata
+        logger.error(NO_RESOURCE_FOUND.format(basedocid, comparedocid))
+    return resource_IQVdata,flag_order
 
-
-def get_compare_documents_by_docid(doc_id1, doc_id2):
-    document_id1 = doc_id1
-    document_id2 = doc_id2
-    # to check the correct values are only extracted
-    resource = Documentcompare.query.filter(Documentcompare.doc_id == document_id1).filter(Documentcompare.doc_id2 == document_id2).first()
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND)
-    return resource
+# def get_compare_documents_by_docid(doc_id1, doc_id2):
+#     document_id1 = doc_id1
+#     document_id2 = doc_id2
+#     # to check the correct values are only extracted
+#     resource = Documentcompare.query.filter(Documentcompare.doc_id == document_id1).filter(Documentcompare.doc_id2 == document_id2).first()
+#     if resource is None:
+#         logger.error(NO_RESOURCE_FOUND)
+#     return resource
 
 def get_doc_metrics_by_id(id):
     g.aidocid = id
