@@ -16,6 +16,7 @@ from etmfa.db import (
     get_doc_processed_by_id,
     get_doc_status_processing_by_id,
     get_mcra_attributes_by_protocolnumber,
+    get_mcra_latest_version_protocol,
     get_compare_documents,
     get_compare_documents_validation,
     add_compare_event,
@@ -35,6 +36,8 @@ from etmfa.server.namespaces.serializers import (
     eTMFA_object_post,
     pd_object_get_summary,
     mCRA_attributes_input,
+    mCRA_latest_protocol_input,
+    mCRA_latest_protocol_get,
     pd_compare_object_post,
     pd_compare_get,
     pd_compare_post_response,
@@ -163,6 +166,28 @@ class DocumentprocessingAPI(Resource):
         try:
             protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
             resource = get_mcra_attributes_by_protocolnumber(protocol_number)
+            if resource is None:
+                return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
+            else:
+                return resource
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
+
+@ns.route('/mcra_latest_protocol')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(mCRA_latest_protocol_input)
+    @ns.marshal_with(mCRA_latest_protocol_get)
+    @ns.response(200, 'Success.')
+    @ns.response(404, 'Document Processing resource not found.')
+    def get(self):
+        """Get the document processing object attributes"""
+        args = mCRA_latest_protocol_input.parse_args()
+        try:
+            protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
+            version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
+            resource = get_mcra_latest_version_protocol(protocol_number, version_number)
             if resource is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
             else:

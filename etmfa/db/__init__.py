@@ -263,6 +263,21 @@ def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'final')
         result = None
     return result
 
+def get_mcra_latest_version_protocol(protocol_number, version_number):
+    # to check the correct values are only extracted
+    try:
+        if not version_number:
+            resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.isActive == True,
+                                                        PDProtocolMetadata.status == "PROCESS_COMPLETED",
+                                                        PDProtocolMetadata.protocol == protocol_number).order_by(PDProtocolMetadata.versionNumber.desc()).first()
+        else:
+            resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.isActive == True,
+                                                        PDProtocolMetadata.status == "PROCESS_COMPLETED",
+                                                        PDProtocolMetadata.protocol == protocol_number,
+                                                        PDProtocolMetadata.versionNumber >= version_number).order_by(PDProtocolMetadata.versionNumber.desc()).first()
+    except Exception as e:
+        logger.error(NO_RESOURCE_FOUND.format(protocolnumber))
+    return resource
 
 def get_compare_documents_validation(protocol_number, project_id, document_id, protocol_number2, project_id2,
                                              document_id2, request_type):
