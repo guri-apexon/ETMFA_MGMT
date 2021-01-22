@@ -130,6 +130,7 @@ def on_i2e_omop_update_complete_event(msg_proc_obj, message_publisher, status, d
 
        # file =[f for f in os.listdir(IQVXMLPath) if f.startswith('D2_D1_')][0]
         file=os.path.join(IQVXMLPath,file)
+
     except Exception as e :
         file=None
 
