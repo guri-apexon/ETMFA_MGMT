@@ -29,7 +29,7 @@ setup(
     packages=find_packages(),
 
 	# Packages
-    data_files=[('', ['requirements.txt']),
+    data_files=[('', ['requirements.txt', 'main.py']),
                 ],
 	include_package_data=True,
 
