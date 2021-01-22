@@ -293,35 +293,36 @@ def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'final')
         result = None
     return result
 
-
-def get_compare_documents_validation(protocol_number, project_id, document_id, protocol_number2, project_id2,
-                                             document_id2, request_type):
-    protocolnumber = protocol_number
-    projectid = project_id
-    docid = document_id
-    protocolnumber2 = protocol_number2
-    projectid2 = project_id2
-    docid2 = document_id2
-    requesttype = request_type
-    # to check the correct values are only extracted
-    resource = Documentcompare.query.filter(Documentcompare.protocolNumber == protocolnumber,
-                                            Documentcompare.projectId == projectid,
-                                            Documentcompare.id1 == docid,
-                                            Documentcompare.protocolNumber2 == protocolnumber2,
-                                            Documentcompare.projectId2 == projectid2,
-                                            Documentcompare.id2 == docid2,
-                                            Documentcompare.requestType == requesttype).first()
-    return resource
-
-
+#
+# def get_compare_documents_validation(protocol_number, project_id, document_id, protocol_number2, project_id2,
+#                                              document_id2, request_type):
+#     protocolnumber = protocol_number
+#     projectid = project_id
+#     docid = document_id
+#     protocolnumber2 = protocol_number2
+#     projectid2 = project_id2
+#     docid2 = document_id2
+#     requesttype = request_type
+#     # to check the correct values are only extracted
+#     resource = Documentcompare.query.filter(Documentcompare.protocolNumber == protocolnumber,
+#                                             Documentcompare.projectId == projectid,
+#                                             Documentcompare.id1 == docid,
+#                                             Documentcompare.protocolNumber2 == protocolnumber2,
+#                                             Documentcompare.projectId2 == projectid2,
+#                                             Documentcompare.id2 == docid2,
+#                                             Documentcompare.requestType == requesttype).first()
+#     return resource
 def get_compare_documents(base_doc_id, compare_doc_id):
     basedocid = base_doc_id
     comparedocid = compare_doc_id
     resource_IQVdata = None
     resource = Documentcompare.query.filter(Documentcompare.id1 == basedocid, Documentcompare.id2 == comparedocid).first()
+    flag_order=1
     if resource is None:
         resource = Documentcompare.query.filter(Documentcompare.id1 == comparedocid,
                                                 Documentcompare.id2 == basedocid).first()
+        flag_order=-1
+
     else:
         None
     #to check none
@@ -329,17 +330,16 @@ def get_compare_documents(base_doc_id, compare_doc_id):
         resource_IQVdata = resource.iqvdata
     else:
         logger.error(NO_RESOURCE_FOUND.format(basedocid, comparedocid))
-    return resource_IQVdata
+    return resource_IQVdata,flag_order
 
-
-def get_compare_documents_by_docid(doc_id1, doc_id2):
-    document_id1 = doc_id1
-    document_id2 = doc_id2
-    # to check the correct values are only extracted
-    resource = Documentcompare.query.filter(Documentcompare.doc_id == document_id1).filter(Documentcompare.doc_id2 == document_id2).first()
-    if resource is None:
-        logger.error(NO_RESOURCE_FOUND)
-    return resource
+# def get_compare_documents_by_docid(doc_id1, doc_id2):
+#     document_id1 = doc_id1
+#     document_id2 = doc_id2
+#     # to check the correct values are only extracted
+#     resource = Documentcompare.query.filter(Documentcompare.doc_id == document_id1).filter(Documentcompare.doc_id2 == document_id2).first()
+#     if resource is None:
+#         logger.error(NO_RESOURCE_FOUND)
+#     return resource
 
 def get_doc_metrics_by_id(id):
     g.aidocid = id

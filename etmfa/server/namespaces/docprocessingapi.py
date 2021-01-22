@@ -17,7 +17,7 @@ from etmfa.db import (
     get_doc_status_processing_by_id,
     get_mcra_attributes_by_protocolnumber,
     get_compare_documents,
-    get_compare_documents_validation,
+    #get_compare_documents_validation,
     add_compare_event,
     upsert_attributevalue,
     set_draft_version
@@ -178,50 +178,50 @@ class DocumentprocessingAPI(Resource):
             return abort(500, SERVER_ERROR.format(e))
 
 
-@ns.route('/comparerequest')
-@ns.response(500, 'Server error.')
-class DocumentprocessingAPI(Resource):
-    @ns.expect(pd_compare_object_post)
-    @ns.marshal_with(pd_compare_post_response)
-    @ns.response(200, 'Success.')
-    @ns.response(404, 'Document Processing resource not found.')
-    def post(self):
-        """Get the document processing object attributes"""
-        _id = uuid.uuid4()
-        _id = str(_id)
-        compareid = _id
-        filedirectory = Config.DFS_UPLOAD_FOLDER
-        args = pd_compare_object_post.parse_args()
-        try:
-            protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
-            project_id = args['projectId'] if args['projectId'] is not None else ' '
-            document_id = args['id1'] if args['id1'] is not None else ' '
-            protocol_number2 = args['protocolNumber2'] if args['protocolNumber2'] is not None else ' '
-            project_id2 = args['projectId2'] if args['projectId2'] is not None else ' '
-            document_id2 = args['id2'] if args['id2'] is not None else ' '
-            request_type = args['requestType'] if args['requestType'] is not None else ' '
-            user_id = args['userId'] if args ['userId'] is not None else ' '
-            #check to see if compare already present for given doc id's
-            resource = get_compare_documents_validation(protocol_number, project_id, document_id, protocol_number2, project_id2,
-                                             document_id2, request_type)
-            if resource is None:
-                docid = document_id
-                docid2 = document_id2
-                lookupdir = os.path.join(filedirectory, docid)
-                lookupdir2 = os.path.join(filedirectory, docid2)
-                file1 = [os.path.join(lookupdir, f) for f in os.listdir(lookupdir) if f.startswith("FIN_")]
-                file2 = [os.path.join(lookupdir2, f) for f in os.listdir(lookupdir2) if f.startswith("FIN_")]
-                compare_req_msg = {"COMPARE_ID": compareid, "BASE_DOC_ID" : docid, "COMPARE_DOC_ID" : docid2, "BASE_IQVXML_PATH" : file1[0], "COMPARE_IQVXML_PATH" : file2[0], "REQUEST_TYPE" : "COMPARE_TOC"}
-                BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
-                EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
-                MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(compare_req_msg, EtmfaQueues.COMPARE.request)
-                compare_add = add_compare_event(compare_req_msg, protocol_number, project_id, protocol_number2, project_id2, user_id)
-                return compare_add
-            else:
-                return abort(404, DOCUMENT_COMPARISON_ALREADY_PRESENT.format(protocol_number))
-        except ValueError as e:
-            logger.error(SERVER_ERROR.format(e))
-            return abort(500, SERVER_ERROR.format(e))
+# @ns.route('/comparerequest')
+# @ns.response(500, 'Server error.')
+# class DocumentprocessingAPI(Resource):
+#     @ns.expect(pd_compare_object_post)
+#     @ns.marshal_with(pd_compare_post_response)
+#     @ns.response(200, 'Success.')
+#     @ns.response(404, 'Document Processing resource not found.')
+#     def post(self):
+#         """Get the document processing object attributes"""
+#         _id = uuid.uuid4()
+#         _id = str(_id)
+#         compareid = _id
+#         filedirectory = Config.DFS_UPLOAD_FOLDER
+#         args = pd_compare_object_post.parse_args()
+#         try:
+#             protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
+#             project_id = args['projectId'] if args['projectId'] is not None else ' '
+#             document_id = args['id1'] if args['id1'] is not None else ' '
+#             protocol_number2 = args['protocolNumber2'] if args['protocolNumber2'] is not None else ' '
+#             project_id2 = args['projectId2'] if args['projectId2'] is not None else ' '
+#             document_id2 = args['id2'] if args['id2'] is not None else ' '
+#             request_type = args['requestType'] if args['requestType'] is not None else ' '
+#             user_id = args['userId'] if args ['userId'] is not None else ' '
+#             #check to see if compare already present for given doc id's
+#             resource = get_compare_documents_validation(protocol_number, project_id, document_id, protocol_number2, project_id2,
+#                                              document_id2, request_type)
+#             if resource is None:
+#                 docid = document_id
+#                 docid2 = document_id2
+#                 lookupdir = os.path.join(filedirectory, docid)
+#                 lookupdir2 = os.path.join(filedirectory, docid2)
+#                 file1 = [os.path.join(lookupdir, f) for f in os.listdir(lookupdir) if f.startswith("FIN_")]
+#                 file2 = [os.path.join(lookupdir2, f) for f in os.listdir(lookupdir2) if f.startswith("FIN_")]
+#                 compare_req_msg = {"COMPARE_ID": compareid, "BASE_DOC_ID" : docid, "COMPARE_DOC_ID" : docid2, "BASE_IQVXML_PATH" : file1[0], "COMPARE_IQVXML_PATH" : file2[0], "REQUEST_TYPE" : "COMPARE_TOC"}
+#                 BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
+#                 EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
+#                 MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(compare_req_msg, EtmfaQueues.COMPARE.request)
+#                 compare_add = add_compare_event(compare_req_msg, protocol_number, project_id, protocol_number2, project_id2, user_id)
+#                 return compare_add
+#             else:
+#                 return abort(404, DOCUMENT_COMPARISON_ALREADY_PRESENT.format(protocol_number))
+#         except ValueError as e:
+#             logger.error(SERVER_ERROR.format(e))
+#             return abort(500, SERVER_ERROR.format(e))
 
 
 @ns.route('/compareattributes')
@@ -238,33 +238,34 @@ class DocumentprocessingAPI(Resource):
             base_doc_id = args['Base_doc_id'] if args['Base_doc_id'] is not None else ' '
             compare_doc_id = args['Compare_doc_id'] if args['Compare_doc_id'] is not None else ' '
             #check to see if compare already present for given doc id's
-            resource = get_compare_documents(base_doc_id, compare_doc_id)
+            resource,flag_order = get_compare_documents(base_doc_id, compare_doc_id)
             if resource is None:
                 return abort(404, Compare_feature_notavail.format(base_doc_id, compare_doc_id))
             else:
-                return json.dumps(resource)
+                #return ('resource:{},flag_order:{}'.format(json.dumps(resource),flag_order))
+                return ({'Resource':json.dumps(resource),'Flag_order':flag_order})
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
 
 
-@ns.route('/<string:id>/summary_section')
-@ns.response(404, 'Document Processing resource not found.')
-@ns.response(500, 'Server error.')
-class DocumentprocessingAPI(Resource):
-    @ns.marshal_with(pd_object_get_summary)
-    @ns.response(200, 'Success.')
-    def get(self, id):
-        """Get summary section details from digitized documents"""
-        try:
-            g.aidocid = id
-            summary_response = SummaryResponse(id)
-            summary_dict, _ = summary_response.get_summary_api_response()
-
-            if summary_dict is None:
-                return abort(404, f"Summary section not found for [{id}]")
-            else:
-                return summary_dict
-        except ValueError as e:
-            logger.error(SERVER_ERROR.format(e))
-            return abort(500, SERVER_ERROR.format(e))
+# @ns.route('/<string:id>/summary_section')
+# @ns.response(404, 'Document Processing resource not found.')
+# @ns.response(500, 'Server error.')
+# class DocumentprocessingAPI(Resource):
+#     @ns.marshal_with(pd_object_get_summary)
+#     @ns.response(200, 'Success.')
+#     def get(self, id):
+#         """Get summary section details from digitized documents"""
+#         try:
+#             g.aidocid = id
+#             summary_response = SummaryResponse(id)
+#             summary_dict, _ = summary_response.get_summary_api_response()
+#
+#             if summary_dict is None:
+#                 return abort(404, f"Summary section not found for [{id}]")
+#             else:
+#                 return summary_dict
+#         except ValueError as e:
+#             logger.error(SERVER_ERROR.format(e))
+#             return abort(500, SERVER_ERROR.format(e))
