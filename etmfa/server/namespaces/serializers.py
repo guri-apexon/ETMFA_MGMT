@@ -230,6 +230,29 @@ mCRA_attributes_get = api.model('Document Processing Attributes Model',
                                      }
                                  )
 
+mCRA_latest_protocol_input = reqparse.RequestParser()
+mCRA_latest_protocol_input.add_argument('protocolNumber',
+                                   type=str,
+                                   required=True,
+                                   help='Protocol number')
+mCRA_latest_protocol_input.add_argument('versionNumber',
+                               type=str,
+                               required=False,
+                               help='Version Number')
+
+mCRA_latest_protocol_get = api.model('Document Processing Status Model',
+                             {
+                                 'protocol': fields.String(readOnly=True,
+                                                     description='Protocol Number of the latest protocol.'),
+                                 'versionNumber': fields.String(readOnly=True,
+                                                                description='Latest available Version Number of the protocol.'),
+                                 'sponsor': fields.String(readOnly=True,
+                                                                  description='sponsor of the latest protocol.'),
+                                 'documentStatus': fields.String(readOnly=True,
+                                                           description='Status(draft/final) of latest protocol.')
+                             }
+                             )
+
 
 pd_compare_object_post = reqparse.RequestParser()
 pd_compare_object_post.add_argument('protocolNumber',

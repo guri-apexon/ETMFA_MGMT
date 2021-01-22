@@ -293,28 +293,44 @@ def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'final')
         result = None
     return result
 
-#
-# def get_compare_documents_validation(protocol_number, project_id, document_id, protocol_number2, project_id2,
-#                                              document_id2, request_type):
-#     protocolnumber = protocol_number
-#     projectid = project_id
-#     docid = document_id
-#     protocolnumber2 = protocol_number2
-#     projectid2 = project_id2
-#     docid2 = document_id2
-#     requesttype = request_type
-#     # to check the correct values are only extracted
-#     resource = Documentcompare.query.filter(Documentcompare.protocolNumber == protocolnumber,
-#                                             Documentcompare.projectId == projectid,
-#                                             Documentcompare.id1 == docid,
-#                                             Documentcompare.protocolNumber2 == protocolnumber2,
-#                                             Documentcompare.projectId2 == projectid2,
-#                                             Documentcompare.id2 == docid2,
-#                                             Documentcompare.requestType == requesttype).first()
-#     return resource
-def get_compare_documents(base_doc_id, compare_doc_id):
-    basedocid = base_doc_id
-    comparedocid = compare_doc_id
+def get_mcra_latest_version_protocol(protocol_number, version_number):
+    # to check the correct values are only extracted
+    try:
+        if not version_number:
+            resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.isActive == True,
+                                                        PDProtocolMetadata.status == "PROCESS_COMPLETED",
+                                                        PDProtocolMetadata.protocol == protocol_number).order_by(PDProtocolMetadata.versionNumber.desc()).first()
+        else:
+            resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.isActive == True,
+                                                        PDProtocolMetadata.status == "PROCESS_COMPLETED",
+                                                        PDProtocolMetadata.protocol == protocol_number,
+                                                        PDProtocolMetadata.versionNumber >= version_number).order_by(PDProtocolMetadata.versionNumber.desc()).first()
+    except Exception as e:
+        logger.error(NO_RESOURCE_FOUND.format(protocolnumber))
+    return resource
+
+def get_compare_documents_validation(protocol_number, project_id, document_id, protocol_number2, project_id2,
+                                             document_id2, request_type):
+    protocolnumber = protocol_number
+    projectid = project_id
+    docid = document_id
+    protocolnumber2 = protocol_number2
+    projectid2 = project_id2
+    docid2 = document_id2
+    requesttype = request_type
+    # to check the correct values are only extracted
+    resource = Documentcompare.query.filter(Documentcompare.protocolNumber == protocolnumber,
+                                            Documentcompare.projectId == projectid,
+                                            Documentcompare.id1 == docid,
+                                            Documentcompare.protocolNumber2 == protocolnumber2,
+                                            Documentcompare.projectId2 == projectid2,
+                                            Documentcompare.id2 == docid2,
+                                            Documentcompare.requestType == requesttype).first()
+    return resource
+
+
+def get_compare_documents(compare_id):
+    compareid = compare_id
     resource_IQVdata = None
     resource = Documentcompare.query.filter(Documentcompare.id1 == basedocid, Documentcompare.id2 == comparedocid).first()
     flag_order=1
