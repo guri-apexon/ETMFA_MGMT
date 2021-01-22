@@ -30,7 +30,7 @@ from etmfa.error import ErrorCodes
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
-NO_RESOURCE_FOUND = "No document resource was found in DB for ID: {}"
+NO_RESOURCE_FOUND = "No document resource was found in DB for ID: {}, {}"
 ERROR_PROCESSING_STATUS = "Error while updating processing status to pd_protocol_metadata to DB for ID: {},{}"
 
 
@@ -284,15 +284,21 @@ def get_compare_documents_validation(protocol_number, project_id, document_id, p
     return resource
 
 
-def get_compare_documents(compare_id):
-    compareid = compare_id
+def get_compare_documents(base_doc_id, compare_doc_id):
+    basedocid = base_doc_id
+    comparedocid = compare_doc_id
     resource_IQVdata = None
-    resource = Documentcompare.query.filter(Documentcompare.compareId == compareid).first()
+    resource = Documentcompare.query.filter(Documentcompare.id1 == basedocid, Documentcompare.id2 == comparedocid).first()
+    if resource is None:
+        resource = Documentcompare.query.filter(Documentcompare.id1 == comparedocid,
+                                                Documentcompare.id2 == basedocid).first()
+    else:
+        None
     #to check none
     if resource is not None:
         resource_IQVdata = resource.iqvdata
     else:
-        logger.error(NO_RESOURCE_FOUND.format(compare_id))
+        logger.error(NO_RESOURCE_FOUND.format(basedocid, comparedocid))
     return resource_IQVdata
 
 

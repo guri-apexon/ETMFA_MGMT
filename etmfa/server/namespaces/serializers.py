@@ -274,10 +274,14 @@ pd_compare_post_response = api.model('Document compare ID Model',
                                  )
 
 pd_compare_object_input_get = reqparse.RequestParser()
-pd_compare_object_input_get.add_argument('compareId',
+pd_compare_object_input_get.add_argument('Base_doc_id',
                                type=str,
                                required=True,
-                               help='Compare unique id')
+                               help='Base_doc_id')
+pd_compare_object_input_get.add_argument('Compare_doc_id',
+                               type=str,
+                               required=True,
+                               help='Compare_doc_id')
 
 
 pd_compare_get = api.model('Document compare Model',
