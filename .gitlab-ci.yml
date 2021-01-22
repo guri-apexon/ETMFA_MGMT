@@ -46,8 +46,8 @@ unit-tests:
       - test_results.xml
       - coverage.xml
   only:
-      - develop
-      - merge_requests
+    - develop
+    - merge_requests
 
 build:
   tags:
@@ -68,8 +68,6 @@ deploy-dev:
   tags:
     - pd-dev-windows-ml01q
   stage: deploy
-  before_script:
-    - . $VE_PATH  
   variables:
     VERIFICATION_URL: "http://ca2spdml01q:9001/pd/api/health"
   script:
@@ -78,7 +76,3 @@ deploy-dev:
     name: dev
   only:
     - develop
-    # refs:
-    #   - develop
-    # changes:
-    #   - ms/__init__.py

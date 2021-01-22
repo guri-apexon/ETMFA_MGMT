@@ -43,17 +43,12 @@ from etmfa.server.namespaces.serializers import (
 from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
 
-from etmfa.api_response_handlers import SummaryResponse
-
-
 logger = logging.getLogger(consts.LOGGING_NAME)
 DOCUMENT_NOT_FOUND = 'Document Processing resource not found for given data: {}'
 SERVER_ERROR = 'Server error: {}'
 DOCUMENT_COMPARISON_ALREADY_PRESENT = 'Comparison already present for given protocols'
 
 ns = api.namespace('PD', path='/v1/documents', description='REST endpoints for PD workflows.')
-
-
 
 
 @ns.route('/')
@@ -245,24 +240,3 @@ class DocumentprocessingAPI(Resource):
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
 
-
-@ns.route('/<string:id>/summary_section')
-@ns.response(404, 'Document Processing resource not found.')
-@ns.response(500, 'Server error.')
-class DocumentprocessingAPI(Resource):
-    @ns.marshal_with(pd_object_get_summary)
-    @ns.response(200, 'Success.')
-    def get(self, id):
-        """Get summary section details from digitized documents"""
-        try:
-            g.aidocid = id
-            summary_response = SummaryResponse(id)
-            summary_dict, _ = summary_response.get_summary_api_response()
-
-            if summary_dict is None:
-                return abort(404, f"Summary section not found for [{id}]")
-            else:
-                return summary_dict
-        except ValueError as e:
-            logger.error(SERVER_ERROR.format(e))
-            return abort(500, SERVER_ERROR.format(e))
