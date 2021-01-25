@@ -297,6 +297,7 @@ def get_compare_documents(base_doc_id, compare_doc_id):
                                                 Documentcompare.id2 == basedocid).first()
         flag_order=-1
 
+
     else:
         None
     #to check none
@@ -304,7 +305,8 @@ def get_compare_documents(base_doc_id, compare_doc_id):
         resource_IQVdata = resource.iqvdata
     else:
         logger.error(NO_RESOURCE_FOUND.format(basedocid, comparedocid))
-    return resource_IQVdata,flag_order
+    print (type(resource_IQVdata))
+    return resource_IQVdata
 
 def get_doc_metrics_by_id(id):
     g.aidocid = id
