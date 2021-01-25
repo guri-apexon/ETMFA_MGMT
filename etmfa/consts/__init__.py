@@ -15,6 +15,6 @@ class Globals:
     FLASK_LOCAL = g
 
     try:
-        VERSION = get_distribution("etmfa_mgmt").version
+        VERSION = get_distribution("pd-mgmt").version
     except DistributionNotFound:
         VERSION = 'debug'
