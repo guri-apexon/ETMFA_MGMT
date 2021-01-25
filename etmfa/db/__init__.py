@@ -149,8 +149,11 @@ def insert_compare(comparevalues,comparedata,UPDATED_IQVXML_PATH):
 
 
 def received_comparecomplete_event(msg_comparevalues, message_publisher):
-    for comparevalues,comparedata in msg_comparevalues['ALL_COMPARISONS'].items():
-        insert_compare(ast.literal_eval(comparevalues),comparedata,msg_comparevalues['UPDATED_IQVXML_PATH'])
+    if msg_comparevalues['ALL_COMPARISONS']:
+        for comparevalues,comparedata in msg_comparevalues['ALL_COMPARISONS'].items():
+            insert_compare(ast.literal_eval(comparevalues),comparedata,msg_comparevalues['UPDATED_IQVXML_PATH'])
+    else:
+        logger.warning('No values to compare. Moving to Finalization')
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         finalattributes = finalattributes['db_data']
