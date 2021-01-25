@@ -280,7 +280,7 @@ def get_mcra_latest_version_protocol(protocol_number, version_number):
                                                         PDProtocolMetadata.protocol == protocol_number,
                                                         PDProtocolMetadata.versionNumber >= version_number).order_by(PDProtocolMetadata.versionNumber.desc()).first()
     except Exception as e:
-        logger.error(NO_RESOURCE_FOUND.format(protocolnumber))
+        logger.error(NO_RESOURCE_FOUND.format(protocol_number))
     return resource
 
 
