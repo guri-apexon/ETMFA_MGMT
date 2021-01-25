@@ -48,11 +48,6 @@ def init_db(app):
         db_context.create_all()
 
 
-# def fetch_protocol_number(id: str):
-#     resource = get_doc_resource_by_id(id)
-#     if resource is not None:
-
-
 def update_doc_processing_status(id: str, process_status: ProcessingStatus):
     """ Receives id for the document being processed along with percent_complete and present status of document
         If the document id being processed is present in DB, this function will update the percent_complete and
@@ -101,21 +96,14 @@ def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
 
 
 def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_number2, project_id2, user_id):
-    # print(compare_req_msg)
     compare = Documentcompare()
     compare.compareId = compare_req_msg['COMPARE_ID']
     compare.id1 = compare_req_msg['BASE_DOC_ID']
     compare.protocolNumber = protocol_number
     compare.projectId = project_id
-    # compare.version_number = compare_req_msg['']#these will added if additional details are made mandatory
-    # compare.amendment_number = compare_req_msg['']#these will added if additional details are made mandatory
-    # compare.document_status = compare_req_msg['']#these will added if additional details are made mandatory
     compare.id2 = compare_req_msg['COMPARE_DOC_ID']
     compare.protocolNumber2 = protocol_number2
     compare.projectId2 = project_id2
-    # compare.version_number2 = compare_req_msg['']#these will added if additional details are made mandatory
-    # compare.amendment_number2 = compare_req_msg['']#these will added if additional details are made mandatory
-    # compare.document_status2 = compare_req_msg['']#these will added if additional details are made mandatory
     compare.userId = user_id
     compare.baseIqvXmlPath = compare_req_msg['BASE_IQVXML_PATH']
     compare.compareIqvXmlPath = compare_req_msg['COMPARE_IQVXML_PATH']
@@ -146,18 +134,10 @@ def insert_compare(comparevalues,comparedata,UPDATED_IQVXML_PATH):
     resource.versionNumber2=comparevalues[9]
     resource.amendmentNumber2=comparevalues[10]
     resource.documentStatus2=comparevalues[11]
-    #         resource.environment=comparevalues[]
-    #         resource.sourceSystem=comparevalues[]
-    #         resource.userId=comparevalues[]
-    #         resource.requestType=comparevalues[]
-    #
-    #         resource.baseIqvXmlPath=comparevalues[]
-    #         resource.compareIqvXmlPath=comparevalues[]
     resource.updatedIqvXmlPath=UPDATED_IQVXML_PATH
     resource.iqvdata=str(json.dumps(comparedata))
     resource.similarityScore=comparevalues[12]
     try:
-        #db_context.session.commit()
         db_context.session.add(resource)
         db_context.session.commit()
     except Exception as ex:
@@ -171,12 +151,6 @@ def insert_compare(comparevalues,comparedata,UPDATED_IQVXML_PATH):
 def received_comparecomplete_event(msg_comparevalues, message_publisher):
     for comparevalues,comparedata in msg_comparevalues['ALL_COMPARISONS'].items():
         insert_compare(ast.literal_eval(comparevalues),comparedata,msg_comparevalues['UPDATED_IQVXML_PATH'])
-
-
-
-
-
-
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         finalattributes = finalattributes['db_data']
@@ -306,31 +280,15 @@ def get_mcra_latest_version_protocol(protocol_number, version_number):
                                                         PDProtocolMetadata.protocol == protocol_number,
                                                         PDProtocolMetadata.versionNumber >= version_number).order_by(PDProtocolMetadata.versionNumber.desc()).first()
     except Exception as e:
-        logger.error(NO_RESOURCE_FOUND.format(protocolnumber))
-    return resource
-
-def get_compare_documents_validation(protocol_number, project_id, document_id, protocol_number2, project_id2,
-                                             document_id2, request_type):
-    protocolnumber = protocol_number
-    projectid = project_id
-    docid = document_id
-    protocolnumber2 = protocol_number2
-    projectid2 = project_id2
-    docid2 = document_id2
-    requesttype = request_type
-    # to check the correct values are only extracted
-    resource = Documentcompare.query.filter(Documentcompare.protocolNumber == protocolnumber,
-                                            Documentcompare.projectId == projectid,
-                                            Documentcompare.id1 == docid,
-                                            Documentcompare.protocolNumber2 == protocolnumber2,
-                                            Documentcompare.projectId2 == projectid2,
-                                            Documentcompare.id2 == docid2,
-                                            Documentcompare.requestType == requesttype).first()
+        logger.error(NO_RESOURCE_FOUND.format(protocol_number))
     return resource
 
 
-def get_compare_documents(compare_id):
-    compareid = compare_id
+
+
+def get_compare_documents(base_doc_id, compare_doc_id):
+    basedocid = base_doc_id
+    comparedocid = compare_doc_id
     resource_IQVdata = None
     resource = Documentcompare.query.filter(Documentcompare.id1 == basedocid, Documentcompare.id2 == comparedocid).first()
     flag_order=1
@@ -339,6 +297,7 @@ def get_compare_documents(compare_id):
                                                 Documentcompare.id2 == basedocid).first()
         flag_order=-1
 
+
     else:
         None
     #to check none
@@ -346,16 +305,8 @@ def get_compare_documents(compare_id):
         resource_IQVdata = resource.iqvdata
     else:
         logger.error(NO_RESOURCE_FOUND.format(basedocid, comparedocid))
-    return resource_IQVdata,flag_order
 
-# def get_compare_documents_by_docid(doc_id1, doc_id2):
-#     document_id1 = doc_id1
-#     document_id2 = doc_id2
-#     # to check the correct values are only extracted
-#     resource = Documentcompare.query.filter(Documentcompare.doc_id == document_id1).filter(Documentcompare.doc_id2 == document_id2).first()
-#     if resource is None:
-#         logger.error(NO_RESOURCE_FOUND)
-#     return resource
+    return resource_IQVdata
 
 def get_doc_metrics_by_id(id):
     g.aidocid = id

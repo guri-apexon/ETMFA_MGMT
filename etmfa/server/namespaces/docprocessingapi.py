@@ -258,12 +258,12 @@ class DocumentprocessingAPI(Resource):
             base_doc_id = args['Base_doc_id'] if args['Base_doc_id'] is not None else ' '
             compare_doc_id = args['Compare_doc_id'] if args['Compare_doc_id'] is not None else ' '
             #check to see if compare already present for given doc id's
-            resource,flag_order = get_compare_documents(base_doc_id, compare_doc_id)
+            resource = get_compare_documents(base_doc_id, compare_doc_id)
             if resource is None:
                 return abort(404, Compare_feature_notavail.format(base_doc_id, compare_doc_id))
             else:
-                #return ('resource:{},flag_order:{}'.format(json.dumps(resource),flag_order))
-                return ({'Resource':json.dumps(resource),'Flag_order':flag_order})
+                return resource
+                #return ({'Resource':resource,'Flag_order':flag_order})
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
