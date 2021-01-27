@@ -57,8 +57,6 @@ def build_queue_callbacks(queue_worker):
     queue_worker.add_listener(EtmfaQueues.COMPARE.complete,on_compare_complete)
 
     queue_worker.add_listener(EtmfaQueues.FINALIZATION.complete, on_finalization_complete)
-    # queue_worker.add_listener(EtmfaQueues.FEEDBACK.complete, on_feedback_complete)
-    # queue_worker.add_listener(EtmfaQueues.COMPARE.complete, on_compare_complete)
     queue_worker.add_listener(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value, on_documentprocessing_error)
 
     return queue_worker
@@ -108,8 +106,6 @@ def on_extraction_complete_event(msg_proc_obj, message_publisher):
 
 def on_i2e_omop_update_complete_event(msg_proc_obj, message_publisher, status, dest_queue_name):
 
-    #from etmfa.db import update_doc_processing_status
-    #update_doc_processing_status(msg_proc_obj['id'], status)
     try :
         IQVXMLPath=os.path.join(Config.DFS_UPLOAD_FOLDER,msg_proc_obj['id'])
         for f in os.listdir(IQVXMLPath):
@@ -119,8 +115,6 @@ def on_i2e_omop_update_complete_event(msg_proc_obj, message_publisher, status, d
             elif f.startswith('D2_'):
                 file=f
                 break
-
-       # file =[f for f in os.listdir(IQVXMLPath) if f.startswith('D2_D1_')][0]
         file=os.path.join(IQVXMLPath,file)
     except Exception as e :
         file=None
@@ -155,8 +149,6 @@ def on_compare_complete(msg_proc_obj, message_publisher):
     received_comparecomplete_event(msg_proc_obj, message_publisher)
     dest_queue_name = EtmfaQueues.FINALIZATION.request
     status = ProcessingStatus.FINALIZATION_STARTED
-    #request = GenericRequest(msg_proc_obj['ID'], msg_proc_obj['UPDATED_IQVXML_PATH'])
-    #msg_proc_obj['UPDATED_IQVXML_PATH']='\\\\quintiles.net\\enterprise\\Services\\protdigtest\\pilot_iqvxml\\af85d4ab-c42f-46fa-8c88-0ba33c203e40\\SE_OU_D2_Protocol-2013-07-26-VER-000002.20210120144620.xml.zip'
     request = GenericRequest(msg_proc_obj['ID'], msg_proc_obj['UPDATED_IQVXML_PATH'])
     message_publisher.send_dict(asdict(request), dest_queue_name)
 
