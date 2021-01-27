@@ -264,11 +264,15 @@ def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'final')
         resource = db_context.session.query(PDProtocolMetadata, Protocoldata.iqvdataToc).filter(PDProtocolMetadata.protocol == protocolnumber,
                                                PDProtocolMetadata.documentStatus == docstatus, PDProtocolMetadata.percentComplete == '100', PDProtocolMetadata.isActive == True).order_by(desc(PDProtocolMetadata.versionNumber))\
                                                .join(Protocoldata, Protocoldata.id ==PDProtocolMetadata.id).first()
-        result = resource[1]
+        if resource:
+            result = resource[1]
+        else:
+            result = None
     except Exception as e:
         logger.error(NO_RESOURCE_FOUND.format(protocolnumber))
         result = None
     return result
+
 
 def get_mcra_latest_version_protocol(protocol_number, version_number):
     # to check the correct values are only extracted
@@ -285,7 +289,6 @@ def get_mcra_latest_version_protocol(protocol_number, version_number):
     except Exception as e:
         logger.error(NO_RESOURCE_FOUND.format(protocol_number))
     return resource
-
 
 
 
