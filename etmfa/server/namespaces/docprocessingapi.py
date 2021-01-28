@@ -7,6 +7,8 @@ from pathlib import Path
 from etmfa.messaging.models.queue_names import EtmfaQueues
 from dataclasses import asdict
 from etmfa.server.config import Config
+from flask import send_from_directory,make_response
+from pathlib import Path
 
 from etmfa.consts import Consts as consts
 from etmfa.db import (
@@ -150,6 +152,36 @@ class DocumentprocessingAPI(Resource):
                 return abort(404, DOCUMENT_NOT_FOUND.format(id))
             else:
                 return resource
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
+
+@ns.route('/mcra_download_protocols')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(mCRA_latest_protocol_input)
+    @ns.response(200, 'Success.')
+    @ns.response(404, 'Document Processing resource not found.')
+    def get(self):
+        """Get the document processing object attributes"""
+        args = mCRA_latest_protocol_input.parse_args()
+        try:
+            protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
+            version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
+            resource = get_mcra_latest_version_protocol(protocol_number, version_number)
+
+            if resource is None:
+                return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
+            p=Path(resource.documentFilePath)
+            path=p.name
+            DOWNLOAD_DIRECTORY=p.parent
+            try:
+                response = make_response(send_from_directory(DOWNLOAD_DIRECTORY,path, as_attachment=True))
+                return response
+            except Exception as e :
+                return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
+
+
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
