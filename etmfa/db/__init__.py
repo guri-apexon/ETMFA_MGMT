@@ -14,7 +14,9 @@ from etmfa.db.models.documentcompare import Documentcompare
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 from etmfa.db.models.pd_roles import PDRoles
-from etmfa.db.models.pd_users import PDUsers
+from etmfa.db.models.pd_users import User
+from etmfa.db.models.pd_login import Login
+from etmfa.db.models.pd_pwd_tracker import PwdTracker
 from etmfa.db.models.pd_protocol_data import Protocoldata
 from etmfa.db.models.pd_protocol_sponsor import PDProtocolSponsor
 from etmfa.db.models.pd_protocol_saved_search import PDProtocolSavedSearch
