@@ -16,6 +16,7 @@ class Protocoldata(db_context.Model):
     iqvdataSoaStd = db_context.Column(db_context.NVARCHAR(None))
     iqvdataSummary = db_context.Column(db_context.NVARCHAR(None))
     iqvdata = db_context.Column(db_context.NVARCHAR(None))
+    isActive = db_context.Column(db_context.Boolean(), default=True)
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}

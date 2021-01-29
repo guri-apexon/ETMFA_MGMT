@@ -164,6 +164,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         resource.isActive = True
 
         protocoldata = Protocoldata()
+        protocoldata.isActive = True
         protocoldata.id = finalattributes['AiDocId']
         protocoldata.userId = finalattributes['UserId']
         protocoldata.fileName = finalattributes['SourceFileName']
