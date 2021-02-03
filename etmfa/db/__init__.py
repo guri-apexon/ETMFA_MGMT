@@ -18,6 +18,7 @@ from etmfa.db.models.pd_users import User
 from etmfa.db.models.pd_login import Login
 from etmfa.db.models.pd_pwd_tracker import PwdTracker
 from etmfa.db.models.pd_protocol_data import Protocoldata
+from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 from etmfa.db.models.pd_protocol_sponsor import PDProtocolSponsor
 from etmfa.db.models.pd_protocol_saved_search import PDProtocolSavedSearch
 from etmfa.db.models.pd_protocol_recent_search import PDProtocolRecentSearch
@@ -162,8 +163,14 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         resource = get_doc_resource_by_id(id)
         resource.isProcessing = False
         resource.isActive = True
+        protocolmetadata=db_context.session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == id).first()
 
         protocoldata = Protocoldata()
+        #protocolmetadata = PDProtocolMetadata()
+        protocolmetadata.protocolTitle = finalattributes['ProtocolTitle']
+        protocolmetadata.shortTitle = finalattributes['ShortTitle']
+        protocolmetadata.phase = finalattributes['phase']
+        protocolmetadata.approvalDate = finalattributes['approval_date']
         protocoldata.isActive = True
         protocoldata.id = finalattributes['AiDocId']
         protocoldata.userId = finalattributes['UserId']

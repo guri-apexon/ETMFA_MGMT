@@ -11,7 +11,8 @@ class ProcessingStatus(Enum):
     I2E_OMOP_UPDATE_STARTED = 45 # added for i2e omop update
     DIGITIZER2_OMOPUPDATE_STARTED= 60 # added for i2e omop update
     EXTRACTION_STARTED = 75
-    FINALIZATION_STARTED = 90
+    COMPARE_STARTED = 85
+    FINALIZATION_STARTED = 95
     PROCESS_COMPLETED = 100
 
 

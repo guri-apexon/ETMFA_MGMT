@@ -8,9 +8,6 @@ class Config(object):
     DFS_UPLOAD_FOLDER = '//quintiles.net/enterprise/Services/protdigtest/pilot_iqvxml'
     #DFS_UPLOAD_FOLDER = '//INKOCWL000200/Users/q1036048/Desktop/__pycache__/PD/pd-management/'
     DEBUG = True
-    # SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@localhost:3306/protocol_dig' #local
-    # SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@/pd_digitalization' #VM?#
-    #SQLALCHEMY_DATABASE_URI = 'mysql://root:Mohan!380@/pd_digitalization' #VM?#
 
     SQLALCHEMY_DATABASE_URI = 'mssql+pyodbc://pd_dev_dbo:$1457abxd@CA2SPDSQL01Q\PDSSQL001D/PD_Dev?driver=ODBC+Driver+17+for+SQL+Server'
 
