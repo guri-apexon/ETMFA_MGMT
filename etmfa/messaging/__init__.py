@@ -57,6 +57,7 @@ def build_queue_callbacks(queue_worker):
     queue_worker.add_listener(EtmfaQueues.COMPARE.complete,on_compare_complete)
 
     queue_worker.add_listener(EtmfaQueues.FINALIZATION.complete, on_finalization_complete)
+
     queue_worker.add_listener(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value, on_documentprocessing_error)
 
     return queue_worker
@@ -94,6 +95,8 @@ def on_extraction_complete_event(msg_proc_obj, message_publisher):
     resource = get_doc_resource_by_id(msg_proc_obj['id'])
     if resource.protocol is not None:
         dest_queue_name = EtmfaQueues.COMPARE.request
+        status = ProcessingStatus.COMPARE_STARTED
+        update_doc_processing_status(msg_proc_obj['id'], status)
         request = CompareRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], resource.protocol)
     else:
         dest_queue_name = EtmfaQueues.FINALIZATION.request
@@ -145,12 +148,13 @@ def on_feedback_complete(msg_proc_obj, message_publisher):
 
 
 def on_compare_complete(msg_proc_obj, message_publisher):
-    from etmfa.db import received_comparecomplete_event
+    from etmfa.db import received_comparecomplete_event, update_doc_processing_status
     received_comparecomplete_event(msg_proc_obj, message_publisher)
-    dest_queue_name = EtmfaQueues.FINALIZATION.request
+    dest_queue = EtmfaQueues.FINALIZATION.request
     status = ProcessingStatus.FINALIZATION_STARTED
+    update_doc_processing_status(msg_proc_obj['ID'], status)
     request = GenericRequest(msg_proc_obj['ID'], msg_proc_obj['UPDATED_IQVXML_PATH'])
-    message_publisher.send_dict(asdict(request), dest_queue_name)
+    message_publisher.send_dict(asdict(request), dest_queue)
 
 
 def on_documentprocessing_error(error_obj, message_publisher):
