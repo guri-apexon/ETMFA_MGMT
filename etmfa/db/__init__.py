@@ -170,7 +170,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         protocolmetadata.protocolTitle = finalattributes['ProtocolTitle']
         protocolmetadata.shortTitle = finalattributes['ShortTitle']
         protocolmetadata.phase = finalattributes['phase']
-        protocolmetadata.approvalDate = finalattributes['approval_date']
+        protocolmetadata.approvalDate = (None if finalattributes['approval_date'] == '' else finalattributes['approval_date'])
         protocoldata.isActive = True
         protocoldata.id = finalattributes['AiDocId']
         protocoldata.userId = finalattributes['UserId']
