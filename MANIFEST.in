@@ -1,2 +1,0 @@
-recursive-include tms *.py
-include README.md

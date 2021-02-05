@@ -13,12 +13,12 @@ def configure_swagger(app):
     template = {
       "swagger": "2.0",
       "info": {
-        "title": "Document Translation API",
-        "description": "API for translating documents between source and target languages.",
+        "title": "Document Processing API",
+        "description": "API for processing documents to extract metadata information.",
         "contact": {
           "responsibleOrganization": "QuintilesIMS",
-          "responsibleDeveloper": "Joseph Munoz",
-          "email": "joseph.munoz@quintiles.com"
+          "responsibleDeveloper": "Prathap Veera",
+          "email": "prathap.veera@quintiles.com"
         },
         "version": "0.1"
       },

@@ -1,152 +1,463 @@
-from flask_restplus import Namespace, Resource, fields, reqparse, abort
 import werkzeug
+from flask_restplus import fields, reqparse, inputs
+from etmfa.server.api import api
+from etmfa.messaging.models.document_class import DocumentClass
 
-from ..api import api
-from ...db.status import StatusEnum
+kv_pair_model = api.model(' KeyValue Pair for patch ', {
+    'name': fields.String(
+        description='The metadata object supports dictionary style properties of any number of key-value pairs. ' +
+                    'Each metadata dictionary will be returned alongside the REST resource.'),
+    'val': fields.String()
+})
+k_pair_model = api.model(' Key for attributes', {
+    'name': fields.String(
+        description='The metadata object supports dictionary style properties of any number of key-value pairs. ' +
+                    'Each metadata dictionary will be returned alongside the REST resource.'),
+})
 
-object_links = api.model(' Resource Links', {
-        # 'resource': fields.Url('api.resource_get_ep', 
-        #     description='API URI for the main document translation resource.'),
-        # 'target_file': fields.Url('api.formatted_doc_ep',
-        #     description='API URI for the target translated document.'),
-        # 'xliff_file': fields.Url('api.xliff_ep',
-        #     description='API URI for the translated XLIFF file.'),
-    })
+metadata_post = api.model('Document attributes patch model', {
+    'metadata': fields.List(fields.Nested(kv_pair_model)),
+})
 
-kv_pair_model = api.model(' KeyValue Pair',{
-            'name': fields.String(description='The metadata object supports dictionary style properties of any number of key-value pairs. ' +
-                'Each metadata dictionary will be returned alongside the REST resource.'),
-            'val': fields.String()
-            })
+metadata_get = api.model('eTMFA attribute extraction get attributes', {
+    'metadata': fields.List(fields.Nested(k_pair_model))
+})
 
-supporting_docs_get = api.model('Supporting documents', {
-    'id': fields.Integer(readOnly=True),
-    'description': fields.String(readOnly=True),
-    'file_path': fields.String(readOnly=True),
-    })
+eTMFA_object_get = api.model('Document Processing Status Model',
+                             {
+                                 'id': fields.String(readOnly=True,
+                                                     description='The unique identifier (UUID) of eTMFA document.'),
+                                 'isProcessing': fields.Boolean(readOnly=True,
+                                                                description='The document is being processed. Final attributes of documents may not exist.'),
+                                 'percentComplete': fields.String(readOnly=True,
+                                                                  description='The percentage of document is being processed. Final attributes of documents will be ready when percentage is 100.'),
+                                 'fileName': fields.String(readOnly=True,
+                                                           description='The name of the original eTMF file to automate'),
+                                 'documentFilePath': fields.String(readOnly=True,
+                                                                   description='The name of the original eTMF file location shared in DFS'),
+                                 'errorCode': fields.String(readOnly=True,
+                                                            description='Error code corresponding to any process error during TMF document automation.' +
+                                                                        ' Empty error codes corrspond to no errors.'),
+                                 'errorReason': fields.String(readOnly=True,
+                                                              description='If an error code is present, an attempt will be made to supply a user-friendly error reason.'),
+                                 'timeCreated': fields.DateTime,
+                                 'lastUpdated': fields.DateTime,
+                                 'status': fields.String(readOnly=True,
+                                                         description='Document processing stage (triage/ocr/classifier/extractor/finalizer'),
+                             }
+                             )
 
-status_model = api.model(' Document Translation Status', {
-        'level': fields.String(),
-        'status': fields.String()
-    })
+eTMFA_object_get_status = api.model('Document Processing Status Model',
+                                    {
+                                        'id': fields.String(readOnly=True,
+                                                            description='The unique identifier (UUID) of eTMFA document.'),
+                                        'isProcessing': fields.Boolean(readOnly=True,
+                                                                       description='The document is being processed. Final attributes of documents may not exist.'),
+                                        'percentComplete': fields.String(readOnly=False,
+                                                                         description='The percentage of document is being processed. Final attributes of documents will be ready when percentage is 100.'),
+                                        'status': fields.String(readOnly=False,
+                                                                description='Processing document stage (triage/ocr/classifier/xtractor/finalizer)'),
+                                        'fileName': fields.String(readOnly=True,
+                                                                  description='The name of the original eTMF file to automate'),
+                                        'documentFilePath': fields.String(readOnly=True,
+                                                                          description='The path of the original eTMF file to automate'),
+                                        'errorCode': fields.String(readOnly=True,
+                                                                   description='Error code corresponding to any process error during TMF document automation.' +
+                                                                               ' Empty error codes corrspond to no errors.'),
+                                        'errorReason': fields.String(readOnly=True,
+                                                                     description='If an error code is present, an attempt will be made to supply a user-friendly error reason.'),
+                                        'timeCreated': fields.DateTime,
+                                        'lastUpdated': fields.DateTime,
 
-formatting_metrics = api.model(' Formatting metrics', {
-        'name': fields.String(),
-        'val': fields.String(),
-    })
+                                    }
+                                    )
 
-translation_metrics = api.model(' Translation metrics', {
-        'name': fields.String(),
-        'val': fields.String()
-    })
-
-metrics = api.model(' Metrics', {
-        'formatting_metrics': fields.List(fields.Nested(formatting_metrics)),
-        'translation_metrics': fields.List(fields.Nested(translation_metrics)),
-    })
-
-metadata_post = api.model('Translation resource metadata dictionary', {
-        'metadata': fields.List(fields.Nested(kv_pair_model)),  
-    })
-
-
-# TODO:  Move this to models area and map to API object
-StatusDict_desc = [s.value for s in StatusEnum]
-StatusDict_keys = [s.name for s in StatusEnum]
-StatusDict = dict(zip(StatusDict_keys, StatusDict_desc))
-status_model = api.model('Document Translation object status', {
-        'id': fields.Integer(readOnly=True, description='The linear id value of the current processing step.',
-            default=StatusEnum.CREATED.value),
-        'description': fields.String(readOnly=True, description='The description of the current document translation step.',
-            default=StatusEnum.CREATED.name),
-    })
-
-
-document_translate_object_get = api.model('Document REST object',
-    {
-        'id': fields.String(readOnly=True, 
-            description='The unique identifier (UUID) of a document translation job.'),
-        'is_processing': fields.Boolean(readOnly=True, 
-            description='The document is being formatted or translated. The XLIFF file or final documents may not exist.'),
-        'is_deleted': fields.Boolean(readOnly=True, 
-            description='The document processing request has been canceled.'),
-        'file_name': fields.String(readOnly=True, 
-            description='The name of the original file to translate'),
-        'source_lang_short': fields.String(readOnly=True, 
-            description='Source language description abbreviation'),
-        'target_lang_short': fields.String(readOnly=True, 
-            description='Target language description abbreviation'),
-        'error_code': fields.String(readOnly=True, 
-            description='Error code corresponding to any process error during formatting or translation.' +
-            ' Empty error codes corrspond to no errors.'),
-        'error_reason': fields.String(readOnly=True, 
-            description='If an error code is present, an attempt will be made to supply a user-friendly error reason.'),
-        'time_created': fields.DateTime,
-        'last_updated': fields.DateTime,
-        'links': fields.Nested(
-            object_links,
-            description='Logical API links to underlying REST objects.'
-        ),
-        'metadata': fields.List(fields.Nested(kv_pair_model)),
-        'metrics': fields.Nested(metrics),
-        'status': fields.Nested(status_model),
-    }
-)
-
-supporting_docs_post = reqparse.RequestParser()
-supporting_docs_post.add_argument('description',  
-                         type=str,
-                         required=True, 
-                         help='Short description of document')
-supporting_docs_post.add_argument('file',  
-                         type=werkzeug.datastructures.FileStorage, 
-                         location='files', 
-                         required=True, 
-                         help='Input document')
-
-
-document_translate_object_post = reqparse.RequestParser()
-document_translate_object_post.add_argument('file_name',  
-                         type=str,
-                         required=True, 
-                         help='Input document name')
-document_translate_object_post.add_argument('source_lang_short',  
-                         type=str, 
-                         required=True, 
-                         help='Source language description abbreviation')
-document_translate_object_post.add_argument('target_lang_short',  
-                         type=str,
-                         required=True, 
-                         help='Target language description abbreviation')
-document_translate_object_post.add_argument('file',  
-                         type=werkzeug.datastructures.FileStorage, 
-                         location='files', 
-                         required=True, 
-                         help='Input document')
-
-document_translate_object_put = reqparse.RequestParser()
-document_translate_object_put.add_argument('file',  
-                         type=werkzeug.datastructures.FileStorage, 
-                         location='files', 
-                         required=True, 
-                         help='Document translation XLIFF file')
-document_translate_object_put.add_argument('cache',
-                        type=bool,
-                        required=False,
-                        help='Cache the segments from the Xliff for future machine translation.',
-                        default=True)
-
-final_document_translate_object_post = reqparse.RequestParser()
-final_document_translate_object_post.add_argument('file',  
-                         type=werkzeug.datastructures.FileStorage, 
-                         location='files', 
-                         required=True, 
-                         help='Final edited document')
+eTMFA_metrics_get = api.model('Document Processing Metrics Model',
+                              {
+                                  'id': fields.String(readOnly=True,
+                                                      description='The unique identifier (UUID) of eTMFA document.'),
+                                  'totalProcessTime': fields.String(readOnly=True,
+                                                                    description='total processing time of eTMFA document.'),
+                                  'queueWaitTime': fields.String(readOnly=True,
+                                                                 description='total queue wait time of eTMFA document.'),
+                                  'triageMachineName': fields.String(readOnly=True,
+                                                                     description='Triage machine name where service is running'),
+                                  'triageVersion': fields.String(readOnly=True,
+                                                                 description='Triage code version'),
+                                  'triageStartTime': fields.String(readOnly=True,
+                                                                   description='Triage Start time in Server'),
+                                  'triageEndTime': fields.String(readOnly=True,
+                                                                 description='Triage end time in Server'),
+                                  'triageProcTime': fields.String(readOnly=True,
+                                                                  description='Triage total processing time per document in Server'),
+                                  'digitizerMachineName': fields.String(readOnly=True,
+                                                                        description='digitizer machine name where service is running'),
+                                  'digitizerVersion': fields.String(readOnly=True,
+                                                                    description='digitizer code version'),
+                                  'digitizerStartTime': fields.String(readOnly=True,
+                                                                      description='Digitizer start time in Server'),
+                                  'digitizerEndTime': fields.String(readOnly=True,
+                                                                    description='Digitizer end time in Server'),
+                                  'digitizerProcTime': fields.String(readOnly=True,
+                                                                     description='Digitizer total processing time per document in Server'),
+                                  'classificationMachineName': fields.String(readOnly=True,
+                                                                             description='classification machine name where service is running'),
+                                  'classificationVersion': fields.String(readOnly=True,
+                                                                         description='classification code version'),
+                                  'classificationStartTime': fields.String(readOnly=True,
+                                                                           description='classification start time in Server'),
+                                  'classificationEndTime': fields.String(readOnly=True,
+                                                                         description='classification end time in Server'),
+                                  'classificationProcTime': fields.String(readOnly=True,
+                                                                          description='classification total processing time per document in Server'),
+                                  'attExtractionMachineName': fields.String(readOnly=True,
+                                                                            description='attribute extraction machine name where service is running'),
+                                  'attExtractionVersion': fields.String(readOnly=True,
+                                                                        description='attribute extraction code version'),
+                                  'attExtractionStartTime': fields.String(readOnly=True,
+                                                                          description='attribute extraction start time in Server'),
+                                  'attExtractionEndTime': fields.String(readOnly=True,
+                                                                        description='attribute extraction end time in Server'),
+                                  'attExtractionProcTime': fields.String(readOnly=True,
+                                                                         description='attribute extraction total processing time per document in Server'),
+                                  'finalizationMachineName': fields.String(readOnly=True,
+                                                                           description='finalization machine name where service is running'),
+                                  'finalizationVersion': fields.String(readOnly=True,
+                                                                       description='finalization code version'),
+                                  'finalizationStartTime': fields.String(readOnly=True,
+                                                                         description='finalization start time in Server'),
+                                  'finalizationEndTime': fields.String(readOnly=True,
+                                                                       description='finalization end time in Server'),
+                                  'docType': fields.String(readOnly=True,
+                                                           description='Type of the document processed digitized/scanned'),
+                                  'docTypeOriginal': fields.String(readOnly=True,
+                                                                   description='Type of original document uploaded'),
+                                  'docSegments': fields.String(readOnly=True,
+                                                               description='Number of segments processed in the document'),
+                                  'docPages': fields.String(readOnly=True,
+                                                            description='Number of pages in the document'),
+                                  'timeCreated': fields.String(readOnly=True,
+                                                               description='Time document resource processed'),
+                              }
+                              )
 
 
-language_pair = api.model('An available language pair for document translation', {
-    'source_lang_short': fields.String(readOnly=True, description='The source language abbreviation used in a document tranlsation request'),
-    'source_lang_description': fields.String(readOnly=True, description='The source language description'),
-    'target_lang_short': fields.String(readOnly=True, description='The target language abbreviation used in a document tranlsation request'),
-    'target_lang_description': fields.String(readOnly=True, description='The target language description'),
+
+eTMFA_attributes_input = reqparse.RequestParser()
+eTMFA_attributes_input.add_argument('id',
+                               type=str,
+                               required=True,
+                               help='Source Input document name')
+eTMFA_attributes_input.add_argument('protocolNumber',
+                               type=str,
+                               required=True,
+                               help='Protocol Number')
+eTMFA_attributes_input.add_argument('projectId',
+                               type=str,
+                               required=True,
+                               help='Project ID')
+eTMFA_attributes_input.add_argument('versionNumber',
+                               type=str,
+                               required=False,
+                               help='Version Number')
+eTMFA_attributes_input.add_argument('amendment',
+                               type=str,
+                               required=False,
+                               help='Amendment')
+eTMFA_attributes_input.add_argument('docStatus',
+                               type=str,
+                               required=True,
+                               help='Document Status')
+eTMFA_attributes_input.add_argument('userId',
+                               type=str,
+                               required=False,
+                               help='User ID')
+eTMFA_attributes_input.add_argument('environment',
+                               type=str,
+                               required=False,
+                               help='Environment')
+eTMFA_attributes_input.add_argument('sourceSystem',
+                               type=str,
+                               required=False,
+                               help='Source System')
+eTMFA_attributes_input.add_argument('requestType',
+                               type=str,
+                               required=False,
+                               help='Request Type')
+
+
+eTMFA_attributes_get = api.model('Document Processing Attributes Model',
+                                 {
+                                     # 'id': fields.String(readOnly=True,
+                                     #                     description='The unique identifier (UUID) of PD document.'),#this will be used if ui request the details individually
+                                     'protocol_number': fields.String(readOnly=True,
+                                                         description='Protocol Number of the processed protocol.'),
+                                     'project_id': fields.String(readOnly=True,
+                                                         description='Project Id of processed protocol.'),
+                                     'source_file_name': fields.String(readOnly=True,
+                                                         description='input file name.'),
+                                     'document_file_path': fields.String(readOnly=True,
+                                                         description='Path of the file.'),
+                                     'version_number': fields.String(readOnly=True,
+                                                                    description='The version of the protocol'),
+                                     'amendment_number': fields.String(readOnly=True,
+                                                                      description='Amendment number of the protocol'),
+                                     'document_status': fields.String(readOnly=True,
+                                                                     description='Status of the protocol'),
+                                     'iqvdata': fields.String(readonly=False,
+                                                              description="Complete blog of TOC, Summary, SOA output details for the request")
+                                     # 'iqvdata_toc': fields.String(readonly=False,
+                                     #                          description="TOC output details for the request"), #this will be used if ui request the details individually
+                                     # 'iqvdata_soa': fields.String(readonly=False,
+                                     #                          description="SOA output details for the request"), #this will be used if ui request the details individually
+                                     # 'iqvdata_summary': fields.String(readonly=False,
+                                     #                          description="summary output details for the request") #this will be used if ui request the details individually
+                                 }
+                                 )
+
+
+mCRA_attributes_input = reqparse.RequestParser()
+mCRA_attributes_input.add_argument('protocolNumber',
+                                   type=str,
+                                   required=True,
+                                   help='Protocol number')
+
+
+mCRA_attributes_get = api.model('Document Processing Attributes Model',
+                                 {
+                                     'iqvdataTOC': fields.String(readonly=False,
+                                                              description="Complete blog of TOC, Summary, SOA output details for the request")
+                                     }
+                                 )
+
+mCRA_latest_protocol_input = reqparse.RequestParser()
+mCRA_latest_protocol_input.add_argument('protocolNumber',
+                                   type=str,
+                                   required=True,
+                                   help='Protocol number')
+mCRA_latest_protocol_input.add_argument('versionNumber',
+                               type=str,
+                               required=False,
+                               help='Version Number')
+
+mCRA_latest_protocol_get = api.model('Document Processing Status Model',
+                             {
+                                 'protocol': fields.String(readOnly=True,
+                                                     description='Protocol Number of the latest protocol.'),
+                                 'versionNumber': fields.String(readOnly=True,
+                                                                description='Latest available Version Number of the protocol.'),
+                                 'sponsor': fields.String(readOnly=True,
+                                                                  description='sponsor of the latest protocol.'),
+                                 'documentStatus': fields.String(readOnly=True,
+                                                           description='Status(draft/final) of latest protocol.')
+                             }
+                             )
+
+
+pd_compare_object_post = reqparse.RequestParser()
+pd_compare_object_post.add_argument('protocolNumber',
+                               type=str,
+                               required=True,
+                               help='Protocol number')
+pd_compare_object_post.add_argument('id1',
+                               type=str,
+                               required=True,
+                               help='PD processed doc id')
+pd_compare_object_post.add_argument('projectId',
+                               type=str,
+                               required=True,
+                               help='Project id')
+pd_compare_object_post.add_argument('protocolNumber2',
+                               type=str,
+                               required=True,
+                               help='Protocol number of the other document')
+pd_compare_object_post.add_argument('id2',
+                               type=str,
+                               required=True,
+                               help='PD processed doc id of 2nd document')
+pd_compare_object_post.add_argument('projectId2',
+                               type=str,
+                               required=True,
+                               help='Project id of the 2nd document')
+pd_compare_object_post.add_argument('userId',
+                               type=str,
+                               required=False,
+                               help='Protocol number')
+pd_compare_object_post.add_argument('requestType',
+                               type=str,
+                               required=True,
+                               help='Type of compare needed')
+
+
+pd_compare_post_response = api.model('Document compare ID Model',
+                                 {
+                                     'COMPARE_ID': fields.String(readOnly=True,
+                                                         description='The unique identifier (UUID) of PD document compare.')#this will be used if ui request the details individually
+                                 }
+                                 )
+
+pd_compare_object_input_get = reqparse.RequestParser()
+pd_compare_object_input_get.add_argument('Base_doc_id',
+                               type=str,
+                               required=True,
+                               help='Base_doc_id')
+pd_compare_object_input_get.add_argument('Compare_doc_id',
+                               type=str,
+                               required=True,
+                               help='Compare_doc_id')
+
+
+pd_compare_get = api.model('Document compare Model',
+                                 {
+                                     'protocol_number': fields.String(readOnly=True,
+                                                         description='Protocol Number of the processed protocol.'),
+                                     'project_id': fields.String(readOnly=True,
+                                                         description='Project Id of processed protocol.'),
+                                     'source_file_name': fields.String(readOnly=True,
+                                                         description='input file name.'),
+                                     'document_file_path': fields.String(readOnly=True,
+                                                         description='Path of the file.'),
+                                     'version_number': fields.String(readOnly=True,
+                                                                    description='The version of the protocol'),
+                                     'amendment_number': fields.String(readOnly=True,
+                                                                      description='Amendment number of the protocol'),
+                                     'document_status': fields.String(readOnly=True,
+                                                                     description='Status of the protocol'),
+                                     'iqvdata': fields.String(readonly=False,
+                                                              description="Complete blog of TOC, Summary, SOA output details for the request")
+                                 }
+                                 )
+
+
+eTMFA_object_post = reqparse.RequestParser()
+eTMFA_object_post.add_argument('sourceFileName',
+                               type=str,
+                               help='Source Input document name')
+eTMFA_object_post.add_argument('versionNumber',
+                               type=str,
+                               required=False,
+                               help='Version Number')
+eTMFA_object_post.add_argument('protocolNumber',
+                               type=str,
+                               required=False,
+                               help='Protocol number')
+eTMFA_object_post.add_argument('sponsor',
+                               type=str,
+                               required=True,
+                               help='Sponsor')
+eTMFA_object_post.add_argument('sourceSystem',
+                               type=str,
+                               required=False,
+                               help='Source system')
+eTMFA_object_post.add_argument('documentStatus',
+                               type=str,
+                               required=True,
+                               choices=[doc_class.value for doc_class in DocumentClass],
+                               help='Document Status(Draft/Final)')
+eTMFA_object_post.add_argument('studyStatus',
+                               type=str,
+                               required=False,
+                               help='Study Status')
+eTMFA_object_post.add_argument('amendmentNumber',
+                               type=str,
+                               required=False,
+                               help='Amendment Number')
+eTMFA_object_post.add_argument('projectID',
+                               type=str,
+                               required=True,
+                               help='project ID')
+eTMFA_object_post.add_argument('environment',
+                               type=str,
+                               required=False,
+                               help='Environment')
+eTMFA_object_post.add_argument('indication',
+                               type=str,
+                               required=True,
+                               help='Indication')
+eTMFA_object_post.add_argument('moleculeDevice',
+                               type=str,
+                               required=True,
+                               help='Molecule Device')
+eTMFA_object_post.add_argument('userId',
+                               type=str,
+                               required=False,
+                               help='userId')
+eTMFA_object_post.add_argument('file',
+                               type=werkzeug.datastructures.FileStorage,
+                               location='files',
+                               required=True,
+                               help='Input document')
+
+document_processing_object_put = api.model('Document feedback definition',
+                                           {
+                                               'id': fields.String(required=True,
+                                                                   description='The unique identifier (UUID) of a document processing job.'),
+                                               'feedbackSource': fields.String(required=True,
+                                                                               description='Feedback source for the processed document'),
+                                               'userId': fields.String(required=False, description='userId'),
+                                               'customer': fields.String(required=True,
+                                                                         description='Customer'),
+                                               'protocol': fields.String(required=True,
+                                                                         description='protocol'),
+                                               'country': fields.String(required=True,
+                                                                        description='country'),
+                                               'site': fields.String(required=True,
+                                                                     description='site'),
+                                               'documentClass': fields.String(required=True,
+                                                                              description='document class'),
+                                               'documentDate': fields.String(required=True,
+                                                                             description='date string yyyymmdd'),
+                                               'documentClassification': fields.String(required=True,
+                                                                                       description='document classification'),
+                                               'name': fields.String(required=True,
+                                                                     description='name'),
+                                               'language': fields.String(required=True,
+                                                                         description='language'),
+                                               'documentRejected': fields.Boolean(readOnly=True,
+                                                                                  description='document rejected'),
+                                               'attributeAuxillaryList': fields.List(fields.Nested(kv_pair_model)),
+                                           })
+
+document_processing_object_put_get = api.model('Document Processing Feedback Model',
+                                               {
+                                                   'id': fields.String(readOnly=True,
+                                                                       description='The unique identifier (UUID) of a document processing job.'),
+                                                   'fileName': fields.String(readOnly=True,
+                                                                             description='file name of the document for updating feedback'),
+                                                   'documentFilePath': fields.String(readOnly=True,
+                                                                                     description='path of the document for updating feedback'),
+                                                   'feedbackSource': fields.String(readOnly=True,
+                                                                                   description='Feedback source for the processed document'),
+                                                   'customer': fields.String(readOnly=True,
+                                                                             description='Customer'),
+                                                   'protocol': fields.String(readOnly=True,
+                                                                             description='protocol'),
+                                                   'country': fields.String(readOnly=True,
+                                                                            description='country'),
+                                                   'site': fields.String(readOnly=True,
+                                                                         description='site'),
+                                                   'documentClass': fields.String(readOnly=True,
+                                                                                  description='document class'),
+                                                   'documentDate': fields.String(readOnly=True,
+                                                                                 description='date string yyyymmdd'),
+                                                   'documentClassification': fields.String(readOnly=True,
+                                                                                           description='document classification'),
+                                                   'name': fields.String(readOnly=True,
+                                                                         description='name'),
+                                                   'language': fields.String(readOnly=True,
+                                                                             description='language'),
+                                                   'documentRejected': fields.Boolean(readOnly=True,
+                                                                                      description='document rejected'),
+                                                   'attributeAuxillaryList': fields.String(readOnly=True,
+                                                                                           description='Attribute auxillary list'),
+                                               }
+                                               )
+
+# API :Summary section
+pd_object_get_summary = api.model('Summary section extraction',
+{
+'id': fields.String(readOnly=True, description='The unique identifier (UUID) of PD document.'),
+'columns': fields.String(readOnly=False, description='Columns of data. Content: Indicator that the content is "Text" or "Table dict"; font_info: Font information of the "Text"'),
+'data': fields.String(readOnly=False, description='Information at row level'),
+'index': fields.String(readOnly=False, description='Index of rows')
 })

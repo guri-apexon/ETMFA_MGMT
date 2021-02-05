@@ -1,29 +1,42 @@
-import os, logging, time, json, requests
-import pandas as pd
-
+import datetime
+import logging
+import os
+import json
 from datetime import datetime
-from flask_migrate import Migrate
-from lxml import html
 
-# Global DB context must be initialized before local imports
-from .db import db_context
+from filehash import FileHash
+from flask import g
+from sqlalchemy import desc
 
-from ..consts import Consts as consts
+from etmfa.consts import Consts as consts
+from etmfa.db.db import db_context
+from etmfa.db.models.documentcompare import Documentcompare
+from etmfa.db.models.pd_user_protocols import PDUserProtocols
+from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
+from etmfa.db.models.pd_roles import PDRoles
+from etmfa.db.models.pd_users import User
+from etmfa.db.models.pd_login import Login
+from etmfa.db.models.pd_pwd_tracker import PwdTracker
+from etmfa.db.models.pd_protocol_data import Protocoldata
+from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
+from etmfa.db.models.pd_protocol_sponsor import PDProtocolSponsor
+from etmfa.db.models.pd_protocol_saved_search import PDProtocolSavedSearch
+from etmfa.db.models.pd_protocol_recent_search import PDProtocolRecentSearch
+from etmfa.db.models.pd_protocol_indications import PDProtocolIndication
+from etmfa.db.models.amp_server_run_info import amp_server_run_info
+from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
+from etmfa.messaging.models.document_class import DocumentClass
+from etmfa.error import ManagementException
+from etmfa.error import ErrorCodes
+import ast
+
+
+
 logger = logging.getLogger(consts.LOGGING_NAME)
+os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
+NO_RESOURCE_FOUND = "No document resource was found in DB for ID: {}, {}"
+ERROR_PROCESSING_STATUS = "Error while updating processing status to pd_protocol_metadata to DB for ID: {},{}"
 
-# Import all models for table creation
-from .models.processing import Processing
-from .models.documenttranslate import DocumentTranslate
-from .models.metric import Metric
-from .models.translationmetric import TranslationMetric
-from .models.formattingmetric import FormattingMetric
-from .models.metadata import IQMetadata
-from .models.supportingdoc import SupportingDoc
-
-from .status import StatusEnum
-from ..messaging.models.translation_request import TranslationRequest
-
-from . import *
 
 # Global DB ORM object
 def init_db(app):
@@ -38,262 +51,425 @@ def init_db(app):
         db_context.create_all()
 
 
-def create_processing_config(kwargs):
-    config = Processing.query.one_or_none()
-    if config != None:
-        # update
-        for key in kwargs:
-            setattr(config, key, kwargs[key])
+def update_doc_processing_status(id: str, process_status: ProcessingStatus):
+    """ Receives id for the document being processed along with percent_complete and present status of document
+        If the document id being processed is present in DB, this function will update the percent_complete and
+        status of document.
+        If document id is not present in the DB, it will return a message saying document id not available"""
+
+    resource = get_doc_resource_by_id(id)
+    if resource is not None:
+        resource.percentComplete = process_status.value
+        resource.status = process_status.name
+
+        resource.lastUpdated = datetime.utcnow()
+
+        try:
+            db_context.session.commit()
+            return True
+        except Exception as ex:
+            db_context.session.rollback()
+
+            exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS)
+            received_documentprocessing_error_event(exception.__dict__)
+            logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
+
+    return False
+
+
+def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
+    resource = get_doc_status_processing_by_id(id, full_mapping=True)
+
+    if resource is not None:
+        resource.feedback = feedback_status.name
+        resource.lastUpdated = datetime.utcnow()
+        # log message for feedback received is updated to DB from users/reviewers
+        logger.info("Feedback received for id is updated to DB: {}".format(id))
+        try:
+            db_context.session.commit()
+            return True
+        except Exception as ex:
+            db_context.session.rollback()
+
+            exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS)
+            received_documentprocessing_error_event(exception.__dict__)
+            logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
+
+    return False
+
+
+def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_number2, project_id2, user_id):
+    compare = Documentcompare()
+    compare.compareId = compare_req_msg['COMPARE_ID']
+    compare.id1 = compare_req_msg['BASE_DOC_ID']
+    compare.protocolNumber = protocol_number
+    compare.projectId = project_id
+    compare.id2 = compare_req_msg['COMPARE_DOC_ID']
+    compare.protocolNumber2 = protocol_number2
+    compare.projectId2 = project_id2
+    compare.userId = user_id
+    compare.baseIqvXmlPath = compare_req_msg['BASE_IQVXML_PATH']
+    compare.compareIqvXmlPath = compare_req_msg['COMPARE_IQVXML_PATH']
+    compare.requestType = compare_req_msg['REQUEST_TYPE']
+    try:
+        db_context.session.add(compare)
+        db_context.session.commit()
+        return compare_req_msg
+    except Exception as ex:
+        db_context.session.rollback()
+        exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
+        received_documentprocessing_error_event(exception.__dict__)
+        logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
+            compare['compare_id'], ex))
+
+def insert_compare(comparevalues,comparedata,UPDATED_IQVXML_PATH):
+
+    resource = Documentcompare()
+    resource.id1=comparevalues[0]
+    resource.protocolNumber=comparevalues[1]
+    resource.projectId=comparevalues[2]
+    resource.versionNumber=comparevalues[3]
+    resource.amendmentNumber=comparevalues[4]
+    resource.documentStatus=comparevalues[5]
+    resource.id2=comparevalues[6]
+    resource.protocolNumber2=comparevalues[7]
+    resource.projectId2=comparevalues[8]
+    resource.versionNumber2=comparevalues[9]
+    resource.amendmentNumber2=comparevalues[10]
+    resource.documentStatus2=comparevalues[11]
+    resource.updatedIqvXmlPath=UPDATED_IQVXML_PATH
+    resource.iqvdata=str(json.dumps(comparedata))
+    resource.similarityScore=comparevalues[12]
+    try:
+        db_context.session.add(resource)
+        db_context.session.commit()
+    except Exception as ex:
+        db_context.session.rollback()
+        exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
+        received_documentprocessing_error_event(exception.__dict__)
+        logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
+            comparevalues['compare_id'], ex))
+
+
+def received_comparecomplete_event(msg_comparevalues, message_publisher):
+    if msg_comparevalues['ALL_COMPARISONS']:
+        for comparevalues,comparedata in msg_comparevalues['ALL_COMPARISONS'].items():
+            insert_compare(ast.literal_eval(comparevalues),comparedata,msg_comparevalues['UPDATED_IQVXML_PATH'])
     else:
-        # create
-        config = Processing(**kwargs)
-        db_context.session.add(config)
+        logger.warning('No values to compare. Moving to Finalization')
 
-    db_context.session.commit()
-    return config.as_dict()
+def received_finalizationcomplete_event(id, finalattributes, message_publisher):
+        finalattributes = finalattributes['db_data']
+        resource = get_doc_resource_by_id(id)
+        resource.isProcessing = False
+        resource.isActive = True
+        protocolmetadata=db_context.session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == id).first()
 
-def get_processing_config():
-    config = Processing.query.one_or_none()
-    if config == None:
-        return None
+        protocoldata = Protocoldata()
+        #protocolmetadata = PDProtocolMetadata()
+        protocolmetadata.protocolTitle = finalattributes['ProtocolTitle']
+        protocolmetadata.shortTitle = finalattributes['ShortTitle']
+        protocolmetadata.phase = finalattributes['phase']
+        protocolmetadata.approvalDate = (None if finalattributes['approval_date'] == '' else finalattributes['approval_date'])
+        protocoldata.isActive = True
+        protocoldata.id = finalattributes['AiDocId']
+        protocoldata.userId = finalattributes['UserId']
+        protocoldata.fileName = finalattributes['SourceFileName']
+        protocoldata.documentFilePath = finalattributes['documentPath']
+        protocoldata.iqvdataToc = str(json.dumps(finalattributes['toc']))
+        protocoldata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
+        #protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['iqvdataSoaStd']))
+        protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
 
-    return config.as_dict()
+        update_user_protocols(finalattributes['UserId'], finalattributes['ProjectId'], finalattributes['ProtocolNo'])
 
-def get_root_dir():
-    config = get_processing_config()
-    if config == None:
-        raise ValueError("Processing directory must be configured before files can be uploaded")
-
-    if not os.path.exists(config['processing_dir']):
-        os.makedirs(config['processing_dir'])
-
-    return config['processing_dir']
-
-def save_doc_translate(request, _id, doc_path, get_langs_uri):
-    resource = DocumentTranslate.from_post_request(request, _id, doc_path)
-
-    # validate params
-    lang_pairs = get_valid_lang_pairs(get_langs_uri)
-    is_valid_pair = any(filter(lambda lp: lp['source_lang_short'] == resource.source_lang_short and
-                                    lp['target_lang_short'] == resource.target_lang_short,
-                                    lang_pairs))
-
-    if not is_valid_pair:
-        raise ValueError("Source language ('{}') and Target language ('{}') must be supported language pairs.".format(resource.source_lang_short, resource.target_lang_short))
-
-    resource.status = StatusEnum.DECONSTRUCTION_STARTED
-    db_context.session.add(resource)
-    db_context.session.commit()
-    return resource.as_dict()
-
-def get_valid_lang_pairs(get_langs_uri):
-    resp = requests.get(get_langs_uri, verify=False)
-    return json.loads(resp.content)
+        try:
+            db_context.session.add(protocoldata)
+            db_context.session.commit()
+            update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED)
+        except Exception as ex:
+            db_context.session.rollback()
+            exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
+            received_documentprocessing_error_event(exception.__dict__)
+            logger.error("Error while writing record to PD_document_attributes file in DB for ID: {},{}".format(
+                finalattributes['AiDocId'], ex))
 
 
-def save_xliff_request(_id, xliff_path):
-    resource = get_doc_resource_by_id(_id)
+def received_documentprocessing_error_event(error_dict):
+    resource = get_doc_resource_by_id(error_dict['id'])
 
-    resource.last_updated = datetime.utcnow()
-    resource.is_processing = True
-    resource.status = StatusEnum.RECONSTRUCTION_STARTED
-    resource.edited_xliff_path = xliff_path
-    db_context.session.commit()
+    if resource is not None:
+        # Update error status for the document
+        resource.errorCode = error_dict['error_code']
+        resource.errorReason = error_dict['service_name'] + error_dict['error_message']
+        resource.status = "ERROR"
 
-    return resource.as_dict()
+        resource.isProcessing = False
+        resource.lastUpdated = datetime.utcnow()
 
-def received_deconstruction_event(id, xliff_path, message_publisher):
-    resource = get_doc_resource_by_id(id)
-
-    resource.deconstructed_xliff_path = xliff_path
-    resource.status = StatusEnum.TRANSLATION_STARTED
-    resource.last_updated = datetime.utcnow()
-    db_context.session.commit()
-
-    # Start translation request
-    translation_req_msg = TranslationRequest(
-        id,
-        resource.source_lang_short,
-        resource.target_lang_short,
-        xliff_path
-    )
-
-    message_publisher.send_obj(translation_req_msg)
-
-    return resource.as_dict()
-
-def received_translated_complete_event(id, xliff_path, metrics_dict):
-    resource = get_doc_resource_by_id(id)
-
-    # Update translation xliff_location
-    resource.is_processing = False
-    resource.translated_xliff_path = xliff_path
-    resource.status = StatusEnum.TRANSLATION_COMPLETED
-    resource.last_updated = datetime.utcnow()
-
-    # Update metrics
-    for k, v in metrics_dict.items():
-        upsert_translation_metric(resource.id, k, v)
-
-    db_context.session.commit()
-
-def received_reconstruction_complete_event(id, docPath):
-    resource = get_doc_resource_by_id(id)
-
-    # Update translation xliff_location
-    resource.is_processing = False
-    resource.formatted_doc_path = docPath
-    resource.status = StatusEnum.RECONSTRUCTION_COMPLETED
-    resource.last_updated = datetime.utcnow()
-    db_context.session.commit()
-
-def received_formatting_error_event(errorDict):
-    resource = get_doc_resource_by_id(errorDict['id'])
-
-    # Update status
-    resource.error_code = 1 # Doesn't mean anything
-    resource.error_reason = errorDict['message']
-    resource.status = StatusEnum.ERROR
-
-    resource.is_processing = False
-    resource.last_updated = datetime.utcnow()
-
-    db_context.session.commit()
-
-    errorDict['reason'] = errorDict['message']
-    errorDict.pop('message', None) # 'message' is a keyword in the logger that cannot be overwritten
-
-    logger.warn('A formatting error has occured for id: {}'.format(errorDict['id']), extra=errorDict)
+        try:
+            db_context.session.commit()
+        except Exception as ex:
+            db_context.session.rollback()
+            logger.exception(
+                f"Error while storing error message to pd_protocol_metadata DB table for ID: {error_dict['id'], ex}")
+    else:
+        logger.error(NO_RESOURCE_FOUND.format(id))
 
 
-def get_xliff_location_by_id(id):
-    """
-    Returns xliff path of corresponding resource
-    """
-    resource = get_doc_resource_by_id(id)
-    return resource.deconstructed_xliff_path
+def save_doc_processing(request, _id, doc_path, draftVersion):
+    resource = PDProtocolMetadata.from_post_request(request, _id, doc_path)
 
-def get_translated_xliff_location_by_id(id):
-    """
-    Returns xliff path of corresponding resource
-    """
-    resource = get_doc_resource_by_id(id)
-    return resource.translated_xliff_path
+    resource.documentFilePath = doc_path
+    resource.userId = request['userId']
+    resource.fileName = request['sourceFileName']
+    resource.versionNumber = request['versionNumber']
+    resource.protocol = request['protocolNumber']
+    resource.sponsor = request['sponsor']
+    resource.sourceSystem = request['sourceSystem']
+    resource.documentStatus = request['documentStatus']
+    resource.studyStatus = request['studyStatus']
+    resource.amendment = request['amendmentNumber']
+    resource.projectId = request['projectID']
+    resource.environment = request['environment']
+    resource.indication = request['indication']
+    resource.moleculeDevice = request['moleculeDevice']
+    resource.draftVersion = draftVersion
+    resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
+    resource.status = ProcessingStatus.TRIAGE_STARTED.name
 
-def get_doc_translate_by_id(id, full_mapping=False):
+
+    try:
+        db_context.session.add(resource)
+        db_context.session.commit()
+    except Exception as ex:
+        db_context.session.rollback()
+        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_SAVING)
+        received_documentprocessing_error_event(exception.__dict__)
+        logger.error(ERROR_PROCESSING_STATUS.format(_id, ex))
+
+
+def get_doc_processing_by_id(id, full_mapping=False):
     resource_dict = get_doc_resource_by_id(id).as_dict()
-
-    if not full_mapping:
-        return resource_dict
-
-    resource_dict['metrics'] = get_metrics_dict(id)
-    resource_dict['metadata'] = get_metadata_dict(id)['metadata']
 
     return resource_dict
 
-def get_doc_resource_by_id(id):
-    """
-    Returns the DTO by id.
-    Raises LookupError if no id is found.
-    """
 
-    resource = DocumentTranslate.query.filter(DocumentTranslate.id.like(str(id))).first()
+def get_doc_processed_by_id(id, full_mapping=True):
+    resource_dict = get_doc_attributes_by_id(id)
 
-    if resource == None:
-        raise LookupError("No translation resource was found in DB for ID: {}".format(id))
+    return resource_dict
+
+
+def get_doc_proc_metrics_by_id(id, full_mapping=True):
+    resource_dict = get_doc_metrics_by_id(id)
+
+    return resource_dict
+
+def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'final'):
+    protocolnumber = protocol_number
+    docstatus = doc_status
+    # to check the correct values are only extracted
+    try:
+        resource = db_context.session.query(PDProtocolMetadata, Protocoldata.iqvdataToc).filter(PDProtocolMetadata.protocol == protocolnumber,
+                                               PDProtocolMetadata.documentStatus == docstatus, PDProtocolMetadata.percentComplete == '100', PDProtocolMetadata.isActive == True).order_by(desc(PDProtocolMetadata.versionNumber))\
+                                               .join(Protocoldata, Protocoldata.id ==PDProtocolMetadata.id).first()
+        if resource:
+            result = resource[1]
+        else:
+            result = None
+    except Exception as e:
+        logger.error(NO_RESOURCE_FOUND.format(protocolnumber))
+        result = None
+    return result
+
+
+def get_mcra_latest_version_protocol(protocol_number, version_number):
+    # to check the correct values are only extracted
+    try:
+        if not version_number:
+            resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.isActive == True,
+                                                        PDProtocolMetadata.status == "PROCESS_COMPLETED",
+                                                        PDProtocolMetadata.protocol == protocol_number).order_by(PDProtocolMetadata.versionNumber.desc()).first()
+        else:
+            resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.isActive == True,
+                                                        PDProtocolMetadata.status == "PROCESS_COMPLETED",
+                                                        PDProtocolMetadata.protocol == protocol_number,
+                                                        PDProtocolMetadata.versionNumber >= version_number).order_by(PDProtocolMetadata.versionNumber.desc()).first()
+    except Exception as e:
+        logger.error(NO_RESOURCE_FOUND.format(protocol_number))
+    return resource
+
+
+
+def get_compare_documents(base_doc_id, compare_doc_id):
+    basedocid = base_doc_id
+    comparedocid = compare_doc_id
+    resource_IQVdata = None
+    resource = Documentcompare.query.filter(Documentcompare.id1 == basedocid, Documentcompare.id2 == comparedocid).first()
+    flag_order=1
+    if resource is None:
+        resource = Documentcompare.query.filter(Documentcompare.id1 == comparedocid,
+                                                Documentcompare.id2 == basedocid).first()
+        flag_order=-1
+
+
+    else:
+        None
+    #to check none
+    if resource is not None:
+        resource_IQVdata = resource.iqvdata
+    else:
+        logger.error(NO_RESOURCE_FOUND.format(basedocid, comparedocid))
+
+    return resource_IQVdata
+
+def get_doc_metrics_by_id(id):
+    g.aidocid = id
+    resource = Metric.query.filter(Metric.id.like(str(id))).first()
+
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(id))
 
     return resource
 
-def upsert_translation_metric(doc_translate_id, property_name, val):
-    """Adds or updates a name-value pair of a metric, referenced by a translation resource.
-    
-    Args:
-        doc_translate_id (int): Doc translation resource id
-        property_name (str): Metric field name
-        val (int): Metric value
-    """
-    doc_trans_resource = get_doc_resource_by_id(doc_translate_id)
-    metric = Metric.query.filter(Metric.document_translate_id==doc_trans_resource.p_id).first()
 
-    if metric == None:
-        metric = Metric(doc_trans_resource.p_id)
+def get_doc_status_processing_by_id(id, full_mapping=True):
+    resource_dict = get_doc_resource_by_id(id)
 
-    trans_metric = TranslationMetric(metric.id, property_name, val)
-    formatting_metric = FormattingMetric(metric.id, 'test', 'test')
-    metric.translation_metrics.append(trans_metric)
+    return resource_dict
 
-    db_context.session.add(metric)
-    db_context.session.commit()
+def get_compare_resource_by_compare_id(comparevalues):
+    compareid = comparevalues['COMPARE_ID']
+    resource = Documentcompare.query.filter(Documentcompare.compareId == compareid).first()
 
-def get_metrics_dict(doc_translate_id):
-    doc_trans_resource = get_doc_resource_by_id(doc_translate_id)
-    metric = Metric.query.filter(Metric.document_translate_id == doc_trans_resource.p_id).first()
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(compareid))
+    return resource
 
-    m_dict = {'translation_metrics': [], 'formatting_metrics': []}
+def get_doc_resource_by_id(id):
+    g.aidocid = id
+    resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.id.like(str(id))).first()
 
-    if metric == None:
-        return m_dict
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(id))
 
-    if metric.translation_metrics != None:
-        m_dict['translation_metrics'] = [{'name': m.name, 'val': m.value} for m in metric.translation_metrics]
-    
-    if metric.formatting_metrics != None:
-        m_dict['formatting_metrics'] = [{'name': m.name, 'val': m.value} for m in metric.formatting_metrics]
+    return resource
 
-    return m_dict    
+def get_user_protocol_by_id(id):
+    g.aidocid = id
+    resource = PDUserProtocols.query.filter(PDUserProtocols.id.like(str(id))).first()
 
-def upsert_metadata(doc_translate_id, name, value):
-    doc_trans_resource = get_doc_resource_by_id(doc_translate_id)
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(id))
 
-    # Make sure name doesn't already exist
-    metadata = IQMetadata.query.filter(IQMetadata.name==name).first()
-    if not metadata:
-        # Create
-        metadata = IQMetadata(doc_translate_id, name, value)
-        doc_trans_resource.iq_metadata.append(metadata)
+    return resource
+
+def upsert_attributevalue(doc_processing_id, namekey, value):
+    g.aidocid = id
+    doc_processing_resource = get_doc_attributes_by_id(doc_processing_id)
+
+    if doc_processing_resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(id))
     else:
-        # Update
-        metadata.value = value
+        try:
+            setattr(doc_processing_resource, namekey, value)
+            db_context.session.commit()
+        except Exception as ex:
+            db_context.session.rollback()
+            exception = ManagementException(id, ErrorCodes.ERROR_UPDATING_ATTRIBUTES)
+            received_documentprocessing_error_event(exception.__dict__)
+            logger.error("Error while updating attribute to PD_protocol_data to DB for ID: {},{}".format(
+                doc_processing_id, ex))
 
-    db_context.session.add(doc_trans_resource)
-    db_context.session.commit()
 
-def get_metadata_dict(doc_translate_id):
-    doc_trans_resource = get_doc_resource_by_id(doc_translate_id)
-    metadata = IQMetadata.query.filter(IQMetadata.document_translate_id==doc_trans_resource.p_id)
+def get_attribute_dict(doc_processing_id):
+    doc_processing_resource = get_doc_resource_by_id(doc_processing_id)
 
-    m_dict = {'metadata': []}
-    if metadata == None:
-        return m_dict
+    if doc_processing_resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(id))
 
-    for m in metadata:
-        m_dict['metadata'].append({'name': m.name, 'val': m.value})
+    return doc_processing_resource
 
-    return m_dict
 
-def add_supporting_doc(doc_trans_id, file_path, description):
-    doc_trans_resource = get_doc_resource_by_id(doc_trans_id)
-    supporting_doc = SupportingDoc(doc_trans_resource.p_id, file_path, description)
+def safe_unicode(obj, *args):
+    """ return the unicode representation of obj """
+    try:
+        return str(obj, *args)
+    except UnicodeDecodeError:
+        # obj is byte string
+        ascii_text = str(obj).encode('string_escape')
+        return str(ascii_text)
 
-    doc_trans_resource.supporting_docs.append(supporting_doc)
+def get_latest_record(sponsor, protocol_number, version_number):
+    # to get the latest record based on sponsor, protocol_number, version_number
+    resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.sponsor == sponsor,
+                                               PDProtocolMetadata.protocol == protocol_number,
+                                               PDProtocolMetadata.versionNumber == version_number).order_by(PDProtocolMetadata.timeCreated.desc()).first()
 
-    db_context.session.add(doc_trans_resource)
-    db_context.session.commit()
+    return resource
+
+def set_draft_version(document_status, sponsor, protocol, version_number):
+    # to set draft version for documents
+    if not version_number:
+        version_number = '-0.01'
+
+    if document_status == 'draft':
+        resource = get_latest_record(sponsor, protocol, version_number)
+
+        if resource is None:
+            draftVersion = float(version_number) + 0.01
+        else:
+            if resource.documentStatus == 'draft':
+                old_draftVersion = resource.draftVersion
+                draftVersion = float(old_draftVersion) + 0.01
+            else:
+                draftVersion = float(version_number) + 0.01
+    else:
+        draftVersion = None
+    return draftVersion 
+
+def get_record_by_userid_protocol(user_id, protocol_number):
+    # get record from user_protocol table on userid and protocol fields
+    resource = PDUserProtocols.query.filter(PDUserProtocols.userId == user_id).filter(PDUserProtocols.protocol == protocol_number).all()
+
+    return resource
+
+def get_record_by_userid_projectid(user_id, project_id):
+    # get record from user_protocol table on userid and projectid fields
+    resource = PDUserProtocols.query.filter(PDUserProtocols.userId == user_id, PDUserProtocols.projectId == project_id).all()
+
+    return resource
+
+def update_user_protocols(user_id, project_id, protocol_number):
+    userprotocols = PDUserProtocols()
+
+    if protocol_number:
+        records = get_record_by_userid_protocol(user_id, protocol_number)
     
-    return supporting_doc.as_dict()
-
-def get_supporting_docs(doc_translate_id):
-    doc_trans_resource = get_doc_resource_by_id(doc_translate_id)
-    supporting_docs = SupportingDoc.query.filter(SupportingDoc.document_translate_id==doc_trans_resource.p_id)
-
-    return {'supporting_docs': [s.as_dict() for s in supporting_docs]}
-
-
-def delete_doctranslate_request(doc_translate_id):
-    doc_trans_resource = get_doc_resource_by_id(doc_translate_id)
-    doc_trans_resource.is_deleted = True
-    doc_trans_resource.last_updated = datetime.utcnow()
-
-    db_context.session.commit()
-
-    return get_doc_translate_by_id(doc_translate_id, full_mapping=True)
+    if not protocol_number and project_id is not None:
+        records = get_record_by_userid_projectid(user_id, project_id)
+    
+    if not records:
+        userprotocols.isActive = True
+        userprotocols.userId = user_id
+        userprotocols.projectId = project_id
+        userprotocols.protocol = protocol_number
+        try:
+            db_context.session.add(userprotocols)
+            db_context.session.commit()
+        except Exception as ex:
+            db_context.session.rollback()
+            logger.error("Error while writing record to PD_user_protocol file in DB for user id: {},{}".format(
+                user_id, ex))
+    else:
+        for record in records:
+            if record.isActive == False:
+                record.isActive = True
+            else:
+                continue
+            try:
+                db_context.session.commit()
+            except Exception as ex:
+                db_context.session.rollback()
+                logger.error("Error while updating record to PD_user_protocol file in DB for user id: {},{}".format(user_id, ex))

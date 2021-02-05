@@ -1,0 +1,78 @@
+variables:
+  BUILD_ENV: "pd-build-mgmt-373"
+  RUNNING_ENV: "pd-ci-mgmt-373"
+  PYTHON_PATH: "/D/Projects/PD/softwares/python/python-3.7.3"
+  BASE_PYTHON_PATH: "D:/Projects/PD/softwares/python/python-3.7.3"
+  VE_PATH: "${CI_BUILDS_DIR}/${RUNNING_ENV}/Scripts/activate.ps1"
+  NSSM_PATH: "/D/Projects/PD/softwares/nssm/nssm-2.24/win64/nssm.exe"
+  SERVICE_NAME: "pd-ci-mgmt"
+  PACKAGE: "pd-mgmt"
+  GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
+  CI_DEBUG_TRACE: "false"
+
+
+stages:
+  - test
+  - build
+  - deploy
+
+default:
+  before_script:
+    - sh etmfa/ci_scripts/create_venv.sh
+    - . $VE_PATH
+
+flake8:
+  tags:
+    - pd-dev-windows-ml01q
+  stage: test
+  script:
+    - flake8 --ignore=E etmfa
+  allow_failure: true # Remove it, when ready
+  only:
+    - develop
+    - merge_requests
+
+unit-tests:
+  tags:
+      - pd-dev-windows-ml01q
+  stage: test
+  before_script:
+    - . $VE_PATH
+  script:
+    - python -m pytest -v --junit-xml=test_results.xml --cov=etmfa --cov-report=xml
+  allow_failure: true # Remove it, when ready
+  artifacts:
+      paths:
+      - test_results.xml
+      - coverage.xml
+  only:
+    - develop
+    - merge_requests
+
+build:
+  tags:
+    - pd-dev-windows-ml01q
+  stage: build
+  before_script:
+    - . $VE_PATH  
+  script:
+    - python setup.py sdist
+  artifacts:
+    paths:
+      - dist/
+  only:
+    - develop
+    - merge_requests
+    
+deploy-dev:
+  tags:
+    - pd-dev-windows-ml01q
+  stage: deploy
+  variables:
+    VERIFICATION_URL: "http://ca2spdml01q:9001/pd/api/health"
+  script:
+    - sh etmfa/ci_scripts/deploy.sh dev
+  environment:
+    name: dev
+  only:
+    - develop

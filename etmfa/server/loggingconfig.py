@@ -1,26 +1,27 @@
-import logging, sys, traceback, json
-from flask import request, jsonify
-from flask_restplus import abort
+import logging
+import os
 
+from etmfa.consts import Consts
+from etmfa.consts import Globals
+from etmfa.server.api import api
+from flask import request
 from logstash_async.handler import AsynchronousLogstashHandler
-from .api import api
 
-from ..consts import Consts as consts
 
 @api.errorhandler
 def handle_global_errors(error):
-    logger = logging.getLogger(consts.LOGGING_NAME)
+    logger = logging.getLogger(Consts.LOGGING_NAME)
 
     try:
         payload = dict({'req': {
-                    'headers': dict(request.headers),
-                    'url': request.url,
-                    'values': request.values,
-                    'json': request.json,
-                }
-            })
-
-        logger.exception(error, extra=payload)
+            'headers': dict(request.headers),
+            'url': request.url,
+            'values': request.values,
+            'json': request.json,
+        }
+        })
+        if not isinstance(error, LookupError):
+            logger.exception(error, extra=payload)
     except Exception as e:
         logger.exception(e, exc_info=True)
 
@@ -31,12 +32,52 @@ def handle_global_errors(error):
     return {'message': str(error)}, getattr(error, 'code', 500)
 
 
-# Configure
-def configure_logging(app, log_level=logging.DEBUG):
-    root = logging.getLogger(consts.LOGGING_NAME)
-    root.setLevel(log_level)
+DB_DIR = os.path.join("logs")
+DB_FILE = os.path.join(DB_DIR, "logstash.db")
 
-    handler = AsynchronousLogstashHandler(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'], database_path='logstash.db')
-    root.addHandler(handler)
 
-    return root
+class ContextFilter(logging.Filter):
+    def filter(self, record):
+        record.aidocid = None
+
+        try:
+            record.aidocid = Globals.FLASK_LOCAL.aidocid
+        except (RuntimeError, AttributeError):
+            # Not in Flask app context or missing attribute
+            pass
+
+        try:
+            record.aidocid = Globals.GEVENT_LOCAL.aidocid
+        except AttributeError:
+            # Not in gevent context or missing attribute
+            pass
+
+        try:
+            record.aidocid = Globals.THREAD_LOCAL.aidocid
+        except AttributeError:
+            pass
+
+        return True
+
+
+def initialize_logger(app, debug=True, module_name=Consts.LOGGING_NAME):
+    if not os.path.exists(DB_DIR):
+        os.makedirs(DB_DIR)
+
+    logger = logging.getLogger(module_name)
+    logger.setLevel(logging.DEBUG)
+
+    elkHandler = AsynchronousLogstashHandler(app.config['LOGSTASH_HOST'],
+                                             app.config['LOGSTASH_PORT'],
+                                             database_path=DB_FILE)
+    elkHandler.setLevel(logging.INFO)
+    logger.addHandler(elkHandler)
+
+    if debug:
+        consoleHandler = logging.StreamHandler()
+        consoleHandler.setLevel(logging.DEBUG)
+        consoleFormatter = logging.Formatter('%(asctime)s %(levelname)s [%(name)s] [%(aidocid)s] %(message)s')
+        consoleHandler.setFormatter(consoleFormatter)
+        logger.addHandler(consoleHandler)
+
+    logger.addFilter(ContextFilter())

@@ -1,28 +1,29 @@
-import threading, logging, sys, traceback, json
+import threading
+from dataclasses import asdict
+from functools import partial
 
-from kombu import Connection, Exchange, Queue
+from kombu import Connection
 
-from .messagelistener import MessageListener
+from etmfa.messaging.messagelistener import MessageListener
+from etmfa.messaging.models.generic_request import GenericRequest,OmapRequest,DIG2OMAPRequest, CompareRequest
+from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
+from etmfa.messaging.models.queue_names import EtmfaQueues
+# Added for OMOP
+import os
+from etmfa.server.config import Config
 
-from .models.formatting_deconstruction_complete import FormattingDeconstructionComplete
-from .models.formatting_deconstruction_request import FormattingDeconstructionRequest
-from .models.translation_complete import TranslationComplete
-from .models.formatting_reconstruction_complete import FormattingReconstructionComplete
-from .models.formatting_error import FormattingError
 
 def msg_listening_worker(app, listener):
     with app.app_context():
         listener.run()
 
-def initialize_msg_listeners(app, connection_str, exchange_name, logger):
-    """
-    """
 
+def initialize_msg_listeners(app, connection_str, exchange_name, logger):
     with Connection(connection_str) as conn:
         # consume
         consumer = MessageListener(conn, connection_str, exchange_name, logger=logger)
         consumer = build_queue_callbacks(consumer)
-        
+
         daemon_handle = threading.Thread(
             name='msg_listener_daemon',
             target=msg_listening_worker,
@@ -31,31 +32,131 @@ def initialize_msg_listeners(app, connection_str, exchange_name, logger):
         daemon_handle.setDaemon(True)
         daemon_handle.start()
         logger.info("Consuming queues...")
-        
+
     return daemon_handle
 
 
 def build_queue_callbacks(queue_worker):
-    queue_worker.add_listener(FormattingDeconstructionComplete.QUEUE_NAME, on_deconstruction_complete)
-    queue_worker.add_listener(TranslationComplete.QUEUE_NAME, on_translation_complete)
-    queue_worker.add_listener(FormattingReconstructionComplete.QUEUE_NAME, on_reconstruction_complete)
-    queue_worker.add_listener(FormattingError.QUEUE_NAME, on_formatting_error)
+
+    queue_worker.add_listener(EtmfaQueues.TRIAGE.complete, on_triage_complete)
+    queue_worker.add_listener(EtmfaQueues.DIGITIZER1.complete,
+                              partial(on_generic_complete_event, status=ProcessingStatus.DIGITIZER2_STARTED,
+                                      dest_queue_name=EtmfaQueues.DIGITIZER2.request))
+    # added for i2e omop update
+    queue_worker.add_listener(EtmfaQueues.DIGITIZER2.complete,
+                              partial(on_digitizer2_complete_event, status=ProcessingStatus.I2E_OMOP_UPDATE_STARTED,
+                                      dest_queue_name=EtmfaQueues.I2E_OMOP_UPDATE.request))
+    queue_worker.add_listener(EtmfaQueues.I2E_OMOP_UPDATE.complete,
+                              partial(on_i2e_omop_update_complete_event, status=ProcessingStatus.DIGITIZER2_OMOPUPDATE_STARTED,
+                                      dest_queue_name=EtmfaQueues.DIGITIZER2_OMOPUPDATE.request))
+    queue_worker.add_listener(EtmfaQueues.DIGITIZER2_OMOPUPDATE.complete,
+                              partial(on_generic_complete_event, status=ProcessingStatus.EXTRACTION_STARTED,
+                                      dest_queue_name=EtmfaQueues.EXTRACTION.request))
+    queue_worker.add_listener(EtmfaQueues.EXTRACTION.complete, on_extraction_complete_event)
+
+    queue_worker.add_listener(EtmfaQueues.COMPARE.complete,on_compare_complete)
+
+    queue_worker.add_listener(EtmfaQueues.FINALIZATION.complete, on_finalization_complete)
+
+    queue_worker.add_listener(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value, on_documentprocessing_error)
 
     return queue_worker
 
 
-def on_deconstruction_complete(format_decon_obj, message_publisher):
-    from ..db import received_deconstruction_event
-    received_deconstruction_event(format_decon_obj['id'], format_decon_obj['xliffPath'], message_publisher)
 
-def on_translation_complete(translation_complete_obj, message_publisher):
-    from ..db import received_translated_complete_event
-    received_translated_complete_event(translation_complete_obj['id'], translation_complete_obj['xliff_path'], translation_complete_obj['metrics'])
+def on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queue_name):
+    # TODO: Resolve Circular Dependency
+    from etmfa.db import update_doc_processing_status
+    update_doc_processing_status(msg_proc_obj['id'], status)
+    request = GenericRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'])
 
-def on_reconstruction_complete(format_recon_obj, message_publisher):
-    from ..db import received_reconstruction_complete_event
-    received_reconstruction_complete_event(format_recon_obj['id'], format_recon_obj['finalDocumentPath'])
+    message_publisher.send_dict(asdict(request), dest_queue_name)
 
-def on_formatting_error(error_obj, message_publisher):
-    from ..db import received_formatting_error_event
-    received_formatting_error_event(error_obj)
+# omap update
+def on_digitizer2_complete_event(msg_proc_obj, message_publisher, status, dest_queue_name):
+    from etmfa.db import update_doc_processing_status
+    update_doc_processing_status(msg_proc_obj['id'], status)
+    try :
+        IQVXMLPath=os.path.join(Config.DFS_UPLOAD_FOLDER,msg_proc_obj['id'])
+        file =[f for f in os.listdir(IQVXMLPath) if f.endswith('.omop.xml')][0]
+        file=os.path.join(IQVXMLPath,file)
+
+    except Exception as e :
+        file=None
+
+    request = DIG2OMAPRequest(msg_proc_obj['id'],file)
+
+    message_publisher.send_dict(asdict(request), dest_queue_name)
+
+
+def on_extraction_complete_event(msg_proc_obj, message_publisher):
+    from etmfa.db import get_doc_resource_by_id, update_doc_processing_status
+
+    resource = get_doc_resource_by_id(msg_proc_obj['id'])
+    if resource.protocol is not None:
+        dest_queue_name = EtmfaQueues.COMPARE.request
+        status = ProcessingStatus.COMPARE_STARTED
+        update_doc_processing_status(msg_proc_obj['id'], status)
+        request = CompareRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'], resource.protocol)
+    else:
+        dest_queue_name = EtmfaQueues.FINALIZATION.request
+        status = ProcessingStatus.FINALIZATION_STARTED
+        update_doc_processing_status(msg_proc_obj['id'], status)
+        request = GenericRequest(msg_proc_obj['id'], msg_proc_obj['IQVXMLPath'])
+
+    message_publisher.send_dict(asdict(request), dest_queue_name)
+
+
+def on_i2e_omop_update_complete_event(msg_proc_obj, message_publisher, status, dest_queue_name):
+
+    try :
+        IQVXMLPath=os.path.join(Config.DFS_UPLOAD_FOLDER,msg_proc_obj['id'])
+        for f in os.listdir(IQVXMLPath):
+            if f.startswith('D2_D1_'):
+                file = f
+                break
+            elif f.startswith('D2_'):
+                file=f
+                break
+        file=os.path.join(IQVXMLPath,file)
+    except Exception as e :
+        file=None
+
+    request = OmapRequest(msg_proc_obj['id'], msg_proc_obj['updated_omop_xml_path'],file,dest_queue_name)
+
+
+    message_publisher.send_dict(asdict(request), dest_queue_name)
+
+def on_triage_complete(msg_proc_obj, message_publisher):
+    if msg_proc_obj['ocr_required']:
+        dest_queue = EtmfaQueues.DIGITIZER1.request
+        status = ProcessingStatus.DIGITIZER1_STARTED
+    else:
+        dest_queue = EtmfaQueues.DIGITIZER2.request
+        status = ProcessingStatus.DIGITIZER2_STARTED
+
+    return on_generic_complete_event(msg_proc_obj, message_publisher, status, dest_queue)
+
+def on_finalization_complete(msg_proc_obj, message_publisher):
+    from etmfa.db import received_finalizationcomplete_event
+    received_finalizationcomplete_event(msg_proc_obj['id'], msg_proc_obj, message_publisher)
+
+
+def on_feedback_complete(msg_proc_obj, message_publisher):
+    from etmfa.db import received_feedbackcomplete_event
+    received_feedbackcomplete_event(msg_proc_obj['id'], FeedbackStatus.FEEDBACK_COMPLETED)
+
+
+def on_compare_complete(msg_proc_obj, message_publisher):
+    from etmfa.db import received_comparecomplete_event, update_doc_processing_status
+    received_comparecomplete_event(msg_proc_obj, message_publisher)
+    dest_queue = EtmfaQueues.FINALIZATION.request
+    status = ProcessingStatus.FINALIZATION_STARTED
+    update_doc_processing_status(msg_proc_obj['ID'], status)
+    request = GenericRequest(msg_proc_obj['ID'], msg_proc_obj['UPDATED_IQVXML_PATH'])
+    message_publisher.send_dict(asdict(request), dest_queue)
+
+
+def on_documentprocessing_error(error_obj, message_publisher):
+    from etmfa.db import received_documentprocessing_error_event
+    received_documentprocessing_error_event(error_obj)
