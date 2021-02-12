@@ -29,6 +29,7 @@ class Documentcompare(db_context.Model):
     updatedIqvXmlPath = db_context.Column(db_context.String(500))
     similarityScore = db_context.Column(db_context.Integer())
     swap = db_context.Column(db_context.Boolean())
+    
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         return obj
