@@ -42,7 +42,7 @@ for i in {1..10}; do
     for j in {1..10}; do
       echo "Verifying service reachability (retry: $j)"
       APP_RESPONSE=$(curl --insecure -L "$VERIFICATION_URL")
-      if [ "$APP_RESPONSE" == "ACCEPTING_REQUEST" ]; then
+      if [ "$APP_RESPONSE" == "F5-UP" ]; then
         echo "Received success health status: $APP_RESPONSE"
         exit 0
       else
