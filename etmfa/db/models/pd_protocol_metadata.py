@@ -7,7 +7,7 @@ class PDProtocolMetadata(db_context.Model):
     __tablename__ = "pd_protocol_metadata"
 
     # intake fields
-    isActive = db_context.Column(db_context.Boolean(), default=True)
+    isActive = db_context.Column(db_context.Boolean(), default=False)
     id = db_context.Column(db_context.String(100), primary_key=True)
     userId = db_context.Column(db_context.String(100), primary_key=True)
     fileName = db_context.Column(db_context.String(100))
