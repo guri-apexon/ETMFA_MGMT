@@ -163,7 +163,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         finalattributes = finalattributes['db_data']
         resource = get_doc_resource_by_id(id)
         resource.isProcessing = False
-        resource.isActive = False
+        resource.isActive = True  # changed it back to true
         protocolmetadata=db_context.session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == id).first()
 
         protocoldata = Protocoldata()
