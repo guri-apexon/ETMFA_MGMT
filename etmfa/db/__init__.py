@@ -18,6 +18,7 @@ from etmfa.db.models.pd_users import User
 from etmfa.db.models.pd_login import Login
 from etmfa.db.models.pd_pwd_tracker import PwdTracker
 from etmfa.db.models.pd_protocol_data import Protocoldata
+from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 from etmfa.db.models.pd_protocol_sponsor import PDProtocolSponsor
 from etmfa.db.models.pd_protocol_saved_search import PDProtocolSavedSearch
@@ -162,16 +163,17 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         finalattributes = finalattributes['db_data']
         resource = get_doc_resource_by_id(id)
         resource.isProcessing = False
-        resource.isActive = True
+        resource.isActive = True  # changed it back to true
         protocolmetadata=db_context.session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == id).first()
 
         protocoldata = Protocoldata()
+        protocolqcdata = Protocolqcdata()
         #protocolmetadata = PDProtocolMetadata()
         protocolmetadata.protocolTitle = finalattributes['ProtocolTitle']
         protocolmetadata.shortTitle = finalattributes['ShortTitle']
         protocolmetadata.phase = finalattributes['phase']
         protocolmetadata.approvalDate = (None if finalattributes['approval_date'] == '' else finalattributes['approval_date'])
-        protocoldata.isActive = True
+        protocoldata.isActive = False
         protocoldata.id = finalattributes['AiDocId']
         protocoldata.userId = finalattributes['UserId']
         protocoldata.fileName = finalattributes['SourceFileName']
@@ -181,17 +183,29 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         #protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['iqvdataSoaStd']))
         protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
 
+        #Protocol qc data table updation for Backup purpose of original data
+        protocolqcdata.isActive = False
+        protocolqcdata.id = finalattributes['AiDocId']
+        protocolqcdata.userId = finalattributes['UserId']
+        protocolqcdata.fileName = finalattributes['SourceFileName']
+        protocolqcdata.documentFilePath = finalattributes['documentPath']
+        protocolqcdata.iqvdataToc = str(json.dumps(finalattributes['toc']))
+        protocolqcdata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
+        #protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['iqvdataSoaStd']))
+        protocolqcdata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
+
         update_user_protocols(finalattributes['UserId'], finalattributes['ProjectId'], finalattributes['ProtocolNo'])
 
         try:
             db_context.session.add(protocoldata)
+            db_context.session.add(protocolqcdata)
             db_context.session.commit()
-            update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED)
+            update_doc_processing_status(id, ProcessingStatus.QC1)
         except Exception as ex:
             db_context.session.rollback()
             exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
             received_documentprocessing_error_event(exception.__dict__)
-            logger.error("Error while writing record to PD_document_attributes file in DB for ID: {},{}".format(
+            logger.error("Error while writing record to file in DB for ID: {},{}".format(
                 finalattributes['AiDocId'], ex))
 
 
@@ -272,7 +286,7 @@ def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'final')
     # to check the correct values are only extracted
     try:
         resource = db_context.session.query(PDProtocolMetadata, Protocoldata.iqvdataToc).filter(PDProtocolMetadata.protocol == protocolnumber,
-                                               PDProtocolMetadata.documentStatus == docstatus, PDProtocolMetadata.percentComplete == '100', PDProtocolMetadata.isActive == True).order_by(desc(PDProtocolMetadata.versionNumber))\
+                                               PDProtocolMetadata.documentStatus == docstatus, PDProtocolMetadata.status == 'PROCESS_COMPLETED', PDProtocolMetadata.isActive == True).order_by(desc(PDProtocolMetadata.versionNumber))\
                                                .join(Protocoldata, Protocoldata.id ==PDProtocolMetadata.id).first()
         if resource:
             result = resource[1]

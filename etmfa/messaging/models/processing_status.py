@@ -13,7 +13,8 @@ class ProcessingStatus(Enum):
     EXTRACTION_STARTED = 75
     COMPARE_STARTED = 85
     FINALIZATION_STARTED = 95
-    PROCESS_COMPLETED = 100
+    QC1 = 100 #this was updated for manual qc process from process completed to QC1 status
+    # PROCESS_COMPLETED = 100
 
 
 @unique
