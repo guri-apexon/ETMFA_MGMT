@@ -43,7 +43,9 @@ from etmfa.server.namespaces.serializers import (
     pd_compare_object_post,
     pd_compare_get,
     pd_compare_post_response,
-    pd_compare_object_input_get
+    pd_compare_object_input_get,
+    pd_qc_check_update
+
 )
 from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
@@ -137,6 +139,9 @@ class DocumentprocessingAPI(Resource):
             return get_doc_processed_by_id(id)
 
 
+
+
+
 @ns.route('/<string:id>/status')
 @ns.response(404, 'Document Processing resource not found.')
 @ns.response(500, 'Server error.')
@@ -228,6 +233,26 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
+
+
+
+@ns.route('/pd_qc_check_update')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(pd_qc_check_update)
+    @ns.response(200, 'Success.')
+    @ns.response(404, 'Document Processing resource not found.')
+    def get(self):
+        """Get the document processing object attributes"""
+        args = pd_qc_check_update.parse_args()
+        try:
+            aidocid = args['aidoc_id'] if args['aidoc_id'] is not None else ' '
+            userid = args['approvedBy'] if args['approvedBy'] is not None else ''
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
+
+
 
 
 
