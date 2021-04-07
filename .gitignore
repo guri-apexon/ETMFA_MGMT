@@ -54,6 +54,7 @@ coverage.xml
 processeddata/
 testoutput/
 test_results.xml
+test_mcralatestversion.py
 
 # Flask stuff:
 instance/
