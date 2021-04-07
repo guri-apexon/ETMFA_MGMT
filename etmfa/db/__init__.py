@@ -315,7 +315,6 @@ def get_mcra_latest_version_protocol(protocol_number, version_number):
     return resource
 
 
-
 def get_compare_documents(base_doc_id, compare_doc_id):
     basedocid = base_doc_id
     comparedocid = compare_doc_id

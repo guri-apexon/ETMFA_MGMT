@@ -254,6 +254,20 @@ mCRA_latest_protocol_get = api.model('Document Processing Status Model',
                              )
 
 
+pd_qc_check_update = reqparse.RequestParser()
+pd_qc_check_update.add_argument('aidoc_id',
+                                   type=str,
+                                   required=True,
+                                   help='Aidoc id')
+pd_qc_check_update.add_argument('approvedBy',
+                               type=str,
+                               required=True,
+                               help='User Id')
+
+
+
+
+
 pd_compare_object_post = reqparse.RequestParser()
 pd_compare_object_post.add_argument('protocolNumber',
                                type=str,
