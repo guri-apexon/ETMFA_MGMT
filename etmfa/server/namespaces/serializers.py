@@ -47,6 +47,18 @@ eTMFA_object_get = api.model('Document Processing Status Model',
                              }
                              )
 
+
+PD_qc_get = api.model('Document Processing Status Model',
+                             {
+                                 'aidoc_id': fields.String(readOnly=True,
+                                                     description='The aidocid for QC update.'),
+                                 'qcApprovedBy': fields.String(readOnly=True,
+                                                                description='The approved by user id.'),
+
+                             }
+                             )
+
+
 eTMFA_object_get_status = api.model('Document Processing Status Model',
                                     {
                                         'id': fields.String(readOnly=True,
@@ -254,15 +266,7 @@ mCRA_latest_protocol_get = api.model('Document Processing Status Model',
                              )
 
 
-pd_qc_check_update = reqparse.RequestParser()
-pd_qc_check_update.add_argument('aidoc_id',
-                                   type=str,
-                                   required=True,
-                                   help='Aidoc id')
-pd_qc_check_update.add_argument('approvedBy',
-                               type=str,
-                               required=True,
-                               help='User Id')
+
 
 
 
@@ -341,6 +345,17 @@ pd_compare_get = api.model('Document compare Model',
                                                               description="Complete blog of TOC, Summary, SOA output details for the request")
                                  }
                                  )
+
+
+pd_qc_check_update_post = reqparse.RequestParser()
+pd_qc_check_update_post.add_argument('aidoc_id',
+                                   type=str,
+                                   required=True,
+                                   help='Aidoc id')
+pd_qc_check_update_post.add_argument('qcApprovedBy',
+                               type=str,
+                               required=True,
+                               help='Qc_approved_by')
 
 
 eTMFA_object_post = reqparse.RequestParser()

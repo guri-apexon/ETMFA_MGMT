@@ -33,6 +33,7 @@ from etmfa.server.api import api
 from etmfa.server.namespaces.serializers import (
     metadata_post,
     eTMFA_object_get,
+    PD_qc_get,
     eTMFA_object_get_status,
     eTMFA_attributes_get,
     eTMFA_object_post,
@@ -44,7 +45,7 @@ from etmfa.server.namespaces.serializers import (
     pd_compare_get,
     pd_compare_post_response,
     pd_compare_object_input_get,
-    pd_qc_check_update
+    pd_qc_check_update_post
 
 )
 from flask import current_app, request, abort, g
@@ -57,6 +58,7 @@ SERVER_ERROR = 'Server error: {}'
 DOCUMENT_COMPARISON_ALREADY_PRESENT = 'Comparison already present for given protocols'
 
 ns = api.namespace('PD', path='/v1/documents', description='REST endpoints for PD workflows.')
+
 
 
 @ns.route('/')
@@ -117,6 +119,23 @@ class DocumentprocessingAPI(Resource):
 
         # Return response object
         return get_doc_processing_by_id(_id, full_mapping=True)
+
+@ns.route('/pd_qc_check_update')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(pd_qc_check_update_post)
+    @ns.marshal_with(PD_qc_get)
+    @ns.response(200, 'Success.')
+    @ns.response(404, 'Document Processing resource not found.')
+    def post(self):
+        """Get the document processing object attributes"""
+        args = pd_qc_check_update_post.parse_args()
+        try:
+            aidocid = args['aidoc_id'] if args['aidoc_id'] is not None else ' '
+            userid = args['qcApprovedBy'] if args['qcApprovedBy'] is not None else ''
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
 
 
 @ns.route('/<string:id>/key/value')
@@ -233,27 +252,6 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
-
-
-
-@ns.route('/pd_qc_check_update')
-@ns.response(500, 'Server error.')
-class DocumentprocessingAPI(Resource):
-    @ns.expect(pd_qc_check_update)
-    @ns.response(200, 'Success.')
-    @ns.response(404, 'Document Processing resource not found.')
-    def get(self):
-        """Get the document processing object attributes"""
-        args = pd_qc_check_update.parse_args()
-        try:
-            aidocid = args['aidoc_id'] if args['aidoc_id'] is not None else ' '
-            userid = args['approvedBy'] if args['approvedBy'] is not None else ''
-        except ValueError as e:
-            logger.error(SERVER_ERROR.format(e))
-            return abort(500, SERVER_ERROR.format(e))
-
-
-
 
 
 @ns.route('/compareattributes')
