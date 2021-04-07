@@ -248,11 +248,6 @@ class DocumentprocessingAPI(Resource):
         try:
             aidocid = args['aidoc_id'] if args['aidoc_id'] is not None else ' '
             userid = args['approvedBy'] if args['approvedBy'] is not None else ''
-            # resource = pd_fetch_summary_data(aidocid, userid)
-            # if resource is None:
-            #     return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
-            # else:
-            #     return resource
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
