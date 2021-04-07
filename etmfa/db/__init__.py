@@ -25,6 +25,7 @@ from etmfa.db.models.pd_protocol_saved_search import PDProtocolSavedSearch
 from etmfa.db.models.pd_protocol_recent_search import PDProtocolRecentSearch
 from etmfa.db.models.pd_protocol_indications import PDProtocolIndication
 from etmfa.db.models.amp_server_run_info import amp_server_run_info
+from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
 from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.error import ManagementException
