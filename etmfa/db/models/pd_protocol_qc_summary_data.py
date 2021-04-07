@@ -37,6 +37,7 @@ class PDProtocolQCSummaryData(db_context.Model):
     primaryObjectives = db_context.Column(db_context.String(4096))
     secondaryObjectives = db_context.Column(db_context.String(4096))
 
+    isActive = db_context.Column(db_context.Boolean(), default=True)
     qcApprovedBy = db_context.Column(db_context.String(16))
     userCreated = db_context.Column(db_context.String(64))
     timeCreated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
