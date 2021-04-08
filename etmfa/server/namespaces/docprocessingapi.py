@@ -18,7 +18,8 @@ from etmfa.db import (
     get_doc_processed_by_id,
     get_doc_status_processing_by_id,
     get_mcra_attributes_by_protocolnumber,
-    get_mcra_latest_version_protocol,
+    get_latest_protocol,
+    post_process_resource,
     get_compare_documents,
     #get_compare_documents_validation,
     add_compare_event,
@@ -39,8 +40,9 @@ from etmfa.server.namespaces.serializers import (
     eTMFA_object_post,
     pd_object_get_summary,
     mCRA_attributes_input,
-    mCRA_latest_protocol_input,
-    mCRA_latest_protocol_get,
+    latest_protocol_input,
+    latest_protocol_get,
+    latest_protocol_download_input,
     pd_compare_object_post,
     pd_compare_get,
     pd_compare_post_response,
@@ -52,7 +54,7 @@ from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
 
 logger = logging.getLogger(consts.LOGGING_NAME)
-DOCUMENT_NOT_FOUND = 'Document Processing resource not found for given data: {}'
+DOCUMENT_NOT_FOUND = 'Document resource is not found for the requested input(s): {}'
 Compare_feature_notavail = 'Comparison for the given base_id {} and compare_id {} not available'
 SERVER_ERROR = 'Server error: {}'
 DOCUMENT_COMPARISON_ALREADY_PRESENT = 'Comparison already present for given protocols'
@@ -183,20 +185,26 @@ class DocumentprocessingAPI(Resource):
 @ns.route('/mcra_download_protocols')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
-    @ns.expect(mCRA_latest_protocol_input)
+    @ns.expect(latest_protocol_download_input)
     @ns.response(200, 'Success.')
     @ns.response(404, 'Document Processing resource not found.')
     def get(self):
         """Get the document processing object attributes"""
-        args = mCRA_latest_protocol_input.parse_args()
+        args = latest_protocol_download_input.parse_args()
         try:
             protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
+            aidoc_id = args['id'] if args['id'] is not None else ''
+            approval_date = args['approvalDate'] if args['approvalDate'] is not None else ''
             version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
-            resource = get_mcra_latest_version_protocol(protocol_number, version_number)
+            document_status = args['documentStatus'] if args['documentStatus'] is not None else ''
 
-            if resource is None:
+            # resource = get_mcra_latest_version_protocol(protocol_number, version_number)
+            resources = get_latest_protocol(protocol_number=protocol_number, aidoc_id=aidoc_id, version_number=version_number, approval_date=approval_date, document_status=document_status, is_top_1_only=True)
+            aligned_resources = post_process_resource(resources, multiple_records=False)
+
+            if aligned_resources is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
-            p=Path(resource.documentFilePath)
+            p=Path(aligned_resources['documentFilePath'])
             path=p.name
             DOWNLOAD_DIRECTORY=p.parent
             try:
@@ -234,21 +242,24 @@ class DocumentprocessingAPI(Resource):
 @ns.route('/mcra_latest_protocol')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
-    @ns.expect(mCRA_latest_protocol_input)
-    @ns.marshal_with(mCRA_latest_protocol_get)
+    @ns.expect(latest_protocol_input)
+    @ns.marshal_with(latest_protocol_get)
     @ns.response(200, 'Success.')
     @ns.response(404, 'Document Processing resource not found.')
     def get(self):
         """Get the document processing object attributes"""
-        args = mCRA_latest_protocol_input.parse_args()
+        args = latest_protocol_input.parse_args()
         try:
             protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
             version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
-            resource = get_mcra_latest_version_protocol(protocol_number, version_number)
-            if resource is None:
+            document_status = args['documentStatus'] if args['documentStatus'] is not None else ''
+            resources = get_latest_protocol(protocol_number=protocol_number, version_number=version_number, document_status=document_status, is_top_1_only=False)
+            aligned_resources = post_process_resource(resources, multiple_records=True)
+
+            if aligned_resources is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
             else:
-                return resource
+                return aligned_resources
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))

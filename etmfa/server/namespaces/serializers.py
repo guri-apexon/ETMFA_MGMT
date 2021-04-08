@@ -242,17 +242,23 @@ mCRA_attributes_get = api.model('Document Processing Attributes Model',
                                      }
                                  )
 
-mCRA_latest_protocol_input = reqparse.RequestParser()
-mCRA_latest_protocol_input.add_argument('protocolNumber',
-                                   type=str,
-                                   required=True,
-                                   help='Protocol number')
-mCRA_latest_protocol_input.add_argument('versionNumber',
-                               type=str,
-                               required=False,
-                               help='Version Number')
+# Latest protocol download file
+latest_protocol_download_input = reqparse.RequestParser()
+latest_protocol_download_input.add_argument('protocolNumber', type=str, required=True, help='Protocol number')
+latest_protocol_download_input.add_argument('id', type=str, required=False, help='Unique PD ID of the document')
+latest_protocol_download_input.add_argument('approvalDate', type=str, required=False, help='Approval date of the document in YYYYMMDD format')
+latest_protocol_download_input.add_argument('versionNumber', type=str, required=False, help='Version Number')
+latest_protocol_download_input.add_argument('documentStatus', type=str, required=False, help='Document status, default is "final"')
+latest_protocol_download_input.add_argument('sourceSystem', type=str, required=False, help='Source system calling this API')
 
-mCRA_latest_protocol_get = api.model('Document Processing Status Model',
+# All protocol details (sorted)
+latest_protocol_input = reqparse.RequestParser()
+latest_protocol_input.add_argument('protocolNumber', type=str, required=True, help='Protocol number')
+latest_protocol_input.add_argument('versionNumber', type=str, required=False, help='Version Number')
+latest_protocol_input.add_argument('documentStatus', type=str, required=False, help='Document status, default is "final"')
+latest_protocol_input.add_argument('sourceSystem', type=str, required=False, help='Source system calling this API')
+
+latest_protocol_get = api.model('Document Processing Status Model',
                              {
                                  'protocol': fields.String(readOnly=True,
                                                      description='Protocol Number of the latest protocol.'),
@@ -261,16 +267,24 @@ mCRA_latest_protocol_get = api.model('Document Processing Status Model',
                                  'sponsor': fields.String(readOnly=True,
                                                                   description='sponsor of the latest protocol.'),
                                  'documentStatus': fields.String(readOnly=True,
-                                                           description='Status(draft/final) of latest protocol.')
+                                                           description='Status(draft/final) of latest protocol.'),
+                                'aidocId': fields.String(readOnly=True,
+                                                                  description='aidocId of the latest protocol.'),
+                                'allVersions': fields.String(readOnly=True, 
+                                                            description='All the available version details'),
+                                'approvalDate': fields.String(readOnly=True, description='approvalDate of the latest protocol.'),
+                                'draftNumber': fields.String(readOnly=True, description='draftNumber of the latest protocol.'),
+                                'uploadDate': fields.DateTime(dt_format='iso8601'),
+                                'projectId': fields.String(readOnly=True, description='projectId of the latest protocol.'),
+                                'amendmentNumber': fields.String(readOnly=True, description='amendmentNumber of the latest protocol.'),
+                                'amendmentFlag': fields.String(readOnly=True, description='amendmentFlag of the latest protocol.'),
+                                'protocolShortTitle': fields.String(readOnly=True, description='protocolShortTitle of the latest protocol.'),
+                                'protocolTitle': fields.String(readOnly=True, description='protocolTitle of the latest protocol.'),
+                                'indications': fields.String(readOnly=True, description='indications of the latest protocol.'),
+                                'trialPhase': fields.String(readOnly=True, description='trialPhase of the latest protocol.'),
+                                'blinded': fields.String(readOnly=True, description='blinded of the latest protocol.'),
                              }
                              )
-
-
-
-
-
-
-
 
 pd_compare_object_post = reqparse.RequestParser()
 pd_compare_object_post.add_argument('protocolNumber',
