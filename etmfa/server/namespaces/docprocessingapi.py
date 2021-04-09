@@ -24,6 +24,7 @@ from etmfa.db import (
     #get_compare_documents_validation,
     add_compare_event,
     upsert_attributevalue,
+    pd_fetch_summary_data,
     set_draft_version
 )
 from etmfa.messaging.messagepublisher import MessagePublisher
@@ -128,13 +129,15 @@ class DocumentprocessingAPI(Resource):
     @ns.expect(pd_qc_check_update_post)
     @ns.marshal_with(PD_qc_get)
     @ns.response(200, 'Success.')
-    @ns.response(404, 'Document Processing resource not found.')
     def post(self):
         """Get the document processing object attributes"""
         args = pd_qc_check_update_post.parse_args()
         try:
             aidocid = args['aidoc_id'] if args['aidoc_id'] is not None else ' '
             userid = args['qcApprovedBy'] if args['qcApprovedBy'] is not None else ''
+            resource = pd_fetch_summary_data(aidocid, userid)
+            if resource is None:
+                return abort(404, DOCUMENT_NOT_FOUND.format(aidocid))
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
