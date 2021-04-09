@@ -31,7 +31,7 @@ class PDProtocolQCSummaryData(db_context.Model):
     numberOfSubjects = db_context.Column(db_context.String(32))
     participantAge = db_context.Column(db_context.String(64))
     participantSex = db_context.Column(db_context.String(16))
-    studyPopulation = db_context.Column(db_context.String(128))
+    studyPopulation = db_context.Column(db_context.String(1024))
     inclusionCriteria = db_context.Column(db_context.String(4096))
     exclusionCriteria = db_context.Column(db_context.String(4096))
     primaryObjectives = db_context.Column(db_context.String(4096))
