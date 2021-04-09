@@ -36,6 +36,7 @@ import ast
 import pandas as pd
 from sqlalchemy import and_
 from sqlalchemy.sql import text
+from etmfa.db import utils
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
@@ -301,77 +302,6 @@ def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'final')
         result = None
     return result
 
-
-def get_mcra_latest_version_protocol(protocol_number, version_number):
-    # to check the correct values are only extracted
-    try:
-        if not version_number:
-            resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.isActive == True,
-                                                        PDProtocolMetadata.status == "PROCESS_COMPLETED",
-                                                        PDProtocolMetadata.protocol == protocol_number).order_by(PDProtocolMetadata.versionNumber.desc()).first()
-        else:
-            resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.isActive == True,
-                                                        PDProtocolMetadata.status == "PROCESS_COMPLETED",
-                                                        PDProtocolMetadata.protocol == protocol_number,
-                                                        PDProtocolMetadata.versionNumber >= version_number).order_by(PDProtocolMetadata.versionNumber.desc()).first()
-    except Exception as e:
-        logger.error(NO_RESOURCE_FOUND.format(protocol_number))
-    return resource
-
-def pd_fetch_summary_data(aidocid, userid):
-    try:
-        resource = Protocoldata.query.filter(Protocoldata.id == aidocid).first()
-        if resource:
-            summary = ast.literal_eval(json.loads(resource.iqvdataSummary))
-            summary_result = dict()
-            for row in summary['data']:
-                summary_result[row[0]]=row[1]
-        else:
-            return None
-
-        protocolqcsummary = PDProtocolQCSummaryData()
-        protocolqcsummary.aidocId = aidocid
-        protocolqcsummary.source = 'QC'
-        protocolqcsummary.sponsor = summary_result['sponsor']
-        protocolqcsummary.protocolNumber = summary_result['protocol_number']
-        protocolqcsummary.trialPhase = summary_result['trial_phase']
-        protocolqcsummary.versionNumber = summary_result['version_number']
-        protocolqcsummary.approvalDate = summary_result['approval_date']
-        protocolqcsummary.versionDate = summary_result['version_date']
-        protocolqcsummary.protocolTitle = summary_result['protocol_title']
-        protocolqcsummary.protocolShortTitle = summary_result['protocol_title_short']
-        protocolqcsummary.indications = summary_result['indication']
-        protocolqcsummary.isActive = True
-        protocolqcsummary.moleculeDevice = summary_result['molecule_device']
-        protocolqcsummary.investigator = summary_result['investigator']
-        protocolqcsummary.blinded = summary_result['blinded']
-        protocolqcsummary.drug = summary_result['drug']
-        protocolqcsummary.compoundNumber = summary_result['compound_number']
-        protocolqcsummary.control = summary_result['control']
-        protocolqcsummary.endPoints = summary_result['endpoints']
-        protocolqcsummary.trialTypeRandomized = summary_result['trial_type_randomized']
-        protocolqcsummary.numberOfSubjects = summary_result['number_of_subjects']
-        protocolqcsummary.participantAge = summary_result['participant_age']
-        protocolqcsummary.participantSex = summary_result['participant_sex']
-        protocolqcsummary.studyPopulation = summary_result['study_population']
-        protocolqcsummary.inclusionCriteria = summary_result['inclusion_criteria']
-        protocolqcsummary.exclusionCriteria = summary_result['exclusion_criteria']
-        protocolqcsummary.primaryObjectives = summary_result['primary_objectives']
-        protocolqcsummary.secondaryObjectives = summary_result['secondary_objectives']
-        protocolqcsummary.qcApprovedBy = userid
-        protocolqcsummary.timeCreated = datetime.now()
-        protocolqcsummary.timeUpdated = datetime.now()
-
-        db_context.session.merge(protocolqcsummary)
-        db_context.session.commit()
-        return aidocid
-    except Exception as ex:
-        db_context.session.rollback()
-        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_SAVING)
-        received_documentprocessing_error_event(exception.__dict__)
-        logger.error(ERROR_PROCESSING_STATUS.format(aidocid, ex))
-
-
 def get_compare_documents(base_doc_id, compare_doc_id):
     basedocid = base_doc_id
     comparedocid = compare_doc_id
@@ -499,126 +429,6 @@ def set_draft_version(document_status, sponsor, protocol, version_number):
         draftVersion = None
     return draftVersion 
 
-def get_filter_conditions(protocol_number, version_number="", approval_date="", aidoc_id="", document_status="") -> (str, str):
-    """
-    Build dynamic filter condition based on input arguments
-    """
-    # Clean the inputs
-    protocol_number = protocol_number.strip()
-    version_number = version_number.strip()
-    approval_date = approval_date.strip()
-    aidoc_id = aidoc_id.strip()
-    document_status = document_status.strip().lower()
-
-    # Init
-    additional_filter = None
-    
-    # Validate approval date
-    valid_approval_date = True if (approval_date.isdigit() and len(approval_date) == 8) else False
-    logger.debug(f"Is valid_approval_date?: {valid_approval_date}; {approval_date.isdigit()}; {len(approval_date)}")
-    
-    # Default filter
-    default_filter = f"pd_protocol_qc_summary_data.isActive = 1 AND pd_protocol_metadata.protocol = '{protocol_number}'" #AND pd_protocol_qc_summary_data.source = 'QC'
-    
-    # Build filter based on document Status
-    if document_status == 'all':
-        all_filter = default_filter
-    else:
-        document_status = document_status if document_status in ['final', 'draft', 'all'] else 'final'
-        document_status_filter = f"pd_protocol_metadata.documentStatus = '{document_status}'"
-        all_filter = default_filter + ' AND ' + document_status_filter
-        
-    logger.debug(f"Initial all_filter: {all_filter}\n")
-        
-    # Build filter based on other input arguments
-    if aidoc_id:
-        logger.info("In aidoc_id type ...")
-        additional_filter = f"pd_protocol_metadata.id = '{aidoc_id}'"
-    elif version_number and valid_approval_date:
-        logger.info("In version_number and approval_date type ...")
-        additional_filter = f"pd_protocol_qc_summary_data.versionNumber = '{version_number}' AND CONVERT(VARCHAR(8), pd_protocol_qc_summary_data.approvalDate, 112) = '{approval_date}'"
-    elif version_number:
-        logger.info("In version_number type ...")
-        additional_filter = f"pd_protocol_qc_summary_data.versionNumber = '{version_number}'"
-    elif valid_approval_date:
-        logger.info("In approval_date type ...")
-        additional_filter = f"CONVERT(VARCHAR(8), pd_protocol_qc_summary_data.approvalDate, 112) = '{approval_date}'"
-    else:
-        logger.info("In [only protocol_number] type ...")
-
-    if additional_filter:
-        all_filter = all_filter + ' AND ' + additional_filter
-    logger.info(f"Final all_filter: {all_filter}")
-        
-    # order condition
-    order_condition = f"pd_protocol_qc_summary_data.approvalDate desc, pd_protocol_metadata.uploadDate desc"        
-    logger.info(f"Final order condition: {order_condition}")
-
-    return all_filter, order_condition
-
-def get_metadata_dict(field_values, ignore_filepath=False) -> dict:
-    """
-    Assign metadata fields into appropriate field name
-    """
-    metadata_dict = dict()
-    metadata_dict['draftNumber'] = field_values[0]
-    metadata_dict['amendmentFlag'] = field_values[1]
-    metadata_dict['uploadDate'] = field_values[2]
-    if not ignore_filepath:
-        metadata_dict['documentFilePath'] = field_values[3]
-    metadata_dict['projectId'] = field_values[4]
-    metadata_dict['documentStatus'] = field_values[5]
-    metadata_dict['protocol'] = field_values[6]
-    return metadata_dict
-
-def post_process_resource(resources, multiple_records=False) -> dict:
-    """
-    Align the resources based on the API contract
-    """
-    top_resource = None
-
-    if multiple_records and resources is not None and type(resources) == list and len(resources) > 0:
-        resource_list = []
-        logger.debug(f"\nALL_RESPONSE:")
-        for idx, resource in enumerate(resources):
-            indications = []
-            logger.debug(f"\n----- Processing for {idx} resource...")
-            resource_dict = resource[0].as_dict()
-            resource_dict['approvalDate'] = '00000000' if pd.isnull(resource_dict['approvalDate']) else resource_dict['approvalDate'].strftime('%Y%m%d')
-            resource_dict['indications'] = indications if pd.isnull(resource_dict['indications']) else indications.append(resource_dict['indications'])
-
-            metadata_dict = get_metadata_dict(resource[1:], ignore_filepath=True)
-            resource_dict.update(metadata_dict)
-            resource_list.append(resource_dict)
-        
-        first_row = resources[0]
-        top_resource = first_row[0].as_dict()
-        indications = []
-        top_resource['approvalDate'] = '00000000' if pd.isnull(top_resource['approvalDate']) else top_resource['approvalDate'].strftime('%Y%m%d')
-        top_resource['indications'] = indications if pd.isnull(top_resource['indications']) else indications.append(top_resource['indications'])
-        top_resource['allVersions'] = resource_list
-
-        metadata_dict = get_metadata_dict(first_row[1:])
-        top_resource.update(metadata_dict)
-        logger.debug(f"top_resource:\n{top_resource}")
-        
-    elif not multiple_records and resources is not None:
-        logger.debug(f"\nTOP_1_RESPONSE:")
-        indications = []
-        top_resource = resources[0].as_dict()
-        
-        top_resource['approvalDate'] = '00000000' if pd.isnull(top_resource['approvalDate']) else top_resource['approvalDate'].strftime('%Y%m%d')
-        top_resource['indications'] = indications if pd.isnull(top_resource['indications']) else indications.append(top_resource['indications'])
-        
-        metadata_dict = get_metadata_dict(resources[1:])
-        top_resource.update(metadata_dict)
-        
-        logger.debug(f"top_resource:\n{top_resource}")
-    else:
-        logger.warning(f"No data for post process")
-    
-    return top_resource
-
 def get_latest_protocol(protocol_number, version_number="", approval_date="", aidoc_id="", document_status="", is_top_1_only=True):
     """
     Get top-1 or all the protocol based on input arguments
@@ -626,19 +436,21 @@ def get_latest_protocol(protocol_number, version_number="", approval_date="", ai
     resource = None
     
     # Get dynamic conditions
-    all_filter, order_condition = get_filter_conditions(protocol_number, version_number, approval_date, aidoc_id, document_status)
+    all_filter, order_condition = utils.get_filter_conditions(protocol_number, version_number, approval_date, aidoc_id, document_status)
         
     try:
         if is_top_1_only:
             resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata.draftVersion, PDProtocolMetadata.amendment, PDProtocolMetadata.uploadDate, PDProtocolMetadata.documentFilePath,
                                                 PDProtocolMetadata.projectId, PDProtocolMetadata.documentStatus, PDProtocolMetadata.protocol
-                                                   ).join(PDProtocolMetadata, and_(PDProtocolQCSummaryData.aidocId ==PDProtocolMetadata.id, PDProtocolQCSummaryData.source == 'QC')).filter(text(all_filter)
+                                                   ).join(PDProtocolMetadata, and_(PDProtocolQCSummaryData.aidocId == PDProtocolMetadata.id, PDProtocolQCSummaryData.source == 'QC')
+                                                   ).filter(text(all_filter)
                                                    ).order_by(text(order_condition)).first()
            
         else:
             resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata.draftVersion, PDProtocolMetadata.amendment, PDProtocolMetadata.uploadDate, PDProtocolMetadata.documentFilePath,
                                                 PDProtocolMetadata.projectId, PDProtocolMetadata.documentStatus, PDProtocolMetadata.protocol
-                                                   ).join(PDProtocolMetadata, and_(PDProtocolQCSummaryData.aidocId ==PDProtocolMetadata.id, PDProtocolQCSummaryData.source == 'QC')).filter(text(all_filter)
+                                                   ).join(PDProtocolMetadata, and_(PDProtocolQCSummaryData.aidocId == PDProtocolMetadata.id, PDProtocolQCSummaryData.source == 'QC')
+                                                   ).filter(text(all_filter)
                                                    ).order_by(text(order_condition)).all()
             
     except Exception as e:

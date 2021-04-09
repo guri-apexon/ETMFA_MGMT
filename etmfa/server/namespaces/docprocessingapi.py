@@ -11,6 +11,7 @@ from flask import send_from_directory,make_response
 from pathlib import Path
 
 from etmfa.consts import Consts as consts
+from etmfa.db import utils
 from etmfa.db import (
     save_doc_processing,
     get_doc_resource_by_id,
@@ -19,7 +20,6 @@ from etmfa.db import (
     get_doc_status_processing_by_id,
     get_mcra_attributes_by_protocolnumber,
     get_latest_protocol,
-    post_process_resource,
     get_compare_documents,
     #get_compare_documents_validation,
     add_compare_event,
@@ -201,9 +201,8 @@ class DocumentprocessingAPI(Resource):
             version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
             document_status = args['documentStatus'] if args['documentStatus'] is not None else ''
 
-            # resource = get_mcra_latest_version_protocol(protocol_number, version_number)
             resources = get_latest_protocol(protocol_number=protocol_number, aidoc_id=aidoc_id, version_number=version_number, approval_date=approval_date, document_status=document_status, is_top_1_only=True)
-            aligned_resources = post_process_resource(resources, multiple_records=False)
+            aligned_resources = utils.post_process_resource(resources, multiple_records=False)
 
             if aligned_resources is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
@@ -257,7 +256,7 @@ class DocumentprocessingAPI(Resource):
             version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
             document_status = args['documentStatus'] if args['documentStatus'] is not None else ''
             resources = get_latest_protocol(protocol_number=protocol_number, version_number=version_number, document_status=document_status, is_top_1_only=False)
-            aligned_resources = post_process_resource(resources, multiple_records=True)
+            aligned_resources = utils.post_process_resource(resources, multiple_records=True)
 
             if aligned_resources is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
