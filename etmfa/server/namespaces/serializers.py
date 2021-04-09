@@ -258,31 +258,34 @@ latest_protocol_input.add_argument('versionNumber', type=str, required=False, he
 latest_protocol_input.add_argument('documentStatus', type=str, required=False, help='Document status, default is "final"')
 latest_protocol_input.add_argument('sourceSystem', type=str, required=False, help='Source system calling this API')
 
+latest_protocol_contract_fields = ('protocol', 'versionNumber', 'sponsor', 'documentStatus', 'aidocId', 'allVersions', 'approvalDate', 
+'draftNumber', 'uploadDate', 'projectId', 'amendmentNumber', 'amendmentFlag', 'protocolShortTitle', 'protocolTitle', 'indications', 'trialPhase', 'blinded')
+
 latest_protocol_get = api.model('Document Processing Status Model',
                              {
                                  'protocol': fields.String(readOnly=True,
-                                                     description='Protocol Number of the latest protocol.'),
+                                                     description='Protocol Number of the latest protocol'),
                                  'versionNumber': fields.String(readOnly=True,
-                                                                description='Latest available Version Number of the protocol.'),
+                                                                description='Latest Version Number of the protocol'),
                                  'sponsor': fields.String(readOnly=True,
-                                                                  description='sponsor of the latest protocol.'),
+                                                                  description='Sponsor name of the latest protocol'),
                                  'documentStatus': fields.String(readOnly=True,
-                                                           description='Status(draft/final) of latest protocol.'),
+                                                           description='Status(draft/final) of latest protocol'),
                                 'aidocId': fields.String(readOnly=True,
-                                                                  description='aidocId of the latest protocol.'),
+                                                                  description='Unique PD ID of the latest protocol'),
                                 'allVersions': fields.String(readOnly=True, 
                                                             description='All the available version details'),
-                                'approvalDate': fields.String(readOnly=True, description='approvalDate of the latest protocol.'),
-                                'draftNumber': fields.String(readOnly=True, description='draftNumber of the latest protocol.'),
-                                'uploadDate': fields.DateTime(dt_format='iso8601'),
-                                'projectId': fields.String(readOnly=True, description='projectId of the latest protocol.'),
-                                'amendmentNumber': fields.String(readOnly=True, description='amendmentNumber of the latest protocol.'),
-                                'amendmentFlag': fields.String(readOnly=True, description='amendmentFlag of the latest protocol.'),
-                                'protocolShortTitle': fields.String(readOnly=True, description='protocolShortTitle of the latest protocol.'),
-                                'protocolTitle': fields.String(readOnly=True, description='protocolTitle of the latest protocol.'),
-                                'indications': fields.String(readOnly=True, description='indications of the latest protocol.'),
-                                'trialPhase': fields.String(readOnly=True, description='trialPhase of the latest protocol.'),
-                                'blinded': fields.String(readOnly=True, description='blinded of the latest protocol.'),
+                                'approvalDate': fields.String(readOnly=True, description='Approval date (in YYYYMMDD format) of the latest protocol'),
+                                'draftNumber': fields.String(readOnly=True, description='Draft number of the latest protocol'),
+                                'uploadDate': fields.String(readOnly=True, description='Upload date in ISO-8601 format'),
+                                'projectId': fields.String(readOnly=True, description='projectId of the latest protocol'),
+                                'amendmentNumber': fields.String(readOnly=True, description='Amendment number of the latest protocol'),
+                                'amendmentFlag': fields.String(readOnly=True, description='Amendment flag(Y/N) of the latest protocol'),
+                                'protocolShortTitle': fields.String(readOnly=True, description='Protocol Short title of the latest protocol'),
+                                'protocolTitle': fields.String(readOnly=True, description='Protocol title of the latest protocol'),
+                                'indications': fields.String(readOnly=True, description='Multiple indications of the latest protocol'),
+                                'trialPhase': fields.String(readOnly=True, description='Trial phase of the latest protocol'),
+                                'blinded': fields.String(readOnly=True, description='Blind strategy of the latest protocol'),
                              }
                              )
 
