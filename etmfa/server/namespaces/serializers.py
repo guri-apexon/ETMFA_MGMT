@@ -50,7 +50,7 @@ eTMFA_object_get = api.model('Document Processing Status Model',
 
 PD_qc_get = api.model('Document Processing Status Model',
                              {
-                                 'aidoc_id': fields.String(readOnly=True,
+                                 'aidocid': fields.String(readOnly=True,
                                                      description='The aidocid for QC update.'),
                                  'qcApprovedBy': fields.String(readOnly=True,
                                                                 description='The approved by user id.'),
