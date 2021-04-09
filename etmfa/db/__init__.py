@@ -2,10 +2,9 @@ import datetime
 import logging
 import os
 import json
-import ast
+
 from datetime import datetime
 
-from filehash import FileHash
 from flask import g
 from sqlalchemy import desc
 
@@ -234,6 +233,60 @@ def received_documentprocessing_error_event(error_dict):
                 f"Error while storing error message to pd_protocol_metadata DB table for ID: {error_dict['id'], ex}")
     else:
         logger.error(NO_RESOURCE_FOUND.format(id))
+
+def pd_fetch_summary_data(aidocid, userid):
+    try:
+        resource = Protocoldata.query.filter(Protocoldata.id == aidocid).first()
+        if resource:
+            summary = ast.literal_eval(json.loads(resource.iqvdataSummary))
+            summary_result = dict()
+            for row in summary['data']:
+                summary_result[row[0]]=row[1]
+        else:
+            return None
+
+        protocolqcsummary = PDProtocolQCSummaryData()
+        protocolqcsummary.aidocId = aidocid
+        protocolqcsummary.source = 'QC'
+        protocolqcsummary.sponsor = summary_result['sponsor']
+        protocolqcsummary.protocolNumber = summary_result['protocol_number']
+        protocolqcsummary.trialPhase = summary_result['trial_phase']
+        protocolqcsummary.versionNumber = summary_result['version_number']
+        protocolqcsummary.approvalDate = summary_result['approval_date']
+        protocolqcsummary.versionDate = summary_result['version_date']
+        protocolqcsummary.protocolTitle = summary_result['protocol_title']
+        protocolqcsummary.protocolShortTitle = summary_result['protocol_title_short']
+        protocolqcsummary.indications = summary_result['indication']
+        protocolqcsummary.isActive = True
+        protocolqcsummary.moleculeDevice = summary_result['molecule_device']
+        protocolqcsummary.investigator = summary_result['investigator']
+        protocolqcsummary.blinded = summary_result['blinded']
+        protocolqcsummary.drug = summary_result['drug']
+        protocolqcsummary.compoundNumber = summary_result['compound_number']
+        protocolqcsummary.control = summary_result['control']
+        protocolqcsummary.endPoints = summary_result['endpoints']
+        protocolqcsummary.trialTypeRandomized = summary_result['trial_type_randomized']
+        protocolqcsummary.numberOfSubjects = summary_result['number_of_subjects']
+        protocolqcsummary.participantAge = summary_result['participant_age']
+        protocolqcsummary.participantSex = summary_result['participant_sex']
+        protocolqcsummary.studyPopulation = summary_result['study_population']
+        protocolqcsummary.inclusionCriteria = summary_result['inclusion_criteria']
+        protocolqcsummary.exclusionCriteria = summary_result['exclusion_criteria']
+        protocolqcsummary.primaryObjectives = summary_result['primary_objectives']
+        protocolqcsummary.secondaryObjectives = summary_result['secondary_objectives']
+        protocolqcsummary.qcApprovedBy = userid
+        protocolqcsummary.timeCreated = datetime.now()
+        protocolqcsummary.timeUpdated = datetime.now()
+
+        db_context.session.merge(protocolqcsummary)
+        db_context.session.commit()
+        return aidocid
+    except Exception as ex:
+        db_context.session.rollback()
+        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_SAVING)
+        received_documentprocessing_error_event(exception.__dict__)
+        logger.error(ERROR_PROCESSING_STATUS.format(aidocid, ex))
+
 
 
 def save_doc_processing(request, _id, doc_path, draftVersion):

@@ -13,6 +13,7 @@ from pathlib import Path
 from etmfa.consts import Consts as consts
 from etmfa.db import utils
 from etmfa.db import (
+    pd_fetch_summary_data,
     save_doc_processing,
     get_doc_resource_by_id,
     get_doc_processing_by_id,
@@ -21,10 +22,7 @@ from etmfa.db import (
     get_mcra_attributes_by_protocolnumber,
     get_latest_protocol,
     get_compare_documents,
-    #get_compare_documents_validation,
-    add_compare_event,
     upsert_attributevalue,
-    pd_fetch_summary_data,
     set_draft_version
 )
 from etmfa.messaging.messagepublisher import MessagePublisher
