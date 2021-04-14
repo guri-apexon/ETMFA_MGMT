@@ -338,20 +338,35 @@ def get_doc_proc_metrics_by_id(id, full_mapping=True):
 
     return resource_dict
 
-def get_mcra_attributes_by_protocolnumber(protocol_number, doc_status = 'final'):
-    protocolnumber = protocol_number
-    docstatus = doc_status
-    # to check the correct values are only extracted
+def get_file_contents_by_id(protocol_number:str, aidoc_id:str, protocol_number_verified:bool = False) -> str:
+    """
+    Extracts file toc json by aidoc_id
+    
+    If protocol_number and aidoc_id are already verified, then extract contents directly from data.
+        If not verified by joining with metadata table before extracting contents 
+    """
+    cleaned_inputs = utils.clean_inputs(protocol_number=protocol_number, aidoc_id=aidoc_id)
+    protocol_number = cleaned_inputs.get('protocol_number', '')
+    aidoc_id = cleaned_inputs.get('aidoc_id', '')
+    
     try:
-        resource = db_context.session.query(PDProtocolMetadata, Protocoldata.iqvdataToc).filter(PDProtocolMetadata.protocol == protocolnumber,
-                                               PDProtocolMetadata.documentStatus == docstatus, PDProtocolMetadata.status == 'PROCESS_COMPLETED', PDProtocolMetadata.isActive == True).order_by(desc(PDProtocolMetadata.versionNumber))\
-                                               .join(Protocoldata, Protocoldata.id ==PDProtocolMetadata.id).first()
+        if protocol_number_verified:
+            where_clause = f"id = '{aidoc_id}' AND isActive = 1"
+            resource = db_context.session.query(Protocoldata.id, Protocoldata.iqvdataToc
+                                                       ).filter(text(where_clause)
+                                                       ).first()
+        else:
+            resource = db_context.session.query(Protocoldata.id, Protocoldata.iqvdataToc
+                                                   ).join(PDProtocolMetadata, and_(PDProtocolMetadata.id == Protocoldata.id, 
+                                                        PDProtocolMetadata.protocol == protocol_number, Protocoldata.id == aidoc_id, Protocoldata.isActive == 1)
+                                                        ).first()
+                             
         if resource:
             result = resource[1]
         else:
             result = None
     except Exception as e:
-        logger.error(NO_RESOURCE_FOUND.format(protocolnumber))
+        logger.error(NO_RESOURCE_FOUND.format(aidoc_id))
         result = None
     return result
 

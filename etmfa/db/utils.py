@@ -5,22 +5,53 @@ import pandas as pd
 from etmfa.consts import Consts as consts
 from etmfa.server.namespaces.serializers import latest_protocol_contract_fields
 
+DEFAULT_DATE_VALUE = '19000101'
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
+
+
+def clean_inputs(protocol_number="", version_number="", approval_date="", aidoc_id="", document_status="") -> dict:
+    """
+    Clean the input arguments
+    """
+    cleaned_inputs = dict()
+
+    # Clean the inputs
+    cleaned_inputs['protocol_number'] = protocol_number.strip()
+    cleaned_inputs['version_number'] = version_number.strip()
+    cleaned_inputs['approval_date'] = approval_date.strip()
+    cleaned_inputs['aidoc_id'] = aidoc_id.strip()
+    cleaned_inputs['document_status'] = document_status.strip().lower()
+
+    return cleaned_inputs
+
+def validate_inputs(protocol_number = "") -> bool:
+    """
+    Verify if the input arguments are valid to proceed further OR not
+    """
+    cleaned_inputs = clean_inputs(protocol_number=protocol_number)
+    protocol_number = cleaned_inputs.get('protocol_number', '')
+
+    if protocol_number:
+        return True
+    else:
+        return False
 
 def get_filter_conditions(protocol_number, version_number="", approval_date="", aidoc_id="", document_status="") -> (str, str):
     """
     Build dynamic filter condition based on input arguments
     """
-    # Clean the inputs
-    protocol_number = protocol_number.strip()
-    version_number = version_number.strip()
-    approval_date = approval_date.strip()
-    aidoc_id = aidoc_id.strip()
-    document_status = document_status.strip().lower()
+    cleaned_inputs = clean_inputs(protocol_number=protocol_number, version_number=version_number, approval_date=approval_date, aidoc_id=aidoc_id, document_status=document_status)
+    protocol_number = cleaned_inputs.get('protocol_number', '')
+    version_number = cleaned_inputs.get('version_number', '')
+    approval_date = cleaned_inputs.get('approval_date', '')
+    aidoc_id = cleaned_inputs.get('aidoc_id', '')
+    document_status = cleaned_inputs.get('document_status', '')
 
     # Init
     additional_filter = None
+    all_filter = None
+    order_condition = None
     
     # Default filter
     default_filter = f"pd_protocol_qc_summary_data.isActive = 1 AND pd_protocol_metadata.protocol = '{protocol_number}'" #AND pd_protocol_qc_summary_data.source = 'QC'
@@ -76,18 +107,24 @@ def get_metadata_dict(field_values) -> dict:
     return metadata_dict
 
 def apply_contract_rules(top_resource:dict, metadata_fields:list, ignore_filepath=False) -> dict:
+    """
+    Restrict only the fields present in the contract
+    """
     indications = []
+    approval_date = ''
     metadata_dict = get_metadata_dict(metadata_fields)
     top_resource.update(metadata_dict)
 
-    top_resource['approvalDate'] = '' if pd.isnull(top_resource['approvalDate']) else top_resource['approvalDate'].strftime('%Y%m%d')
-    top_resource['indications'] = indications if pd.isnull(top_resource['indications']) else indications.append(top_resource['indications'])
-    top_resource['indications'] = str(top_resource['indications'])
+    approval_date = approval_date if pd.isnull(top_resource['approvalDate']) else top_resource['approvalDate'].strftime('%Y%m%d')
+    top_resource['approvalDate'] = '' if approval_date == DEFAULT_DATE_VALUE else approval_date
+    
+    _ = indications if pd.isnull(top_resource['indications']) else indications.append(top_resource['indications'])
+    top_resource['indications'] = str(indications)
+    
     top_resource['uploadDate'] = '' if pd.isnull(top_resource['uploadDate']) else top_resource['uploadDate'].isoformat()
-
     restricted_top_resource = {key:('' if value is None else value) for key, value in top_resource.items() if key in latest_protocol_contract_fields}
 
-    if not ignore_filepath: #Used in download API
+    if not ignore_filepath: # Used in download API
         restricted_top_resource['documentFilePath'] = metadata_dict['documentFilePath']
     return restricted_top_resource
 

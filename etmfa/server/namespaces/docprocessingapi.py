@@ -19,7 +19,7 @@ from etmfa.db import (
     get_doc_processing_by_id,
     get_doc_processed_by_id,
     get_doc_status_processing_by_id,
-    get_mcra_attributes_by_protocolnumber,
+    get_file_contents_by_id,
     get_latest_protocol,
     get_compare_documents,
     upsert_attributevalue,
@@ -42,6 +42,7 @@ from etmfa.server.namespaces.serializers import (
     latest_protocol_input,
     latest_protocol_get,
     latest_protocol_download_input,
+    latest_protocol_contents_input,
     pd_compare_object_post,
     pd_compare_get,
     pd_compare_post_response,
@@ -53,6 +54,8 @@ from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
 
 logger = logging.getLogger(consts.LOGGING_NAME)
+
+INVALID_USER_INPUT = 'Invalid user input(s) received: {}'
 DOCUMENT_NOT_FOUND = 'Document resource is not found for the requested input(s): {}'
 Compare_feature_notavail = 'Comparison for the given base_id {} and compare_id {} not available'
 SERVER_ERROR = 'Server error: {}'
@@ -199,11 +202,16 @@ class DocumentprocessingAPI(Resource):
             version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
             document_status = args['documentStatus'] if args['documentStatus'] is not None else ''
 
+            input_valid_flg = utils.validate_inputs(protocol_number=protocol_number)            
+            if not input_valid_flg:
+                logger.error(f"Invalid user inputs received: {args}")
+                return abort(404, INVALID_USER_INPUT.format(args))
+
             resources = get_latest_protocol(protocol_number=protocol_number, aidoc_id=aidoc_id, version_number=version_number, approval_date=approval_date, document_status=document_status, is_top_1_only=True)
             aligned_resources = utils.post_process_resource(resources, multiple_records=False)
 
             if aligned_resources is None:
-                return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
+                return abort(404, DOCUMENT_NOT_FOUND.format(args))
             p=Path(aligned_resources['documentFilePath'])
             path=p.name
             DOWNLOAD_DIRECTORY=p.parent
@@ -211,7 +219,7 @@ class DocumentprocessingAPI(Resource):
                 response = make_response(send_from_directory(DOWNLOAD_DIRECTORY,path, as_attachment=True))
                 return response
             except Exception as e :
-                return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
+                return abort(404, DOCUMENT_NOT_FOUND.format(args))
 
 
         except ValueError as e:
@@ -222,17 +230,40 @@ class DocumentprocessingAPI(Resource):
 @ns.route('/mcraattributes')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
-    @ns.expect(mCRA_attributes_input)
+    @ns.expect(latest_protocol_contents_input)
     @ns.response(200, 'Success.')
     @ns.response(404, 'Document Processing resource not found.')
     def get(self):
         """Get the document processing object attributes"""
-        args = mCRA_attributes_input.parse_args()
+        resource = None
+        protocol_number_verified = False
+        args = latest_protocol_contents_input.parse_args()
+
         try:
             protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
-            resource = get_mcra_attributes_by_protocolnumber(protocol_number)
+            aidoc_id = args['id'] if args['id'] is not None else ''
+            approval_date = args['approvalDate'] if args['approvalDate'] is not None else ''
+            version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
+            document_status = args['documentStatus'] if args['documentStatus'] is not None else ''
+
+            input_valid_flg = utils.validate_inputs(protocol_number=protocol_number)            
+            if not input_valid_flg:
+                logger.error(f"Invalid user inputs received: {args}")
+                return abort(404, INVALID_USER_INPUT.format(args))
+
+            if not aidoc_id:
+                resources = get_latest_protocol(protocol_number=protocol_number, aidoc_id=aidoc_id, version_number=version_number, approval_date=approval_date, document_status=document_status, is_top_1_only=True)
+                aligned_resources = utils.post_process_resource(resources, multiple_records=False)
+                expected_aidoc_id = '' if aligned_resources is None else aligned_resources['aidocId']
+                protocol_number_verified = True
+            else:
+                expected_aidoc_id = aidoc_id
+
+            if expected_aidoc_id:
+                resource = get_file_contents_by_id(protocol_number=protocol_number, aidoc_id=expected_aidoc_id, protocol_number_verified=protocol_number_verified)
+            
             if resource is None:
-                return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
+                return abort(404, DOCUMENT_NOT_FOUND.format(args))
             else:
                 return resource
         except ValueError as e:
@@ -256,8 +287,13 @@ class DocumentprocessingAPI(Resource):
             resources = get_latest_protocol(protocol_number=protocol_number, version_number=version_number, document_status=document_status, is_top_1_only=False)
             aligned_resources = utils.post_process_resource(resources, multiple_records=True)
 
+            input_valid_flg = utils.validate_inputs(protocol_number=protocol_number)            
+            if not input_valid_flg:
+                logger.error(f"Invalid user inputs received: {args}")
+                return abort(404, INVALID_USER_INPUT.format(args))
+
             if aligned_resources is None:
-                return abort(404, DOCUMENT_NOT_FOUND.format(protocol_number))
+                return abort(404, DOCUMENT_NOT_FOUND.format(args))
             else:
                 return aligned_resources
         except ValueError as e:

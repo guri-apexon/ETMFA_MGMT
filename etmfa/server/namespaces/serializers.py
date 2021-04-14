@@ -251,6 +251,15 @@ latest_protocol_download_input.add_argument('versionNumber', type=str, required=
 latest_protocol_download_input.add_argument('documentStatus', type=str, required=False, help='Document status, default is "final"')
 latest_protocol_download_input.add_argument('sourceSystem', type=str, required=False, help='Source system calling this API')
 
+# Latest protocol contents
+latest_protocol_contents_input = reqparse.RequestParser()
+latest_protocol_contents_input.add_argument('protocolNumber', type=str, required=True, help='Protocol number')
+latest_protocol_contents_input.add_argument('id', type=str, required=False, help='Unique PD ID of the document')
+latest_protocol_contents_input.add_argument('approvalDate', type=str, required=False, help='Approval date of the document in YYYYMMDD format')
+latest_protocol_contents_input.add_argument('versionNumber', type=str, required=False, help='Version Number')
+latest_protocol_contents_input.add_argument('documentStatus', type=str, required=False, help='Document status, default is "final"')
+latest_protocol_contents_input.add_argument('sourceSystem', type=str, required=False, help='Source system calling this API')
+
 # All protocol details (sorted)
 latest_protocol_input = reqparse.RequestParser()
 latest_protocol_input.add_argument('protocolNumber', type=str, required=True, help='Protocol number')
