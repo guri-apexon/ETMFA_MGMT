@@ -54,7 +54,7 @@ def get_filter_conditions(protocol_number, version_number="", approval_date="", 
     order_condition = None
     
     # Default filter
-    default_filter = f"pd_protocol_qc_summary_data.isActive = 1 AND pd_protocol_metadata.protocol = '{protocol_number}'" #AND pd_protocol_qc_summary_data.source = 'QC'
+    default_filter = f"pd_protocol_qc_summary_data.isActive = 1 AND pd_protocol_metadata.protocol = '{protocol_number}'"
     
     # Build filter based on document Status
     if document_status == 'all':
