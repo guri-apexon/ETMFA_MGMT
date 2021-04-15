@@ -239,41 +239,40 @@ def pd_fetch_summary_data(aidocid, userid):
         resource = Protocoldata.query.filter(Protocoldata.id == aidocid).first()
         if resource:
             summary = ast.literal_eval(json.loads(resource.iqvdataSummary))
-            summary_result = dict()
             for row in summary['data']:
-                summary_result[row[0]]=row[1]
+                summary[row[0]]=row[1]
         else:
             return None
 
         protocolqcsummary = PDProtocolQCSummaryData()
         protocolqcsummary.aidocId = aidocid
         protocolqcsummary.source = 'QC'
-        protocolqcsummary.sponsor = summary_result['sponsor']
-        protocolqcsummary.protocolNumber = summary_result['protocol_number']
-        protocolqcsummary.trialPhase = summary_result['trial_phase']
-        protocolqcsummary.versionNumber = summary_result['version_number']
-        protocolqcsummary.approvalDate = summary_result['approval_date']
-        protocolqcsummary.versionDate = summary_result['version_date']
-        protocolqcsummary.protocolTitle = summary_result['protocol_title']
-        protocolqcsummary.protocolShortTitle = summary_result['protocol_title_short']
-        protocolqcsummary.indications = summary_result['indication']
+        protocolqcsummary.sponsor = summary['sponsor']
+        protocolqcsummary.protocolNumber = summary['protocol_number']
+        protocolqcsummary.trialPhase = summary['trial_phase']
+        protocolqcsummary.versionNumber = summary['version_number']
+        protocolqcsummary.approvalDate = summary['approval_date']
+        protocolqcsummary.versionDate = summary['version_date']
+        protocolqcsummary.protocolTitle = summary['protocol_title']
+        protocolqcsummary.protocolShortTitle = summary['protocol_title_short']
+        protocolqcsummary.indications = summary['indication']
         protocolqcsummary.isActive = True
-        protocolqcsummary.moleculeDevice = summary_result['molecule_device']
-        protocolqcsummary.investigator = summary_result['investigator']
-        protocolqcsummary.blinded = summary_result['blinded']
-        protocolqcsummary.drug = summary_result['drug']
-        protocolqcsummary.compoundNumber = summary_result['compound_number']
-        protocolqcsummary.control = summary_result['control']
-        protocolqcsummary.endPoints = summary_result['endpoints']
-        protocolqcsummary.trialTypeRandomized = summary_result['trial_type_randomized']
-        protocolqcsummary.numberOfSubjects = summary_result['number_of_subjects']
-        protocolqcsummary.participantAge = summary_result['participant_age']
-        protocolqcsummary.participantSex = summary_result['participant_sex']
-        protocolqcsummary.studyPopulation = summary_result['study_population']
-        protocolqcsummary.inclusionCriteria = summary_result['inclusion_criteria']
-        protocolqcsummary.exclusionCriteria = summary_result['exclusion_criteria']
-        protocolqcsummary.primaryObjectives = summary_result['primary_objectives']
-        protocolqcsummary.secondaryObjectives = summary_result['secondary_objectives']
+        protocolqcsummary.moleculeDevice = summary['molecule_device']
+        protocolqcsummary.investigator = summary['investigator']
+        protocolqcsummary.blinded = summary['blinded']
+        protocolqcsummary.drug = summary['drug']
+        protocolqcsummary.compoundNumber = summary['compound_number']
+        protocolqcsummary.control = summary['control']
+        protocolqcsummary.endPoints = summary['endpoints']
+        protocolqcsummary.trialTypeRandomized = summary['trial_type_randomized']
+        protocolqcsummary.numberOfSubjects = summary['number_of_subjects']
+        protocolqcsummary.participantAge = summary['participant_age']
+        protocolqcsummary.participantSex = summary['participant_sex']
+        protocolqcsummary.studyPopulation = summary['study_population']
+        protocolqcsummary.inclusionCriteria = summary['inclusion_criteria']
+        protocolqcsummary.exclusionCriteria = summary['exclusion_criteria']
+        protocolqcsummary.primaryObjectives = summary['primary_objectives']
+        protocolqcsummary.secondaryObjectives = summary['secondary_objectives']
         protocolqcsummary.qcApprovedBy = userid
         protocolqcsummary.timeCreated = datetime.now()
         protocolqcsummary.timeUpdated = datetime.now()

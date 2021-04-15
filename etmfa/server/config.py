@@ -1,6 +1,4 @@
-import pymysql
 from collections import defaultdict
-# import pyodbc
 
 
 class Config(object):
