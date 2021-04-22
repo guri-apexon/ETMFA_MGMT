@@ -251,6 +251,7 @@ def pd_fetch_summary_data(aidocid, userid):
         protocolqcsummary.protocolNumber = summary['protocol_number']
         protocolqcsummary.trialPhase = summary['trial_phase']
         protocolqcsummary.versionNumber = summary['version_number']
+        protocolqcsummary.amendmentNumber = summary['amendment_number']
         protocolqcsummary.approvalDate = summary['approval_date']
         protocolqcsummary.versionDate = summary['version_date']
         protocolqcsummary.protocolTitle = summary['protocol_title']
