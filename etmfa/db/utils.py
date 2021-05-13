@@ -1,14 +1,60 @@
 import logging
 import os
+from datetime import datetime
 
 import pandas as pd
 from etmfa.consts import Consts as consts
+from etmfa.db import config
+from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 from etmfa.server.namespaces.serializers import latest_protocol_contract_fields
 
 DEFAULT_DATE_VALUE = '19000101'
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
 
+def get_summary_records(aidoc_id, source):
+    """
+        Fetch the summary record
+    """
+    all_summary_records = PDProtocolQCSummaryData.query.filter(PDProtocolQCSummaryData.aidocId == aidoc_id, PDProtocolQCSummaryData.source == source).all()
+    return all_summary_records
+
+def fix_data(value, json_col, max_len, data_type, data_format):
+    """
+    Makes the data aligned to the required format and length
+    """
+    value = value.strip()[:max_len]
+
+    if data_type == 'date':
+        try:
+            datetime.strptime(value, data_format)
+        except ValueError as exc:
+            logging.warning(f"{json_col} received data [{value}] not matching the expected format[{data_format}], default value used.\nException: {str(exc)}")    
+            return ''
+    return value
+
+def get_updated_qc_summary_record(doc_id, source, summary_dict, is_active_flg=True, qc_approved_by=''):
+    """
+    Returns the Updated Summary record table record based on summary_dict
+    """
+    current_utctime = datetime.utcnow()
+
+    qc_summ_record = PDProtocolQCSummaryData()
+    qc_summ_record.aidocId = doc_id
+    qc_summ_record.source = source
+    qc_summ_record.isActive = is_active_flg
+    qc_summ_record.qcApprovedBy = qc_approved_by
+    qc_summ_record.timeUpdated = current_utctime
+
+    resource = PDProtocolQCSummaryData.query.filter(PDProtocolQCSummaryData.aidocId == doc_id, PDProtocolQCSummaryData.source == source).first()
+    if resource:
+        qc_summ_record.timeCreated = resource.timeCreated
+    else:
+        qc_summ_record.timeCreated = current_utctime
+
+    _ = [setattr(qc_summ_record, tab_col, fix_data(summary_dict.get(json_col, config.JSON_DEFAULT_MISSING_VALUE), json_col, max_len, data_type, data_format)) \
+                    for tab_col, (json_col, max_len, data_type, data_format) in config.summary_table_json_mapper.items()]
+    return qc_summ_record
 
 def clean_inputs(protocol_number="", version_number="", approval_date="", aidoc_id="", document_status="") -> dict:
     """

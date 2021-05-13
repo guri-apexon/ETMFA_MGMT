@@ -8,7 +8,7 @@ class ErrorCodes:
     ERROR_DOCUMENT_DUPLICATE = 605
     ERROR_UPDATING_ATTRIBUTES = 606
     ERROR_DOCUMENT_SAVING = 607
-
+    ERROR_QC_SUMMARY_DATA = 608
 
 ERRORS = {
     ErrorCodes.UNKNOWN_ERROR: "Unknown error",
@@ -16,7 +16,8 @@ ERRORS = {
     ErrorCodes.ERROR_PROTOCOL_DATA: "Error while writing record to pd_protocol_data file in DB",
     ErrorCodes.ERROR_DOCUMENT_PROCESS_ERROR: "Error while writing record to document_processing_error_event file in DB",
     ErrorCodes.ERROR_UPDATING_ATTRIBUTES: "Error while updating attribute to pd_protocol_data to DB ",
-    ErrorCodes.ERROR_DOCUMENT_SAVING: "Error while saving attributes to DB"
+    ErrorCodes.ERROR_DOCUMENT_SAVING: "Error while saving attributes to DB",
+    ErrorCodes.ERROR_QC_SUMMARY_DATA: "Error while writing record to pd_protocol_qc_summary_data table",
 }
 
 
