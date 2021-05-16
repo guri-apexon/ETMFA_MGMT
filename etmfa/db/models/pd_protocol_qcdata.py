@@ -17,6 +17,8 @@ class Protocolqcdata(db_context.Model):
     iqvdataSummary = db_context.Column(db_context.NVARCHAR(None))
     iqvdata = db_context.Column(db_context.NVARCHAR(None))
     isActive = db_context.Column(db_context.Boolean(), default=True)
+    timeCreated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
+    timeUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}

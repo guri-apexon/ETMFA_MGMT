@@ -172,7 +172,6 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
 
         protocoldata = Protocoldata()
         protocolqcdata = Protocolqcdata()
-        #protocolmetadata = PDProtocolMetadata()
         protocolmetadata.protocolTitle = finalattributes['ProtocolTitle']
         protocolmetadata.shortTitle = finalattributes['ShortTitle']
         protocolmetadata.phase = finalattributes['phase']
@@ -200,17 +199,23 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
 
         update_user_protocols(finalattributes['UserId'], finalattributes['ProjectId'], finalattributes['ProtocolNo'])
 
+        # Entry in summary table
+        summary_json_dict = ast.literal_eval(finalattributes['summary'])
+        summary_dict = {k:v for k, v, _ in summary_json_dict['data']}
+        summary_record = utils.get_updated_qc_summary_record(doc_id=id, source=config.SRC_EXTRACT, summary_dict=summary_dict, is_active_flg=True)
+
         try:
             db_context.session.add(protocoldata)
             db_context.session.add(protocolqcdata)
+            db_context.session.add(summary_record)
             db_context.session.commit()
             update_doc_processing_status(id, ProcessingStatus.QC1)
+            return id
         except Exception as ex:
+            logger.error("Error while writing record to file in DB for ID: {},{}".format(id, str(ex)))
             db_context.session.rollback()
             exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
             received_documentprocessing_error_event(exception.__dict__)
-            logger.error("Error while writing record to file in DB for ID: {},{}".format(
-                finalattributes['AiDocId'], ex))
 
 
 def received_documentprocessing_error_event(error_dict):
@@ -239,53 +244,19 @@ def pd_fetch_summary_data(aidocid, userid):
         resource = Protocoldata.query.filter(Protocoldata.id == aidocid).first()
         if resource:
             summary = ast.literal_eval(json.loads(resource.iqvdataSummary))
-            for row in summary['data']:
-                summary[row[0]]=row[1]
+            summary_dict = {k:v for k, v, _ in summary['data']}
         else:
             return None
 
-        protocolqcsummary = PDProtocolQCSummaryData()
-        protocolqcsummary.aidocId = aidocid
-        protocolqcsummary.source = 'QC'
-        protocolqcsummary.sponsor = summary['sponsor']
-        protocolqcsummary.protocolNumber = summary['protocol_number']
-        protocolqcsummary.trialPhase = summary['trial_phase']
-        protocolqcsummary.versionNumber = summary['version_number']
-        protocolqcsummary.amendmentNumber = summary['amendment_number']
-        protocolqcsummary.approvalDate = summary['approval_date']
-        protocolqcsummary.versionDate = summary['version_date']
-        protocolqcsummary.protocolTitle = summary['protocol_title']
-        protocolqcsummary.protocolShortTitle = summary['protocol_title_short']
-        protocolqcsummary.indications = summary['indication']
-        protocolqcsummary.isActive = True
-        protocolqcsummary.moleculeDevice = summary['molecule_device']
-        protocolqcsummary.investigator = summary['investigator']
-        protocolqcsummary.blinded = summary['blinded']
-        protocolqcsummary.drug = summary['drug']
-        protocolqcsummary.compoundNumber = summary['compound_number']
-        protocolqcsummary.control = summary['control']
-        protocolqcsummary.endPoints = summary['endpoints']
-        protocolqcsummary.trialTypeRandomized = summary['trial_type_randomized']
-        protocolqcsummary.numberOfSubjects = summary['number_of_subjects']
-        protocolqcsummary.participantAge = summary['participant_age']
-        protocolqcsummary.participantSex = summary['participant_sex']
-        protocolqcsummary.studyPopulation = summary['study_population']
-        protocolqcsummary.inclusionCriteria = summary['inclusion_criteria']
-        protocolqcsummary.exclusionCriteria = summary['exclusion_criteria']
-        protocolqcsummary.primaryObjectives = summary['primary_objectives']
-        protocolqcsummary.secondaryObjectives = summary['secondary_objectives']
-        protocolqcsummary.qcApprovedBy = userid
-        protocolqcsummary.timeCreated = datetime.now()
-        protocolqcsummary.timeUpdated = datetime.now()
-
-        db_context.session.merge(protocolqcsummary)
+        summary_record = utils.get_updated_qc_summary_record(doc_id=aidocid, source=config.SRC_QC, summary_dict=summary_dict, is_active_flg=True, qc_approved_by=userid)            
+        db_context.session.merge(summary_record)
         db_context.session.commit()
         return aidocid
     except Exception as ex:
+        logger.error(ERROR_PROCESSING_STATUS.format(aidocid, str(ex)))
         db_context.session.rollback()
-        exception = ManagementException(id, ErrorCodes.ERROR_DOCUMENT_SAVING)
+        exception = ManagementException(aidocid, ErrorCodes.ERROR_QC_SUMMARY_DATA)
         received_documentprocessing_error_event(exception.__dict__)
-        logger.error(ERROR_PROCESSING_STATUS.format(aidocid, ex))
 
 
 
