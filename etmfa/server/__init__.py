@@ -44,7 +44,9 @@ def create_app(config_name, ssl_enabled=False):
     initialize_logger(app)
     logger = logging.getLogger(Consts.LOGGING_NAME)
 
-    if Path(Config.DFS_UPLOAD_FOLDER).exists():
+    if config_name == 'test':
+        logger.info(f'Target folder check not required for config_name: {config_name}')
+    elif Path(Config.DFS_UPLOAD_FOLDER).exists():
         logger.info('reading dfs path {}'.format(Config.DFS_UPLOAD_FOLDER))
     else:
         logger.error(f'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')

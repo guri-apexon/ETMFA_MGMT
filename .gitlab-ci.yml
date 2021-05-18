@@ -40,7 +40,6 @@ unit-tests:
     - . $VE_PATH
   script:
     - python -m pytest -v --junit-xml=test_results.xml --cov=etmfa --cov-report=xml
-  allow_failure: true # Remove it, when ready
   artifacts:
       paths:
       - test_results.xml
