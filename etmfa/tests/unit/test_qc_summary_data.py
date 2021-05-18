@@ -18,7 +18,7 @@ from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 # Setup logger
 logger = logging.getLogger(consts.LOGGING_NAME)
 
-config_name = 'development'
+config_name = 'test'
 _app_context = create_app(config_name).app_context()
 
 
