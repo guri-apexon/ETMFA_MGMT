@@ -522,6 +522,7 @@ def update_user_protocols(user_id, project_id, protocol_number):
     
     if not records:
         userprotocols.isActive = True
+        userprotocols.follow = True
         userprotocols.userId = user_id
         userprotocols.projectId = project_id
         userprotocols.protocol = protocol_number
@@ -534,11 +535,12 @@ def update_user_protocols(user_id, project_id, protocol_number):
                 user_id, ex))
     else:
         for record in records:
-            if record.isActive == False:
-                record.isActive = True
-            else:
-                continue
+            record.isActive = True
+            record.follow = True
+            record.userRole = "primary"
+            record.lastUpdated = datetime.utcnow()
             try:
+                db_context.session.merge(record)
                 db_context.session.commit()
             except Exception as ex:
                 db_context.session.rollback()
