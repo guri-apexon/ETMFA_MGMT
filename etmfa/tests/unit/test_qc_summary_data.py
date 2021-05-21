@@ -1,25 +1,20 @@
-import logging
 import ast
-import json
-import pytest
 import datetime
-from etmfa.server.config import Config, app_config
+import json
+import logging
+
+import pytest
 from etmfa.consts import Consts as consts
-from etmfa.db import pd_fetch_summary_data, received_finalizationcomplete_event
-from etmfa.server import create_app
-from gevent.pywsgi import WSGIServer
-from etmfa.db.db import db_context
 from etmfa.db import config as summary_config
-from etmfa.db import utils
+from etmfa.db import (pd_fetch_summary_data,
+                      received_finalizationcomplete_event, utils)
+from etmfa.db.db import db_context
 from etmfa.db.models.pd_protocol_data import Protocoldata
-from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
+from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 
 # Setup logger
 logger = logging.getLogger(consts.LOGGING_NAME)
-
-config_name = 'test'
-_app_context = create_app(config_name).app_context()
 
 
 @pytest.mark.parametrize("aidocid, userid",
@@ -28,8 +23,8 @@ _app_context = create_app(config_name).app_context()
                           ("3da9c490-1a98-484c-b97b-a2c3ad65462c", "ut_id3"),
                           ("a89de6a0-fc10-4964-9364-fa20962d44ef", "ut_id4")
                           ])
-def test_qc_summary_update(aidocid, userid):
-    with _app_context:
+def test_qc_summary_update(new_app_context, aidocid, userid):
+    with new_app_context:
         current_utctime = datetime.datetime.utcnow()
         _ = pd_fetch_summary_data(aidocid, userid)
         all_summary_records = utils.get_summary_records(aidocid, source=summary_config.SRC_QC)
@@ -45,8 +40,8 @@ def test_qc_summary_update(aidocid, userid):
                          ("SSR_1002-043", "larger text than target length", "larger t", " 20210607  ", datetime.date(year=2021, month=6, day=7), "Valid approval date2"),
                          ("SSR_1002-043", "larger text than target length", "larger t", " A0210608  ", datetime.date(year=1900, month=1, day=1), "Invalid date check")
                         ])
-def test_nonqc_summary_insert(finalizer_complete_payload_cached, protocol_num, assign_is_amendment_flg, expected_is_amendment_flg, assign_approval_date, expected_approval_date, comments):
-    with _app_context:
+def test_nonqc_summary_insert(finalizer_complete_payload_cached, new_app_context, protocol_num, assign_is_amendment_flg, expected_is_amendment_flg, assign_approval_date, expected_approval_date, comments):
+    with new_app_context:
         aidoc_id, finalattributes_dict = finalizer_complete_payload_cached[protocol_num]
         
         # Clear old test data
