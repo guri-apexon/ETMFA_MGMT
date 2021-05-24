@@ -265,6 +265,7 @@ latest_protocol_input = reqparse.RequestParser()
 latest_protocol_input.add_argument('protocolNumber', type=str, required=True, help='Protocol number')
 latest_protocol_input.add_argument('versionNumber', type=str, required=False, help='Version Number')
 latest_protocol_input.add_argument('documentStatus', type=str, required=False, help='Document status, default is "final"')
+latest_protocol_input.add_argument('qcStatus', type=str, required=False, help='Quality check validation status, default is "qc_only"')
 latest_protocol_input.add_argument('sourceSystem', type=str, required=False, help='Source system calling this API')
 
 latest_protocol_contract_fields = ('protocol', 'versionNumber', 'sponsor', 'documentStatus', 'aidocId', 'allVersions', 'approvalDate', 

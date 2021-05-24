@@ -270,6 +270,7 @@ class DocumentprocessingAPI(Resource):
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
 
+@ns.route('/all_protocols')
 @ns.route('/mcra_latest_protocol')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
@@ -281,10 +282,15 @@ class DocumentprocessingAPI(Resource):
         """Get the document processing object attributes"""
         args = latest_protocol_input.parse_args()
         try:
-            protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
-            version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
-            document_status = args['documentStatus'] if args['documentStatus'] is not None else ''
-            resources = get_latest_protocol(protocol_number=protocol_number, version_number=version_number, document_status=document_status, is_top_1_only=False)
+            cleaned_inputs = utils.clean_inputs(protocol_number = args['protocolNumber'], version_number = args['versionNumber'], \
+                document_status = args['documentStatus'], qc_status = args['qcStatus'])
+            protocol_number = cleaned_inputs.get('protocol_number', '')
+            version_number = cleaned_inputs.get('version_number', '')
+            document_status = cleaned_inputs.get('document_status', '')
+            qc_status = cleaned_inputs.get('qc_status', '')
+
+            resources = get_latest_protocol(protocol_number=protocol_number, version_number=version_number, document_status=document_status, \
+                qc_status=qc_status, is_top_1_only=False)
             aligned_resources = utils.post_process_resource(resources, multiple_records=True)
 
             input_valid_flg = utils.validate_inputs(protocol_number=protocol_number)            

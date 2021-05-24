@@ -6,34 +6,34 @@ import json
 from datetime import datetime
 
 from flask import g
-from sqlalchemy import desc
+# from sqlalchemy import desc
 
 from etmfa.consts import Consts as consts
 from etmfa.db.db import db_context
 from etmfa.db.models.documentcompare import Documentcompare
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
-from etmfa.db.models.pd_roles import PDRoles
-from etmfa.db.models.pd_users import User
-from etmfa.db.models.pd_login import Login
-from etmfa.db.models.pd_pwd_tracker import PwdTracker
+# from etmfa.db.models.pd_roles import PDRoles
+# from etmfa.db.models.pd_users import User
+# from etmfa.db.models.pd_login import Login
+# from etmfa.db.models.pd_pwd_tracker import PwdTracker
 from etmfa.db.models.pd_protocol_data import Protocoldata
 from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
-from etmfa.db.models.pd_protocol_sponsor import PDProtocolSponsor
-from etmfa.db.models.pd_protocol_saved_search import PDProtocolSavedSearch
-from etmfa.db.models.pd_protocol_recent_search import PDProtocolRecentSearch
-from etmfa.db.models.pd_protocol_indications import PDProtocolIndication
-from etmfa.db.models.amp_server_run_info import amp_server_run_info
+# from etmfa.db.models.pd_protocol_sponsor import PDProtocolSponsor
+# from etmfa.db.models.pd_protocol_saved_search import PDProtocolSavedSearch
+# from etmfa.db.models.pd_protocol_recent_search import PDProtocolRecentSearch
+# from etmfa.db.models.pd_protocol_indications import PDProtocolIndication
+# from etmfa.db.models.amp_server_run_info import amp_server_run_info
 from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
-from etmfa.messaging.models.document_class import DocumentClass
+# from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.error import ManagementException
 from etmfa.error import ErrorCodes
 import ast
 
 import pandas as pd
-from sqlalchemy import and_
+from sqlalchemy import and_, func
 from sqlalchemy.sql import text
 from etmfa.db import utils
 
@@ -468,7 +468,7 @@ def set_draft_version(document_status, sponsor, protocol, version_number):
         draftVersion = None
     return draftVersion 
 
-def get_latest_protocol(protocol_number, version_number="", approval_date="", aidoc_id="", document_status="", is_top_1_only=True):
+def get_latest_protocol(protocol_number, version_number="", approval_date="", aidoc_id="", document_status="", qc_status="", is_top_1_only=True):
     """
     Get top-1 or all the protocol based on input arguments
     """
@@ -487,13 +487,17 @@ def get_latest_protocol(protocol_number, version_number="", approval_date="", ai
            
         else:
             resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata.draftVersion, PDProtocolMetadata.amendment, PDProtocolMetadata.uploadDate, PDProtocolMetadata.documentFilePath,
-                                                PDProtocolMetadata.projectId, PDProtocolMetadata.documentStatus, PDProtocolMetadata.protocol
-                                                   ).join(PDProtocolMetadata, and_(PDProtocolQCSummaryData.aidocId == PDProtocolMetadata.id, PDProtocolQCSummaryData.source == 'QC')
+                                                PDProtocolMetadata.projectId, PDProtocolMetadata.documentStatus, PDProtocolMetadata.protocol,
+                                                PDProtocolQCSummaryData.source,
+                                                func.rank().over(partition_by = PDProtocolQCSummaryData.aidocId, order_by = PDProtocolQCSummaryData.source.desc()).label('rank')
+                                                   ).join(PDProtocolMetadata, PDProtocolQCSummaryData.aidocId == PDProtocolMetadata.id
                                                    ).filter(text(all_filter)
                                                    ).order_by(text(order_condition)).all()
             
+            resource = utils.filter_qc_status(resources = resource, qc_status = qc_status)
     except Exception as e:
-        logger.error(f"No document resource was found in DB [Protocol: {protocol_number}; Version: {version_number}; approval_date: {approval_date}; doc_id: {aidoc_id}; document_status: {document_status}]")
+        logger.error(f"No document resource was found in DB [Protocol: {protocol_number}; Version: {version_number}; approval_date: {approval_date}; \
+            doc_id: {aidoc_id}; document_status: {document_status}; qc_status: {qc_status}]")
         logger.error(f"Exception message:\n{e}")
     
     return resource
