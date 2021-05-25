@@ -6,11 +6,11 @@ class GenericRequest:
     id: str
     IQVXMLPath: str
 
-@dataclass
-class CompareRequest:
-    ID: str
-    IQVXML_PATH: str
-    PROTOCOL:str
+# @dataclass
+# class CompareRequest:
+#     ID: str
+#     IQVXML_PATH: str
+#     PROTOCOL:str
 
 @dataclass
 class OmapRequest:

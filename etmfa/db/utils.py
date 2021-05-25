@@ -7,10 +7,22 @@ from etmfa.consts import Consts as consts
 from etmfa.db import config
 from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 from etmfa.server.namespaces.serializers import latest_protocol_contract_fields
+from etmfa.error import ManagementException
+from etmfa.error import ErrorCodes
+
 
 DEFAULT_DATE_VALUE = '19000101'
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
+
+def get_iqvxml_file_path(dfs_folder_path, prefix):
+    try:
+        files = os.listdir(dfs_folder_path)
+        file = [file for file in files if file.startswith(prefix)][0]
+        return os.path.join(dfs_folder_path, file)
+    except Exception as ex:
+        logger.error("Could not {} XML file in path: {} {}".format(prefix, dfs_folder_path, str(ex)))
+        exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
 
 def get_summary_records(aidoc_id, source):
     """

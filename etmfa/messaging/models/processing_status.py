@@ -11,7 +11,7 @@ class ProcessingStatus(Enum):
     I2E_OMOP_UPDATE_STARTED = 45 # added for i2e omop update
     DIGITIZER2_OMOPUPDATE_STARTED= 60 # added for i2e omop update
     EXTRACTION_STARTED = 75
-    COMPARE_STARTED = 85
+    # COMPARE_STARTED = 85 Can be removed
     FINALIZATION_STARTED = 95
     QC1 = 100 #this was updated for manual qc process from process completed to QC1 status
     # PROCESS_COMPLETED = 100
