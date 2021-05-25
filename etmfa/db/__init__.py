@@ -31,6 +31,7 @@ from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.error import ManagementException
 from etmfa.error import ErrorCodes
 import ast
+import uuid
 
 import pandas as pd
 from sqlalchemy import and_
@@ -103,65 +104,48 @@ def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
     return False
 
 
-def add_compare_event(compare_req_msg, protocol_number, project_id, protocol_number2, project_id2, user_id):
-    compare = Documentcompare()
-    compare.compareId = compare_req_msg['COMPARE_ID']
-    compare.id1 = compare_req_msg['BASE_DOC_ID']
-    compare.protocolNumber = protocol_number
-    compare.projectId = project_id
-    compare.id2 = compare_req_msg['COMPARE_DOC_ID']
-    compare.protocolNumber2 = protocol_number2
-    compare.projectId2 = project_id2
-    compare.userId = user_id
-    compare.baseIqvXmlPath = compare_req_msg['BASE_IQVXML_PATH']
-    compare.compareIqvXmlPath = compare_req_msg['COMPARE_IQVXML_PATH']
-    compare.requestType = compare_req_msg['REQUEST_TYPE']
+def add_compare_event(compare_protocol_list, id_):
     try:
-        db_context.session.add(compare)
-        db_context.session.commit()
-        return compare_req_msg
+        if compare_protocol_list:
+            compare_db_data = list()
+            for row in compare_protocol_list:
+                compare = Documentcompare()
+                compare.compareId = row['compareId']
+                compare.id1 = row['id1']
+                compare.id2 = row['id2']
+                compare.protocolNumber = row['protocolNumber']
+                compare.createdDate = datetime.utcnow()
+                compare.updatedDate = datetime.utcnow()
+                compare_db_data.append(compare)
+            db_context.session.add_all(compare_db_data)
+            db_context.session.commit()
+            return True
     except Exception as ex:
+        logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(id_, ex))
         db_context.session.rollback()
-        exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
+        exception = ManagementException(id_, ErrorCodes.ERROR_PROTOCOL_DATA)
         received_documentprocessing_error_event(exception.__dict__)
-        logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
-            compare['compare_id'], ex))
+        return False
 
-def insert_compare(comparevalues,comparedata,UPDATED_IQVXML_PATH):
+def received_comparecomplete_event(compare_dict, message_publisher):
 
-    resource = Documentcompare()
-    resource.id1=comparevalues[0]
-    resource.protocolNumber=comparevalues[1]
-    resource.projectId=comparevalues[2]
-    resource.versionNumber=comparevalues[3]
-    resource.amendmentNumber=comparevalues[4]
-    resource.documentStatus=comparevalues[5]
-    resource.id2=comparevalues[6]
-    resource.protocolNumber2=comparevalues[7]
-    resource.projectId2=comparevalues[8]
-    resource.versionNumber2=comparevalues[9]
-    resource.amendmentNumber2=comparevalues[10]
-    resource.documentStatus2=comparevalues[11]
-    resource.updatedIqvXmlPath=UPDATED_IQVXML_PATH
-    resource.iqvdata=str(json.dumps(comparedata))
-    resource.similarityScore=comparevalues[12]
+    resource = Documentcompare.query.filter(Documentcompare.compareId == compare_dict.get('compare_id', '')).first()
     try:
+        resource.compareId = compare_dict.get('compare_id', '')
+        resource.compareIqvXmlPath = compare_dict.get('IQVXMLPath', '')
+        resource.compareCSVPath = compare_dict.get('CSVPath', '')
+        resource.compareJSONPath = compare_dict.get('JSONPath', '')
+        resource.numChangesTotal = int(compare_dict.get('NumChangesTotal', '')) if compare_dict.get('NumChangesTotal','').isdigit() else 0
+        resource.updatedDate = datetime.utcnow()
         db_context.session.add(resource)
         db_context.session.commit()
     except Exception as ex:
         db_context.session.rollback()
-        exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
+        exception = ManagementException(compare_dict['compare_id'], ErrorCodes.ERROR_PROTOCOL_DATA)
         received_documentprocessing_error_event(exception.__dict__)
         logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
-            comparevalues['compare_id'], ex))
+            compare_dict['compare_id'], ex))
 
-
-def received_comparecomplete_event(msg_comparevalues, message_publisher):
-    if msg_comparevalues['ALL_COMPARISONS']:
-        for comparevalues,comparedata in msg_comparevalues['ALL_COMPARISONS'].items():
-            insert_compare(ast.literal_eval(comparevalues),comparedata,msg_comparevalues['UPDATED_IQVXML_PATH'])
-    else:
-        logger.warning('No values to compare. Moving to Finalization')
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         finalattributes = finalattributes['db_data']
@@ -183,7 +167,6 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         protocoldata.documentFilePath = finalattributes['documentPath']
         protocoldata.iqvdataToc = str(json.dumps(finalattributes['toc']))
         protocoldata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
-        #protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['iqvdataSoaStd']))
         protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
 
         #Protocol qc data table updation for Backup purpose of original data
@@ -210,10 +193,50 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
             db_context.session.add(summary_record)
             db_context.session.commit()
             update_doc_processing_status(id, ProcessingStatus.QC1)
-            return id
         except Exception as ex:
             logger.error("Error while writing record to file in DB for ID: {},{}".format(id, str(ex)))
             db_context.session.rollback()
+            exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
+            received_documentprocessing_error_event(exception.__dict__)
+
+        try:
+            protocoldata.documentFilePath = finalattributes['documentPath']
+            protocol_number = finalattributes['ProtocolNo']
+            ids_compare_protocol = db_context.session.query(PDProtocolMetadata.id,
+                                                            PDProtocolMetadata.protocol,
+                                                            PDProtocolMetadata.documentFilePath
+                                                            ).filter(
+                and_(PDProtocolMetadata.protocol == protocol_number,
+                     PDProtocolMetadata.id != finalattributes['AiDocId'],
+                     PDProtocolMetadata.status == 'PROCESS_COMPLETED')).all()
+
+            IQVXMLPath1 = utils.get_iqvxml_file_path(finalattributes['documentPath'], 'FIN_')
+            if IQVXMLPath1:
+                ids_compare_protocol_1 = list()
+                for row in ids_compare_protocol:
+                    IQVXMLPath2 = utils.get_iqvxml_file_path(row.documentFilePath[:row.documentFilePath.rfind('\\')], 'FIN_')
+                    ids_compare_protocol_1.extend([{'compareId': str(uuid.uuid4()),
+                                                  'id1': finalattributes['AiDocId'],
+                                                  'IQVXMLPath1': IQVXMLPath1,
+                                                  'id2': row.id,
+                                                  'protocolNumber': protocol_number,
+                                                  'IQVXMLPath2': IQVXMLPath2
+                                                  },
+                                                 {'compareId': str(uuid.uuid4()),
+                                                  'id1': row.id,
+                                                  'IQVXMLPath1': IQVXMLPath2,
+                                                  'id2': finalattributes['AiDocId'],
+                                                  'protocolNumber': protocol_number,
+                                                  'IQVXMLPath2': IQVXMLPath1
+                                                  }
+                                                 ])
+                ids_compare_protocol = ids_compare_protocol_1
+                ret_val = add_compare_event(ids_compare_protocol, id)
+                if ret_val:
+                    return ids_compare_protocol
+
+        except Exception as ex:
+            logger.error("Error while creating compare json request for ID: {},{}".format(id, str(ex)))
             exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
             received_documentprocessing_error_event(exception.__dict__)
 

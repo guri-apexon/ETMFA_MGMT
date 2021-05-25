@@ -12,7 +12,7 @@ class EtmfaQueues(Enum):
     EXTRACTION = "extraction",
     FINALIZATION = "finalization",
     FEEDBACK = "feedback",
-    COMPARE = "compare"
+    COMPARE = "digitizer2_compare"
     DOCUMENT_PROCESSING_ERROR = "documentprocessing_error"
 
 
