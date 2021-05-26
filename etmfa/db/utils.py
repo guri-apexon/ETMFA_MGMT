@@ -11,7 +11,6 @@ from etmfa.error import ManagementException
 from etmfa.error import ErrorCodes
 
 
-DEFAULT_DATE_VALUE = '19000101'
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
 
@@ -68,19 +67,19 @@ def get_updated_qc_summary_record(doc_id, source, summary_dict, is_active_flg=Tr
                     for tab_col, (json_col, max_len, data_type, data_format) in config.summary_table_json_mapper.items()]
     return qc_summ_record
 
-def clean_inputs(protocol_number="", version_number="", approval_date="", aidoc_id="", document_status="") -> dict:
+def clean_inputs(protocol_number="", version_number="", approval_date="", aidoc_id="", document_status="", qc_status="") -> dict:
     """
     Clean the input arguments
     """
     cleaned_inputs = dict()
 
     # Clean the inputs
-    cleaned_inputs['protocol_number'] = protocol_number.strip()
-    cleaned_inputs['version_number'] = version_number.strip()
-    cleaned_inputs['approval_date'] = approval_date.strip()
-    cleaned_inputs['aidoc_id'] = aidoc_id.strip()
-    cleaned_inputs['document_status'] = document_status.strip().lower()
-
+    cleaned_inputs['protocol_number'] = protocol_number.strip() if protocol_number is not None else ''
+    cleaned_inputs['version_number'] = version_number.strip() if version_number is not None else ''
+    cleaned_inputs['approval_date'] = approval_date.strip() if approval_date is not None else ''
+    cleaned_inputs['aidoc_id'] = aidoc_id.strip() if aidoc_id is not None else ''
+    cleaned_inputs['document_status'] = document_status.strip().lower() if document_status is not None else ''
+    cleaned_inputs['qc_status'] = qc_status.strip().lower() if qc_status is not None else ''
     return cleaned_inputs
 
 def validate_inputs(protocol_number = "") -> bool:
@@ -118,7 +117,7 @@ def get_filter_conditions(protocol_number, version_number="", approval_date="", 
     if document_status == 'all':
         all_filter = default_filter
     else:
-        document_status = document_status if document_status in ('final', 'draft', 'all') else 'final'
+        document_status = document_status if document_status in config.VALID_DOCUMENT_STATUS else config.DEFAULT_DOCUMENT_STATUS
         document_status_filter = f"pd_protocol_metadata.documentStatus = '{document_status}'"
         all_filter = default_filter + ' AND ' + document_status_filter
         
@@ -174,7 +173,7 @@ def apply_contract_rules(top_resource:dict, metadata_fields:list, ignore_filepat
     top_resource.update(metadata_dict)
 
     approval_date = approval_date if pd.isnull(top_resource['approvalDate']) else top_resource['approvalDate'].strftime('%Y%m%d')
-    top_resource['approvalDate'] = '' if approval_date == DEFAULT_DATE_VALUE else approval_date
+    top_resource['approvalDate'] = '' if approval_date == config.DEFAULT_DATE_VALUE else approval_date
     
     _ = indications if pd.isnull(top_resource['indications']) else indications.append(top_resource['indications'])
     top_resource['indications'] = str(indications)
@@ -219,3 +218,18 @@ def post_process_resource(resources, multiple_records=False) -> dict:
 
     logger.debug(f"top_resource:\n{top_resource}")
     return top_resource
+
+
+def filter_qc_status(resources, qc_status):
+    """
+        Filter the results based on qc_status
+    """
+    qc_status = qc_status if qc_status in config.VALID_QC_STATUS else config.DEFAULT_QC_STATUS
+
+    if resources is not None and type(resources) == list and len(resources) > 0:
+        if qc_status == config.DEFAULT_QC_STATUS:
+            resources = [resource for resource in resources if resource.source == 'QC']
+        else:
+            resources = [resource for resource in resources if resource.rank == 1]
+
+    return resources

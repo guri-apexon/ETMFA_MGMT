@@ -26,5 +26,6 @@ def finalizer_complete_payload_cached():
 
 @pytest.fixture(scope="session", autouse=True)
 def new_app_context():
-    _app_context = create_app(config_name).app_context()
-    return _app_context
+    _app = create_app(config_name)
+    _app_context = _app.app_context()
+    return _app, _app_context

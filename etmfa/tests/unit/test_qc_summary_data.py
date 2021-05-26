@@ -24,7 +24,8 @@ logger = logging.getLogger(consts.LOGGING_NAME)
                           ("a89de6a0-fc10-4964-9364-fa20962d44ef", "ut_id4")
                           ])
 def test_qc_summary_update(new_app_context, aidocid, userid):
-    with new_app_context:
+    _, _app_context = new_app_context    
+    with _app_context:
         current_utctime = datetime.datetime.utcnow()
         _ = pd_fetch_summary_data(aidocid, userid)
         all_summary_records = utils.get_summary_records(aidocid, source=summary_config.SRC_QC)
@@ -40,8 +41,10 @@ def test_qc_summary_update(new_app_context, aidocid, userid):
                          ("SSR_1002-043", "larger text than target length", "larger t", " 20210607  ", datetime.date(year=2021, month=6, day=7), "Valid approval date2"),
                          ("SSR_1002-043", "larger text than target length", "larger t", " A0210608  ", datetime.date(year=1900, month=1, day=1), "Invalid date check")
                         ])
-def test_nonqc_summary_insert(finalizer_complete_payload_cached, new_app_context, protocol_num, assign_is_amendment_flg, expected_is_amendment_flg, assign_approval_date, expected_approval_date, comments):
-    with new_app_context:
+def test_nonqc_summary_insert(finalizer_complete_payload_cached, new_app_context, protocol_num, assign_is_amendment_flg, \
+                                    expected_is_amendment_flg, assign_approval_date, expected_approval_date, comments):
+    _, _app_context = new_app_context
+    with _app_context:
         aidoc_id, finalattributes_dict = finalizer_complete_payload_cached[protocol_num]
         
         # Clear old test data

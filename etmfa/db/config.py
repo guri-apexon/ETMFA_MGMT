@@ -3,6 +3,15 @@ SRC_EXTRACT = 'LM'
 SRC_QC = 'QC'
 JSON_DEFAULT_MISSING_VALUE = ''
 
+# Valid status
+VALID_DOCUMENT_STATUS = ('final', 'draft', 'all')
+DEFAULT_DOCUMENT_STATUS = 'final'
+
+VALID_QC_STATUS = ('qc_only', 'all')
+DEFAULT_QC_STATUS = 'qc_only'
+
+DEFAULT_DATE_VALUE = '19000101'
+
 # Mapping between table name and JSON field name
 # Format: 'table_name': ('json_field_name', 'max_allowed_length', 'data_type', 'data_format')
 summary_table_json_mapper = { 
