@@ -16,7 +16,8 @@ logger = logging.getLogger(consts.LOGGING_NAME)
                          (False, "1034911", "SSR_1002-043", "Existing protocol for the user")
                           ])
 def test_follow_protocol_as_primary(new_app_context, insert_flg, user_id, protocol, comments):
-    with new_app_context:
+    _, _app_context = new_app_context
+    with _app_context:
         current_utctime = datetime.datetime.utcnow()
 
         if insert_flg:

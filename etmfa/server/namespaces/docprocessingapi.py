@@ -1,8 +1,5 @@
 import logging
-import requests
 import uuid
-import os
-import json
 from pathlib import Path
 from etmfa.messaging.models.queue_names import EtmfaQueues
 from dataclasses import asdict
@@ -15,38 +12,22 @@ from etmfa.db import utils
 from etmfa.db import (
     pd_fetch_summary_data,
     save_doc_processing,
-    get_doc_resource_by_id,
     get_doc_processing_by_id,
-    get_doc_processed_by_id,
-    get_doc_status_processing_by_id,
     get_file_contents_by_id,
     get_latest_protocol,
-    get_compare_documents,
-    upsert_attributevalue,
     set_draft_version
 )
 from etmfa.messaging.messagepublisher import MessagePublisher
 from etmfa.messaging.models.triage_request import TriageRequest
-from etmfa.messaging.models.compare_request import CompareRequest
-from etmfa.messaging.models.document_class import DocumentClass
 from etmfa.server.api import api
 from etmfa.server.namespaces.serializers import (
-    metadata_post,
     eTMFA_object_get,
     PD_qc_get,
-    eTMFA_object_get_status,
-    eTMFA_attributes_get,
     eTMFA_object_post,
-    pd_object_get_summary,
-    mCRA_attributes_input,
     latest_protocol_input,
     latest_protocol_get,
     latest_protocol_download_input,
     latest_protocol_contents_input,
-    pd_compare_object_post,
-    pd_compare_get,
-    pd_compare_post_response,
-    pd_compare_object_input_get,
     pd_qc_check_update_post
 
 )
@@ -131,7 +112,7 @@ class DocumentprocessingAPI(Resource):
     @ns.marshal_with(PD_qc_get)
     @ns.response(200, 'Success.')
     def post(self):
-        """Get the document processing object attributes"""
+        """Perform post processing once the document completes QC check"""
         args = pd_qc_check_update_post.parse_args()
         try:
             aidocid = args['aidoc_id'] if args['aidoc_id'] is not None else ' '
@@ -144,48 +125,6 @@ class DocumentprocessingAPI(Resource):
             return abort(500, SERVER_ERROR.format(e))
 
 
-@ns.route('/<string:id>/key/value')
-@ns.response(404, 'Document Processing resource not found.')
-@ns.response(500, 'Server error.')
-class DocumentprocessingAPI(Resource):
-    @ns.expect(metadata_post)
-    @ns.marshal_with(eTMFA_attributes_get)
-    @ns.response(200, 'Success.')
-    def patch(self, id):
-        """Update document attributes with key value """
-        g.aidocid = id
-        resource = get_doc_status_processing_by_id(id, full_mapping=True)
-        if resource is None:
-            return abort(404, DOCUMENT_NOT_FOUND.format(id))
-        else:
-            md = request.json
-            for m in md['metadata']:
-                upsert_attributevalue(id, m['name'], m['val'])
-            return get_doc_processed_by_id(id)
-
-
-
-
-
-@ns.route('/<string:id>/status')
-@ns.response(404, 'Document Processing resource not found.')
-@ns.response(500, 'Server error.')
-class DocumentprocessingAPI(Resource):
-    @ns.marshal_with(eTMFA_object_get_status)
-    @ns.response(200, 'Success.')
-    def get(self, id):
-        """Get document processing object status. This includes any locations of processed documents"""
-        try:
-            g.aidocid = id
-            resource = get_doc_status_processing_by_id(id, full_mapping=True)
-            if resource is None:
-                return abort(404, DOCUMENT_NOT_FOUND.format(id))
-            else:
-                return resource
-        except ValueError as e:
-            logger.error(SERVER_ERROR.format(e))
-            return abort(500, SERVER_ERROR.format(e))
-
 @ns.route('/mcra_download_protocols')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
@@ -193,7 +132,7 @@ class DocumentprocessingAPI(Resource):
     @ns.response(200, 'Success.')
     @ns.response(404, 'Document Processing resource not found.')
     def get(self):
-        """Get the document processing object attributes"""
+        """Get the source protocol document"""
         args = latest_protocol_download_input.parse_args()
         try:
             protocol_number = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
@@ -234,7 +173,7 @@ class DocumentprocessingAPI(Resource):
     @ns.response(200, 'Success.')
     @ns.response(404, 'Document Processing resource not found.')
     def get(self):
-        """Get the document processing object attributes"""
+        """Get the digitized file contents"""
         resource = None
         protocol_number_verified = False
         args = latest_protocol_contents_input.parse_args()
@@ -279,7 +218,7 @@ class DocumentprocessingAPI(Resource):
     @ns.response(200, 'Success.')
     @ns.response(404, 'Document Processing resource not found.')
     def get(self):
-        """Get the document processing object attributes"""
+        """Get all the protocols processed in PD based on input parameters"""
         args = latest_protocol_input.parse_args()
         try:
             cleaned_inputs = utils.clean_inputs(protocol_number = args['protocolNumber'], version_number = args['versionNumber'], \
@@ -302,31 +241,6 @@ class DocumentprocessingAPI(Resource):
                 return abort(404, DOCUMENT_NOT_FOUND.format(args))
             else:
                 return aligned_resources
-        except ValueError as e:
-            logger.error(SERVER_ERROR.format(e))
-            return abort(500, SERVER_ERROR.format(e))
-
-
-@ns.route('/compareattributes')
-@ns.response(500, 'Server error.')
-class DocumentprocessingAPI(Resource):
-    @ns.expect(pd_compare_object_input_get)
-    # @ns.marshal_with(pd_compare_get)
-    @ns.response(200, 'Success.')
-    @ns.response(404, 'Document Processing resource not found.')
-    def get(self):
-        """Get the document processing object attributes"""
-        args = pd_compare_object_input_get.parse_args()
-        try:
-            base_doc_id = args['Base_doc_id'] if args['Base_doc_id'] is not None else ' '
-            compare_doc_id = args['Compare_doc_id'] if args['Compare_doc_id'] is not None else ' '
-            #check to see if compare already present for given doc id's
-            resource = get_compare_documents(base_doc_id, compare_doc_id)
-            if resource is None:
-                return abort(404, Compare_feature_notavail.format(base_doc_id, compare_doc_id))
-            else:
-                return resource
-                #return ({'Resource':resource,'Flag_order':flag_order})
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))

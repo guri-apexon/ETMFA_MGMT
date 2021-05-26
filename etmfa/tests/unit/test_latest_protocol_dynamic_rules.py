@@ -4,7 +4,6 @@ import pandas as pd
 import pytest
 import pytest_check as check
 from etmfa.consts import Consts as consts
-from etmfa.server.config import Config
 from etmfa.db import utils
 
 # Setup logger

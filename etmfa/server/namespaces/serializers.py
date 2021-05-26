@@ -15,10 +15,6 @@ k_pair_model = api.model(' Key for attributes', {
                     'Each metadata dictionary will be returned alongside the REST resource.'),
 })
 
-metadata_post = api.model('Document attributes patch model', {
-    'metadata': fields.List(fields.Nested(kv_pair_model)),
-})
-
 metadata_get = api.model('eTMFA attribute extraction get attributes', {
     'metadata': fields.List(fields.Nested(k_pair_model))
 })
@@ -58,31 +54,6 @@ PD_qc_get = api.model('Document Processing Status Model',
                              }
                              )
 
-
-eTMFA_object_get_status = api.model('Document Processing Status Model',
-                                    {
-                                        'id': fields.String(readOnly=True,
-                                                            description='The unique identifier (UUID) of eTMFA document.'),
-                                        'isProcessing': fields.Boolean(readOnly=True,
-                                                                       description='The document is being processed. Final attributes of documents may not exist.'),
-                                        'percentComplete': fields.String(readOnly=False,
-                                                                         description='The percentage of document is being processed. Final attributes of documents will be ready when percentage is 100.'),
-                                        'status': fields.String(readOnly=False,
-                                                                description='Processing document stage (triage/ocr/classifier/xtractor/finalizer)'),
-                                        'fileName': fields.String(readOnly=True,
-                                                                  description='The name of the original eTMF file to automate'),
-                                        'documentFilePath': fields.String(readOnly=True,
-                                                                          description='The path of the original eTMF file to automate'),
-                                        'errorCode': fields.String(readOnly=True,
-                                                                   description='Error code corresponding to any process error during TMF document automation.' +
-                                                                               ' Empty error codes corrspond to no errors.'),
-                                        'errorReason': fields.String(readOnly=True,
-                                                                     description='If an error code is present, an attempt will be made to supply a user-friendly error reason.'),
-                                        'timeCreated': fields.DateTime,
-                                        'lastUpdated': fields.DateTime,
-
-                                    }
-                                    )
 
 eTMFA_metrics_get = api.model('Document Processing Metrics Model',
                               {
@@ -198,50 +169,6 @@ eTMFA_attributes_input.add_argument('requestType',
                                help='Request Type')
 
 
-eTMFA_attributes_get = api.model('Document Processing Attributes Model',
-                                 {
-                                     # 'id': fields.String(readOnly=True,
-                                     #                     description='The unique identifier (UUID) of PD document.'),#this will be used if ui request the details individually
-                                     'protocol_number': fields.String(readOnly=True,
-                                                         description='Protocol Number of the processed protocol.'),
-                                     'project_id': fields.String(readOnly=True,
-                                                         description='Project Id of processed protocol.'),
-                                     'source_file_name': fields.String(readOnly=True,
-                                                         description='input file name.'),
-                                     'document_file_path': fields.String(readOnly=True,
-                                                         description='Path of the file.'),
-                                     'version_number': fields.String(readOnly=True,
-                                                                    description='The version of the protocol'),
-                                     'amendment_number': fields.String(readOnly=True,
-                                                                      description='Amendment number of the protocol'),
-                                     'document_status': fields.String(readOnly=True,
-                                                                     description='Status of the protocol'),
-                                     'iqvdata': fields.String(readonly=False,
-                                                              description="Complete blog of TOC, Summary, SOA output details for the request")
-                                     # 'iqvdata_toc': fields.String(readonly=False,
-                                     #                          description="TOC output details for the request"), #this will be used if ui request the details individually
-                                     # 'iqvdata_soa': fields.String(readonly=False,
-                                     #                          description="SOA output details for the request"), #this will be used if ui request the details individually
-                                     # 'iqvdata_summary': fields.String(readonly=False,
-                                     #                          description="summary output details for the request") #this will be used if ui request the details individually
-                                 }
-                                 )
-
-
-mCRA_attributes_input = reqparse.RequestParser()
-mCRA_attributes_input.add_argument('protocolNumber',
-                                   type=str,
-                                   required=True,
-                                   help='Protocol number')
-
-
-mCRA_attributes_get = api.model('Document Processing Attributes Model',
-                                 {
-                                     'iqvdataTOC': fields.String(readonly=False,
-                                                              description="Complete blog of TOC, Summary, SOA output details for the request")
-                                     }
-                                 )
-
 # Latest protocol download file
 latest_protocol_download_input = reqparse.RequestParser()
 latest_protocol_download_input.add_argument('protocolNumber', type=str, required=True, help='Protocol number')
@@ -298,81 +225,6 @@ latest_protocol_get = api.model('Document Processing Status Model',
                                 'blinded': fields.String(readOnly=True, description='Blind strategy of the latest protocol'),
                              }
                              )
-
-pd_compare_object_post = reqparse.RequestParser()
-pd_compare_object_post.add_argument('protocolNumber',
-                               type=str,
-                               required=True,
-                               help='Protocol number')
-pd_compare_object_post.add_argument('id1',
-                               type=str,
-                               required=True,
-                               help='PD processed doc id')
-pd_compare_object_post.add_argument('projectId',
-                               type=str,
-                               required=True,
-                               help='Project id')
-pd_compare_object_post.add_argument('protocolNumber2',
-                               type=str,
-                               required=True,
-                               help='Protocol number of the other document')
-pd_compare_object_post.add_argument('id2',
-                               type=str,
-                               required=True,
-                               help='PD processed doc id of 2nd document')
-pd_compare_object_post.add_argument('projectId2',
-                               type=str,
-                               required=True,
-                               help='Project id of the 2nd document')
-pd_compare_object_post.add_argument('userId',
-                               type=str,
-                               required=False,
-                               help='Protocol number')
-pd_compare_object_post.add_argument('requestType',
-                               type=str,
-                               required=True,
-                               help='Type of compare needed')
-
-
-pd_compare_post_response = api.model('Document compare ID Model',
-                                 {
-                                     'COMPARE_ID': fields.String(readOnly=True,
-                                                         description='The unique identifier (UUID) of PD document compare.')#this will be used if ui request the details individually
-                                 }
-                                 )
-
-pd_compare_object_input_get = reqparse.RequestParser()
-pd_compare_object_input_get.add_argument('Base_doc_id',
-                               type=str,
-                               required=True,
-                               help='Base_doc_id')
-pd_compare_object_input_get.add_argument('Compare_doc_id',
-                               type=str,
-                               required=True,
-                               help='Compare_doc_id')
-
-
-pd_compare_get = api.model('Document compare Model',
-                                 {
-                                     'protocol_number': fields.String(readOnly=True,
-                                                         description='Protocol Number of the processed protocol.'),
-                                     'project_id': fields.String(readOnly=True,
-                                                         description='Project Id of processed protocol.'),
-                                     'source_file_name': fields.String(readOnly=True,
-                                                         description='input file name.'),
-                                     'document_file_path': fields.String(readOnly=True,
-                                                         description='Path of the file.'),
-                                     'version_number': fields.String(readOnly=True,
-                                                                    description='The version of the protocol'),
-                                     'amendment_number': fields.String(readOnly=True,
-                                                                      description='Amendment number of the protocol'),
-                                     'document_status': fields.String(readOnly=True,
-                                                                     description='Status of the protocol'),
-                                     'iqvdata': fields.String(readonly=False,
-                                                              description="Complete blog of TOC, Summary, SOA output details for the request")
-                                 }
-                                 )
-
 
 pd_qc_check_update_post = reqparse.RequestParser()
 pd_qc_check_update_post.add_argument('aidoc_id',
@@ -509,11 +361,3 @@ document_processing_object_put_get = api.model('Document Processing Feedback Mod
                                                }
                                                )
 
-# API :Summary section
-pd_object_get_summary = api.model('Summary section extraction',
-{
-'id': fields.String(readOnly=True, description='The unique identifier (UUID) of PD document.'),
-'columns': fields.String(readOnly=False, description='Columns of data. Content: Indicator that the content is "Text" or "Table dict"; font_info: Font information of the "Text"'),
-'data': fields.String(readOnly=False, description='Information at row level'),
-'index': fields.String(readOnly=False, description='Index of rows')
-})
