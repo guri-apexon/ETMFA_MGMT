@@ -34,7 +34,7 @@ import ast
 import uuid
 
 import pandas as pd
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.sql import text
 from etmfa.db import utils
 
@@ -208,28 +208,31 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
                                                             ).filter(
                 and_(PDProtocolMetadata.protocol == protocol_number,
                      PDProtocolMetadata.id != finalattributes['AiDocId'],
-                     PDProtocolMetadata.status == 'PROCESS_COMPLETED')).all()
+                     or_(PDProtocolMetadata.status == 'QC1',
+                         PDProtocolMetadata.status == 'QC2',
+                         PDProtocolMetadata.status == 'PROCESS_COMPLETED'))).all()
 
             IQVXMLPath1 = utils.get_iqvxml_file_path(finalattributes['documentPath'], 'FIN_')
             if IQVXMLPath1:
                 ids_compare_protocol_1 = list()
                 for row in ids_compare_protocol:
                     IQVXMLPath2 = utils.get_iqvxml_file_path(row.documentFilePath[:row.documentFilePath.rfind('\\')], 'FIN_')
-                    ids_compare_protocol_1.extend([{'compareId': str(uuid.uuid4()),
-                                                  'id1': finalattributes['AiDocId'],
-                                                  'IQVXMLPath1': IQVXMLPath1,
-                                                  'id2': row.id,
-                                                  'protocolNumber': protocol_number,
-                                                  'IQVXMLPath2': IQVXMLPath2
-                                                  },
-                                                 {'compareId': str(uuid.uuid4()),
-                                                  'id1': row.id,
-                                                  'IQVXMLPath1': IQVXMLPath2,
-                                                  'id2': finalattributes['AiDocId'],
-                                                  'protocolNumber': protocol_number,
-                                                  'IQVXMLPath2': IQVXMLPath1
-                                                  }
-                                                 ])
+                    if IQVXMLPath2:
+                        ids_compare_protocol_1.extend([{'compareId': str(uuid.uuid4()),
+                                                      'id1': finalattributes['AiDocId'],
+                                                      'IQVXMLPath1': IQVXMLPath1,
+                                                      'id2': row.id,
+                                                      'protocolNumber': protocol_number,
+                                                      'IQVXMLPath2': IQVXMLPath2
+                                                      },
+                                                     {'compareId': str(uuid.uuid4()),
+                                                      'id1': row.id,
+                                                      'IQVXMLPath1': IQVXMLPath2,
+                                                      'id2': finalattributes['AiDocId'],
+                                                      'protocolNumber': protocol_number,
+                                                      'IQVXMLPath2': IQVXMLPath1
+                                                      }
+                                                     ])
                 ids_compare_protocol = ids_compare_protocol_1
                 ret_val = add_compare_event(ids_compare_protocol, id)
                 if ret_val:
