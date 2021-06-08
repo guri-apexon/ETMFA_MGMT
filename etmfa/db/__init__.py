@@ -3,16 +3,18 @@ import datetime
 import json
 import logging
 import os
+import json
 import uuid
+
 from datetime import datetime
 
-from etmfa.consts import Consts as consts
-from etmfa.db import utils
 from etmfa.db.db import db_context
+from etmfa.db import utils
+from etmfa.consts import Consts as consts
 from etmfa.db.models.documentcompare import Documentcompare
-from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_protocol_data import Protocoldata
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
+from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
