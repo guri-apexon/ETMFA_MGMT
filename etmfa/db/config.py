@@ -7,6 +7,10 @@ JSON_DEFAULT_MISSING_VALUE = ''
 VALID_DOCUMENT_STATUS = ('final', 'draft', 'all')
 DEFAULT_DOCUMENT_STATUS = 'final'
 
+# Document status for alerts
+VALID_DOCUMENT_STATUS_FOR_ALERT = ['final']
+# VALID_DOCUMENT_STATUS_FOR_ALERT = ['final', 'draft'] # Uncomment when alert is to be generated for draft status document.
+
 VALID_QC_STATUS = ('qc_only', 'all')
 DEFAULT_QC_STATUS = 'qc_only'
 

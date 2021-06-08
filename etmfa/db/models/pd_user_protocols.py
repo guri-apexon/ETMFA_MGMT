@@ -8,7 +8,7 @@ class PDUserProtocols(db_context.Model):
 
     isActive = db_context.Column(db_context.Boolean(), default=True)
     id = db_context.Column(db_context.Integer(), primary_key=True,autoincrement=True)
-    userId = db_context.Column(db_context.String(200), primary_key=True)
+    userId = db_context.Column(db_context.String(200),primary_key=True)
     protocol = db_context.Column(db_context.String(200))
     projectId = db_context.Column(db_context.String(200))
     follow = db_context.Column(db_context.Boolean(), default=False)
