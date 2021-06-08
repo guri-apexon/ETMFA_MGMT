@@ -1,42 +1,26 @@
+import ast
 import datetime
+import json
 import logging
 import os
-import json
-
+import uuid
 from datetime import datetime
 
-from flask import g
-# from sqlalchemy import desc
-
-from etmfa.consts import Consts as consts
 from etmfa.db.db import db_context
+from etmfa.db import utils
+from etmfa.consts import Consts as consts
 from etmfa.db.models.documentcompare import Documentcompare
-from etmfa.db.models.pd_user_protocols import PDUserProtocols
-from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
-# from etmfa.db.models.pd_roles import PDRoles
-# from etmfa.db.models.pd_users import User
-# from etmfa.db.models.pd_login import Login
-# from etmfa.db.models.pd_pwd_tracker import PwdTracker
 from etmfa.db.models.pd_protocol_data import Protocoldata
-from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
-# from etmfa.db.models.pd_protocol_sponsor import PDProtocolSponsor
-# from etmfa.db.models.pd_protocol_saved_search import PDProtocolSavedSearch
-# from etmfa.db.models.pd_protocol_recent_search import PDProtocolRecentSearch
-# from etmfa.db.models.pd_protocol_indications import PDProtocolIndication
-# from etmfa.db.models.amp_server_run_info import amp_server_run_info
 from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
-from etmfa.messaging.models.processing_status import ProcessingStatus, FeedbackStatus
-# from etmfa.messaging.models.document_class import DocumentClass
-from etmfa.error import ManagementException
-from etmfa.error import ErrorCodes
-import ast
-import uuid
-
-import pandas as pd
+from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
+from etmfa.db.models.pd_user_protocols import PDUserProtocols
+from etmfa.error import ErrorCodes, ManagementException
+from etmfa.messaging.models.processing_status import (FeedbackStatus,
+                                                      ProcessingStatus)
+from flask import g
 from sqlalchemy import and_, func, or_
 from sqlalchemy.sql import text
-from etmfa.db import utils
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
@@ -575,3 +559,28 @@ def update_user_protocols(user_id, project_id, protocol_number):
             except Exception as ex:
                 db_context.session.rollback()
                 logger.error("Error while updating record to PD_user_protocol file in DB for user id: {},{}".format(user_id, ex))
+
+def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
+    """
+    Get protocol attributes and Normalized SOA
+    """
+    resource = None
+    resource_dict = dict()
+    order_condition = "pd_protocol_data.timeUpdated desc"
+    
+    try:
+        resource = db_context.session.query(Protocoldata.id, Protocoldata.iqvdataSummary, Protocoldata.iqvdataSoaStd
+                                                ).join(PDProtocolMetadata, and_(PDProtocolMetadata.id == Protocoldata.id, PDProtocolMetadata.protocol == protocol_number, PDProtocolMetadata.id == aidoc_id)
+                                                ).order_by(text(order_condition)).first()
+
+        
+    except Exception as e:
+        logger.error(f"No document resource was found in DB [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]")
+        logger.error(f"Exception message:\n{e}")
+    
+    if resource is not None:
+        protocol_attributes_raw_dict = ast.literal_eval(json.loads(resource[1]))
+        protocol_attributes_dict = {key:value for key,value in protocol_attributes_raw_dict.items() if key in ['columns', 'data']}
+        resource_dict = {'id': resource[0], 'protocolAttributes': protocol_attributes_dict, 'normalizedSOA': resource[2]}
+
+    return resource_dict
