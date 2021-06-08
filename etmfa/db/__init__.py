@@ -3,7 +3,7 @@ import logging
 import os
 import json
 
-from datetime import datetime
+from datetime import datetime, date
 
 from flask import g
 # from sqlalchemy import desc
@@ -20,6 +20,7 @@ from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 from etmfa.db.models.pd_protocol_data import Protocoldata
 from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
+from etmfa.db.models.pd_protocol_alert import Protocolalert
 # from etmfa.db.models.pd_protocol_sponsor import PDProtocolSponsor
 # from etmfa.db.models.pd_protocol_saved_search import PDProtocolSavedSearch
 # from etmfa.db.models.pd_protocol_recent_search import PDProtocolRecentSearch
@@ -141,107 +142,168 @@ def received_comparecomplete_event(compare_dict, message_publisher):
         db_context.session.commit()
     except Exception as ex:
         db_context.session.rollback()
-        exception = ManagementException(compare_dict['compare_id'], ErrorCodes.ERROR_PROTOCOL_DATA)
+        exception = ManagementException(compare_dict.get('compare_id', ''), ErrorCodes.ERROR_PROTOCOL_DATA)
         received_documentprocessing_error_event(exception.__dict__)
         logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
             compare_dict['compare_id'], ex))
 
 
-def received_finalizationcomplete_event(id, finalattributes, message_publisher):
-        finalattributes = finalattributes['db_data']
-        resource = get_doc_resource_by_id(id)
-        resource.isProcessing = False
-        resource.isActive = True  # changed it back to true
-        protocolmetadata=db_context.session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == id).first()
-
-        protocoldata = Protocoldata()
-        protocolqcdata = Protocolqcdata()
-        protocolmetadata.protocolTitle = finalattributes['ProtocolTitle']
-        protocolmetadata.shortTitle = finalattributes['ShortTitle']
-        protocolmetadata.phase = finalattributes['phase']
-        protocolmetadata.approvalDate = (None if finalattributes['approval_date'] == '' else finalattributes['approval_date'])
-        protocoldata.isActive = False
-        protocoldata.id = finalattributes['AiDocId']
-        protocoldata.userId = finalattributes['UserId']
-        protocoldata.fileName = finalattributes['SourceFileName']
-        protocoldata.documentFilePath = finalattributes['documentPath']
-        protocoldata.iqvdataToc = str(json.dumps(finalattributes['toc']))
-        protocoldata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
-        protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
-
-        #Protocol qc data table updation for Backup purpose of original data
-        protocolqcdata.isActive = False
-        protocolqcdata.id = finalattributes['AiDocId']
-        protocolqcdata.userId = finalattributes['UserId']
-        protocolqcdata.fileName = finalattributes['SourceFileName']
-        protocolqcdata.documentFilePath = finalattributes['documentPath']
-        protocolqcdata.iqvdataToc = str(json.dumps(finalattributes['toc']))
-        protocolqcdata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
-        #protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['iqvdataSoaStd']))
-        protocolqcdata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
-
-        update_user_protocols(finalattributes['UserId'], finalattributes['ProjectId'], finalattributes['ProtocolNo'])
-
-        # Entry in summary table
-        summary_json_dict = ast.literal_eval(finalattributes['summary'])
-        summary_dict = {k:v for k, v, _ in summary_json_dict['data']}
-        summary_record = utils.get_updated_qc_summary_record(doc_id=id, source=config.SRC_EXTRACT, summary_dict=summary_dict, is_active_flg=True)
-
-        try:
-            db_context.session.add(protocoldata)
-            db_context.session.add(protocolqcdata)
-            db_context.session.add(summary_record)
-            db_context.session.commit()
-            update_doc_processing_status(id, ProcessingStatus.QC1)
-        except Exception as ex:
-            logger.error("Error while writing record to file in DB for ID: {},{}".format(id, str(ex)))
-            db_context.session.rollback()
-            exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
-            received_documentprocessing_error_event(exception.__dict__)
-
-        try:
-            protocoldata.documentFilePath = finalattributes['documentPath']
-            protocol_number = finalattributes['ProtocolNo']
+def document_compare(aidocid, protocol_number, document_path):
+    try:
+        if protocol_number:
             ids_compare_protocol = db_context.session.query(PDProtocolMetadata.id,
                                                             PDProtocolMetadata.protocol,
                                                             PDProtocolMetadata.documentFilePath
-                                                            ).filter(
-                and_(PDProtocolMetadata.protocol == protocol_number,
-                     PDProtocolMetadata.id != finalattributes['AiDocId'],
-                     or_(PDProtocolMetadata.status == 'QC1',
-                         PDProtocolMetadata.status == 'QC2',
-                         PDProtocolMetadata.status == 'PROCESS_COMPLETED'))).all()
+                                                            ).filter(and_(PDProtocolMetadata.protocol == protocol_number,
+                                                                          PDProtocolMetadata.id != aidocid,
+                                                                          or_(PDProtocolMetadata.status == 'QC1',
+                                                                              PDProtocolMetadata.status == 'QC2',
+                                                                              PDProtocolMetadata.status == 'PROCESS_COMPLETED'))).all()
 
-            IQVXMLPath1 = utils.get_iqvxml_file_path(finalattributes['documentPath'], 'FIN_')
+            IQVXMLPath1 = utils.get_iqvxml_file_path(document_path, 'FIN_')
             if IQVXMLPath1:
                 ids_compare_protocol_1 = list()
                 for row in ids_compare_protocol:
-                    IQVXMLPath2 = utils.get_iqvxml_file_path(row.documentFilePath[:row.documentFilePath.rfind('\\')], 'FIN_')
+                    IQVXMLPath2 = utils.get_iqvxml_file_path(row.documentFilePath[:row.documentFilePath.rfind('\\')],
+                                                             'FIN_')
                     if IQVXMLPath2:
                         ids_compare_protocol_1.extend([{'compareId': str(uuid.uuid4()),
-                                                      'id1': finalattributes['AiDocId'],
-                                                      'IQVXMLPath1': IQVXMLPath1,
-                                                      'id2': row.id,
-                                                      'protocolNumber': protocol_number,
-                                                      'IQVXMLPath2': IQVXMLPath2
-                                                      },
-                                                     {'compareId': str(uuid.uuid4()),
-                                                      'id1': row.id,
-                                                      'IQVXMLPath1': IQVXMLPath2,
-                                                      'id2': finalattributes['AiDocId'],
-                                                      'protocolNumber': protocol_number,
-                                                      'IQVXMLPath2': IQVXMLPath1
-                                                      }
-                                                     ])
+                                                        'id1': aidocid,
+                                                        'IQVXMLPath1': IQVXMLPath1,
+                                                        'id2': row.id,
+                                                        'protocolNumber': protocol_number,
+                                                        'IQVXMLPath2': IQVXMLPath2
+                                                        },
+                                                       {'compareId': str(uuid.uuid4()),
+                                                        'id1': row.id,
+                                                        'IQVXMLPath1': IQVXMLPath2,
+                                                        'id2': aidocid,
+                                                        'protocolNumber': protocol_number,
+                                                        'IQVXMLPath2': IQVXMLPath1
+                                                        }
+                                                       ])
                 ids_compare_protocol = ids_compare_protocol_1
-                ret_val = add_compare_event(ids_compare_protocol, id)
+                ret_val = add_compare_event(ids_compare_protocol, aidocid)
                 if ret_val:
                     return ids_compare_protocol
 
-        except Exception as ex:
-            logger.error("Error while creating compare json request for ID: {},{}".format(id, str(ex)))
-            exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
-            received_documentprocessing_error_event(exception.__dict__)
+    except Exception as ex:
+        logger.error("Error while creating compare json request for ID: {},{}".format(aidocid, str(ex)))
+        exception = ManagementException(aidocid, ErrorCodes.ERROR_PROTOCOL_DATA)
+        received_documentprocessing_error_event(exception.__dict__)
+
+def insert_into_alert_table(finalattributes):
+    try:
+
+        doc_status = PDProtocolMetadata.query.filter(PDProtocolMetadata.id == finalattributes['AiDocId']).first()
+        if doc_status and doc_status.documentStatus in config.VALID_DOCUMENT_STATUS_FOR_ALERT and finalattributes['approval_date'] and finalattributes['ProtocolNo']:
+
+            # The query below is to check if the approval date for protocol which alert needs to be generated greater than all other approval dates for the protocols.
+            resources = db_context.session.query(PDProtocolQCSummaryData,
+                                                 PDProtocolQCSummaryData.source,
+                                                 PDProtocolQCSummaryData.approvalDate,
+                                                 func.rank().over(partition_by=PDProtocolQCSummaryData.aidocId,
+                                                                  order_by=PDProtocolQCSummaryData.source.desc()).label(
+                                                     'rank')).filter(
+                and_(PDProtocolQCSummaryData.protocolNumber == finalattributes['ProtocolNo'],
+                     PDProtocolQCSummaryData.aidocId != finalattributes['AiDocId'])).all()
+
+            if resources is not None and type(resources) == list and len(resources) > 0:
+                resources = [resource for resource in resources if resource.rank == 1]
+                alert_res = all([datetime.strptime(finalattributes['approval_date'], '%Y%m%d').date() > resource.approvalDate for resource in resources])
+            else:
+                alert_res = True
+
+            if alert_res and finalattributes['UserId']:
+                protocolalert_list = list()
+                pd_user_protocol_list = PDUserProtocols.query.filter(and_(PDUserProtocols.protocol == finalattributes['ProtocolNo'],
+                                                                          PDUserProtocols.follow == True)).all()
+
+                for pd_user_protocol in pd_user_protocol_list:
+                    protocolalert = Protocolalert()
+                    protocolalert.aidocId = finalattributes['AiDocId']
+                    protocolalert.protocol = finalattributes['ProtocolNo']
+                    protocolalert.shortTitle = finalattributes['ShortTitle']
+                    protocolalert.id = pd_user_protocol.id
+                    protocolalert.isActive = True
+                    protocolalert.emailSentFlag = False
+                    protocolalert.readFlag = False
+                    protocolalert.approvalDate = finalattributes['approval_date']
+                    time_ = datetime.utcnow()
+                    protocolalert.timeCreated = time_
+                    protocolalert.timeUpdated = time_
+                    protocolalert_list.append(protocolalert)
+
+            db_context.session.add_all(protocolalert_list)
+            db_context.session.commit()
+        else:
+            logger.info("Could not insert record to pd_protocol_alert for ID: {}, approval_date:{}, protocol no:{}".format(finalattributes['AiDocId'], finalattributes['approval_date'], finalattributes['ProtocolNo']))
+    except Exception as ex:
+        logger.error("Error while writing record to pd_protocol_alert file in DB for : {},{}".format(finalattributes, ex))
+        db_context.session.rollback()
+        exception = ManagementException(finalattributes['AiDocId'], ErrorCodes.ERROR_ALERT_DATA)
+        received_documentprocessing_error_event(exception.__dict__)
+        return False
+
+
+def received_finalizationcomplete_event(id, finalattributes, message_publisher):
+    finalattributes = finalattributes['db_data']
+    resource = get_doc_resource_by_id(id)
+    resource.isProcessing = False
+    resource.isActive = True  # changed it back to true
+    protocolmetadata=db_context.session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == id).first()
+
+    protocoldata = Protocoldata()
+    protocolqcdata = Protocolqcdata()
+    protocolmetadata.protocolTitle = finalattributes['ProtocolTitle']
+    protocolmetadata.shortTitle = finalattributes['ShortTitle']
+    protocolmetadata.phase = finalattributes['phase']
+    protocolmetadata.approvalDate = (None if finalattributes['approval_date'] == '' else finalattributes['approval_date'])
+    protocoldata.isActive = False
+    protocoldata.id = finalattributes['AiDocId']
+    protocoldata.userId = finalattributes['UserId']
+    protocoldata.fileName = finalattributes['SourceFileName']
+    protocoldata.documentFilePath = finalattributes['documentPath']
+    protocoldata.iqvdataToc = str(json.dumps(finalattributes['toc']))
+    protocoldata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
+    protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
+
+
+    #Protocol qc data table updation for Backup purpose of original data
+    protocolqcdata.isActive = False
+    protocolqcdata.id = finalattributes['AiDocId']
+    protocolqcdata.userId = finalattributes['UserId']
+    protocolqcdata.fileName = finalattributes['SourceFileName']
+    protocolqcdata.documentFilePath = finalattributes['documentPath']
+    protocolqcdata.iqvdataToc = str(json.dumps(finalattributes['toc']))
+    protocolqcdata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
+    #protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['iqvdataSoaStd']))
+    protocolqcdata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
+
+    update_user_protocols(finalattributes['UserId'], finalattributes['ProjectId'], finalattributes['ProtocolNo'])
+
+    # Entry in summary table
+    summary_json_dict = ast.literal_eval(finalattributes['summary'])
+    summary_dict = {k:v for k, v, _ in summary_json_dict['data']}
+    summary_record = utils.get_updated_qc_summary_record(doc_id=id, source=config.SRC_EXTRACT, summary_dict=summary_dict, is_active_flg=True)
+
+    insert_into_alert_table(finalattributes)
+
+    try:
+        db_context.session.add(protocoldata)
+        db_context.session.add(protocolqcdata)
+        db_context.session.add(summary_record)
+        db_context.session.commit()
+        update_doc_processing_status(id, ProcessingStatus.QC1)
+    except Exception as ex:
+        logger.error("Error while writing record to file in DB for ID: {},{}".format(id, str(ex)))
+        db_context.session.rollback()
+        exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
+        received_documentprocessing_error_event(exception.__dict__)
+
+    compare_request_list = document_compare(finalattributes['AiDocId'], finalattributes['ProtocolNo'], finalattributes['documentPath'])
+    return compare_request_list
+
 
 
 def received_documentprocessing_error_event(error_dict):

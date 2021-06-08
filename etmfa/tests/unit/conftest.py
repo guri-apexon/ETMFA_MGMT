@@ -20,7 +20,7 @@ def finalizer_complete_payload_cached():
         with open(file_path, "rb") as rf:
             full_finalattributes_dbdata_dict = pickle.load(rf)
             all_payload[protocol_num] = (aidoc_id, full_finalattributes_dbdata_dict)
-    
+
     logger.info("Unit test documents cached successfully")
     return all_payload
 
