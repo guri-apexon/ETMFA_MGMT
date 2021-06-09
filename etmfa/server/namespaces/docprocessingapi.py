@@ -15,7 +15,8 @@ from etmfa.db import (
     get_doc_processing_by_id,
     get_file_contents_by_id,
     get_latest_protocol,
-    set_draft_version
+    set_draft_version,
+    get_attr_soa_details
 )
 from etmfa.messaging.messagepublisher import MessagePublisher
 from etmfa.messaging.models.triage_request import TriageRequest
@@ -28,8 +29,9 @@ from etmfa.server.namespaces.serializers import (
     latest_protocol_get,
     latest_protocol_download_input,
     latest_protocol_contents_input,
-    pd_qc_check_update_post
-
+    pd_qc_check_update_post,
+    protocol_attr_soa_input,
+    protocol_attr_soa_get
 )
 from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
@@ -209,7 +211,7 @@ class DocumentprocessingAPI(Resource):
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
 
-@ns.route('/all_protocols')
+@ns.route('/protocol_versions')
 @ns.route('/mcra_latest_protocol')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
@@ -228,14 +230,13 @@ class DocumentprocessingAPI(Resource):
             document_status = cleaned_inputs.get('document_status', '')
             qc_status = cleaned_inputs.get('qc_status', '')
 
+            if not protocol_number:
+                logger.error(f"Invalid protocol_number received: {args}")
+                return abort(404, INVALID_USER_INPUT.format(args))
+
             resources = get_latest_protocol(protocol_number=protocol_number, version_number=version_number, document_status=document_status, \
                 qc_status=qc_status, is_top_1_only=False)
             aligned_resources = utils.post_process_resource(resources, multiple_records=True)
-
-            input_valid_flg = utils.validate_inputs(protocol_number=protocol_number)            
-            if not input_valid_flg:
-                logger.error(f"Invalid user inputs received: {args}")
-                return abort(404, INVALID_USER_INPUT.format(args))
 
             if aligned_resources is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(args))
@@ -245,3 +246,31 @@ class DocumentprocessingAPI(Resource):
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
 
+@ns.route('/protocol_attributes_soa')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(protocol_attr_soa_input)
+    @ns.marshal_with(protocol_attr_soa_get)
+    @ns.response(200, 'Success.')
+    @ns.response(404, 'Document Processing resource not found.')
+    def get(self):
+        """Get Protocol Attributes and Normalized SOA"""
+        args = protocol_attr_soa_input.parse_args()
+        try:
+            cleaned_inputs = utils.clean_inputs(protocol_number = args['protocolNumber'], aidoc_id = args['id'])
+            protocol_number = cleaned_inputs.get('protocol_number', '')
+            aidoc_id = cleaned_inputs.get('aidoc_id', '')
+
+            if not protocol_number or not aidoc_id:
+                logger.error(f"Invalid user inputs received: {args}")
+                return abort(404, INVALID_USER_INPUT.format(args))
+
+            resource = get_attr_soa_details(protocol_number = protocol_number, aidoc_id = aidoc_id)
+
+            if len(resource) == 0:
+                return abort(404, DOCUMENT_NOT_FOUND.format(args))
+            else:
+                return resource
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
