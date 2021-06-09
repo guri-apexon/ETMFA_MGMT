@@ -1,6 +1,6 @@
 DEPLOY_OPT=$1
 
-if [ "$DEPLOY_OPT" == "dev" ]; then
+if [ "$DEPLOY_OPT" == "dist" ]; then
   INSTALL_PACKAGE=$(ls dist/*)
 elif [ "$DEPLOY_OPT" == "package" ]; then
   INSTALL_PACKAGE="$PACKAGE==${CI_COMMIT_TAG:1}"
