@@ -187,7 +187,7 @@ latest_protocol_contents_input.add_argument('versionNumber', type=str, required=
 latest_protocol_contents_input.add_argument('documentStatus', type=str, required=False, help='Document status, default is "final"')
 latest_protocol_contents_input.add_argument('sourceSystem', type=str, required=False, help='Source system calling this API')
 
-# All protocol details (sorted)
+# Protocol versions (sorted)
 latest_protocol_input = reqparse.RequestParser()
 latest_protocol_input.add_argument('protocolNumber', type=str, required=True, help='Protocol number')
 latest_protocol_input.add_argument('versionNumber', type=str, required=False, help='Version Number')
@@ -225,6 +225,23 @@ latest_protocol_get = api.model('Document Processing Status Model',
                                 'blinded': fields.String(readOnly=True, description='Blind strategy of the latest protocol'),
                              }
                              )
+
+# Protocol attributes and SOA
+protocol_attr_soa_input = reqparse.RequestParser()
+protocol_attr_soa_input.add_argument('protocolNumber', type=str, required=True, help='Protocol number')
+protocol_attr_soa_input.add_argument('id', type=str, required=True, help='Unique PD id of protocol')
+protocol_attr_soa_input.add_argument('sourceSystem', type=str, required=False, help='Source system calling this API')
+
+protocol_attr_soa_get = api.model('Protocol Attributes and Normalized SOA',
+                             {
+                                 'id': fields.String(readOnly=True,
+                                                     description='Unique id of the protocol'),
+                                 'protocolAttributes': fields.String(readOnly=True,
+                                                                description='Attributes of protocol'),
+                                 'normalizedSOA': fields.String(readOnly=True,
+                                                                  description='Normalized SOA')
+                             })
+
 
 pd_qc_check_update_post = reqparse.RequestParser()
 pd_qc_check_update_post.add_argument('aidoc_id',
