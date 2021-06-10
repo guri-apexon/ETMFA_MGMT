@@ -34,7 +34,8 @@ def fix_data(value, json_col, max_len, data_type, data_format):
     """
     Makes the data aligned to the required format and length
     """
-    value = value.strip()[:max_len]
+    if max_len is not None:
+        value = value.strip()[:max_len]
 
     if data_type == 'date':
         try:

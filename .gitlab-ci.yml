@@ -15,6 +15,12 @@ stages:
   - test
   - build
   - deploy
+  - build_svt
+  - deploy_svt
+  - build_uat
+  - deploy_uat
+  - build_prod
+  - deploy_prod
 
 default:
   before_script:
@@ -70,8 +76,115 @@ deploy-dev:
   variables:
     VERIFICATION_URL: "http://ca2spdml01q:9001/pd/api/health"
   script:
-    - sh etmfa/ci_scripts/deploy.sh dev
+    - sh etmfa/ci_scripts/deploy.sh dist
   environment:
     name: dev
   only:
     - develop
+
+build-svt:
+  tags:
+    - ca2spdml15q
+  stage: build_svt
+  before_script:
+    - . $VE_PATH  
+  script:
+    - python setup.py sdist
+  artifacts:
+    paths:
+      - dist/
+  only:
+    refs:
+      - develop
+      - master
+      - pd-release/1.3
+    variables: 
+      - $ENVIRONMENT== "svt"
+
+deploy-svt:
+  tags:
+    - ca2spdml15q
+  stage: deploy_svt
+  variables:
+    VERIFICATION_URL: "http://ca2spdml15q:9001/pd/api/health"
+  script:
+    - sh etmfa/ci_scripts/deploy.sh dist
+  environment:
+    name: svt
+  only:
+    refs:
+      - develop
+      - master
+      - pd-release/1.3
+    variables: 
+      - $ENVIRONMENT== "svt"
+
+build-uat:
+  tags:
+    - ca2spdml05c
+  stage: build_uat
+  before_script:
+    - . $VE_PATH  
+  script:
+    - python setup.py sdist
+  artifacts:
+    paths:
+      - dist/
+  only:
+    refs:
+      - master
+      - pd-release/1.3
+    variables: 
+      - $ENVIRONMENT== "uat"
+
+deploy-uat:
+  tags:
+    - ca2spdml05c
+  stage: deploy_uat
+  variables:
+    VERIFICATION_URL: "http://ca2spdml05c:9001/pd/api/health"
+  script:
+    - sh etmfa/ci_scripts/deploy.sh dist
+  environment:
+    name: uat
+  only:
+    refs:
+      - master
+      - pd-release/1.3
+    variables: 
+      - $ENVIRONMENT== "uat"
+
+build-prod:
+  tags:
+    - ca2spdml05p
+  stage: build_prod
+  before_script:
+    - . $VE_PATH    
+  script:
+    - python setup.py sdist
+  artifacts:
+    paths:
+      - dist/
+  only:
+    refs:
+      - master
+      - pd-release/1.3
+    variables: 
+      - $ENVIRONMENT== "prod"
+
+deploy-prod:
+  tags:
+    - ca2spdml05p
+  stage: deploy_prod
+  variables:
+    VERIFICATION_URL: "http://ca2spdml05p:9001/pd/api/health"
+  script:
+    - sh etmfa/ci_scripts/deploy.sh dist
+  environment:
+    name: prod
+  only:
+    refs:
+      - master
+      - pd-release/1.3
+    variables: 
+      - $ENVIRONMENT== "prod"
