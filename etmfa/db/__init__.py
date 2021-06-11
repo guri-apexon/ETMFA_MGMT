@@ -104,6 +104,7 @@ def add_compare_event(compare_protocol_list, id_):
                 compare.createdDate = datetime.utcnow()
                 compare.updatedDate = datetime.utcnow()
                 compare_db_data.append(compare)
+
             db_context.session.add_all(compare_db_data)
             db_context.session.commit()
             return True
@@ -130,8 +131,7 @@ def received_comparecomplete_event(compare_dict, message_publisher):
         db_context.session.rollback()
         exception = ManagementException(compare_dict.get('compare_id', ''), ErrorCodes.ERROR_PROTOCOL_DATA)
         received_documentprocessing_error_event(exception.__dict__)
-        logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
-            compare_dict['compare_id'], ex))
+        logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(compare_dict['compare_id'], ex))
 
 
 def document_compare(aidocid, protocol_number, document_path):
@@ -180,9 +180,10 @@ def document_compare(aidocid, protocol_number, document_path):
 
 def insert_into_alert_table(finalattributes):
     try:
-
         doc_status = PDProtocolMetadata.query.filter(PDProtocolMetadata.id == finalattributes['AiDocId']).first()
-        if doc_status and doc_status.documentStatus in config.VALID_DOCUMENT_STATUS_FOR_ALERT and finalattributes['approval_date'] and finalattributes['ProtocolNo']:
+        doc_status_flag = doc_status and doc_status.documentStatus in config.VALID_DOCUMENT_STATUS_FOR_ALERT
+        approval_date_flag = finalattributes['approval_date'] and len(finalattributes['approval_date']) == 8 and finalattributes['approval_date'].isdigit()
+        if doc_status_flag and approval_date_flag and finalattributes['ProtocolNo']:
 
             # The query below is to check if the approval date for protocol which alert needs to be generated greater than all other approval dates for the protocols.
             resources = db_context.session.query(PDProtocolQCSummaryData,
@@ -200,7 +201,7 @@ def insert_into_alert_table(finalattributes):
             else:
                 alert_res = True
 
-            if alert_res and finalattributes['UserId']:
+            if alert_res:
                 protocolalert_list = list()
                 pd_user_protocol_list = PDUserProtocols.query.filter(and_(PDUserProtocols.protocol == finalattributes['ProtocolNo'],
                                                                           PDUserProtocols.follow == True)).all()
@@ -220,8 +221,8 @@ def insert_into_alert_table(finalattributes):
                     protocolalert.timeUpdated = time_
                     protocolalert_list.append(protocolalert)
 
-            db_context.session.add_all(protocolalert_list)
-            db_context.session.commit()
+                db_context.session.add_all(protocolalert_list)
+                db_context.session.commit()
         else:
             logger.info("Could not insert record to pd_protocol_alert for ID: {}, approval_date:{}, protocol no:{}".format(finalattributes['AiDocId'], finalattributes['approval_date'], finalattributes['ProtocolNo']))
     except Exception as ex:
@@ -273,7 +274,6 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     summary_dict = {k:v for k, v, _ in summary_json_dict['data']}
     summary_record = utils.get_updated_qc_summary_record(doc_id=id, source=config.SRC_EXTRACT, summary_dict=summary_dict, is_active_flg=True)
 
-    insert_into_alert_table(finalattributes)
 
     try:
         db_context.session.add(protocoldata)
@@ -288,6 +288,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         received_documentprocessing_error_event(exception.__dict__)
 
     compare_request_list = document_compare(finalattributes['AiDocId'], finalattributes['ProtocolNo'], finalattributes['documentPath'])
+    insert_into_alert_table(finalattributes)
     return compare_request_list
 
 
