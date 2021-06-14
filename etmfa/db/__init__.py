@@ -253,6 +253,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     protocoldata.documentFilePath = finalattributes['documentPath']
     protocoldata.iqvdataToc = str(json.dumps(finalattributes['toc']))
     protocoldata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
+    protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['normalized_soa']))
     protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
 
 
@@ -264,7 +265,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     protocolqcdata.documentFilePath = finalattributes['documentPath']
     protocolqcdata.iqvdataToc = str(json.dumps(finalattributes['toc']))
     protocolqcdata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
-    #protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['iqvdataSoaStd']))
+    protocolqcdata.iqvdataSoaStd = str(json.dumps(finalattributes['normalized_soa']))
     protocolqcdata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
 
     update_user_protocols(finalattributes['UserId'], finalattributes['ProjectId'], finalattributes['ProtocolNo'])
