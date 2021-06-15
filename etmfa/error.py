@@ -10,6 +10,7 @@ class ErrorCodes:
     ERROR_DOCUMENT_SAVING = 607
     ERROR_QC_SUMMARY_DATA = 608
     ERROR_ALERT_DATA = 609
+    ERROR_EMAIL_GENERATION = 610
 
 ERRORS = {
     ErrorCodes.UNKNOWN_ERROR: "Unknown error",
@@ -20,6 +21,7 @@ ERRORS = {
     ErrorCodes.ERROR_DOCUMENT_SAVING: "Error while saving attributes to DB",
     ErrorCodes.ERROR_QC_SUMMARY_DATA: "Error while writing record to pd_protocol_qc_summary_data table",
     ErrorCodes.ERROR_ALERT_DATA: "Error while writing record to pd_protocol_alert file in DB",
+    ErrorCodes.ERROR_EMAIL_GENERATION: "Error while generating email alert or updating record in pd_protocol_alert table.",
 }
 
 
