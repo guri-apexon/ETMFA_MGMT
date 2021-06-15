@@ -16,6 +16,13 @@ DEFAULT_QC_STATUS = 'qc_only'
 
 DEFAULT_DATE_VALUE = '19000101'
 
+email_settings = {
+    "EMAILS_ENABLED":True,
+    "EMAILS_FROM_EMAIL":"no_reply_protocol_digization@quintiles.com",
+    "SMTP_HOST":"mta3.quintiles.com",
+    "SMTP_PORT":"25"
+}
+
 # Mapping between table name and JSON field name
 # Format: 'table_name': ('json_field_name', 'max_allowed_length', 'data_type', 'data_format')
 summary_table_json_mapper = { 

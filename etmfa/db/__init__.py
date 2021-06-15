@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 
 from etmfa.db.db import db_context
-from etmfa.db import utils
+from etmfa.db import utils, generate_email
 from etmfa.consts import Consts as consts
 from etmfa.db.models.documentcompare import Documentcompare
 from etmfa.db.models.pd_protocol_data import Protocoldata
@@ -182,7 +182,7 @@ def insert_into_alert_table(finalattributes):
     try:
         doc_status = PDProtocolMetadata.query.filter(PDProtocolMetadata.id == finalattributes['AiDocId']).first()
         doc_status_flag = doc_status and doc_status.documentStatus in config.VALID_DOCUMENT_STATUS_FOR_ALERT
-        approval_date_flag = finalattributes['approval_date'] and len(finalattributes['approval_date']) == 8 and finalattributes['approval_date'].isdigit()
+        approval_date_flag = finalattributes['approval_date'] != '' and len(finalattributes['approval_date']) == 8 and finalattributes['approval_date'].isdigit()
         if doc_status_flag and approval_date_flag and finalattributes['ProtocolNo']:
 
             # The query below is to check if the approval date for protocol which alert needs to be generated greater than all other approval dates for the protocols.
@@ -290,6 +290,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
 
     compare_request_list = document_compare(finalattributes['AiDocId'], finalattributes['ProtocolNo'], finalattributes['documentPath'])
     insert_into_alert_table(finalattributes)
+    generate_email.SendEmail.send_status_email(finalattributes['AiDocId'])
     return compare_request_list
 
 
