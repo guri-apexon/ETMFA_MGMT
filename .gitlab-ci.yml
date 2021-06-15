@@ -44,7 +44,6 @@ unit-tests:
   stage: test
   before_script:
     - . $VE_PATH
-  allow_failure: true # Remove it, when ready
   script:
     - python -m pytest -v --junit-xml=test_results.xml --cov=etmfa --cov-report=xml
   artifacts:
