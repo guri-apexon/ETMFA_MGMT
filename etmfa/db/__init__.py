@@ -633,6 +633,8 @@ def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
     """
     resource = None
     resource_dict = dict()
+    protocol_attributes = ""
+    norm_soa = ""
     order_condition = "pd_protocol_data.timeUpdated desc"
     
     try:
@@ -645,9 +647,16 @@ def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
         logger.error(f"No document resource was found in DB [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]")
         logger.error(f"Exception message:\n{e}")
     
-    if resource is not None:
-        protocol_attributes_raw_dict = ast.literal_eval(json.loads(resource[1]))
-        protocol_attributes_dict = {key:value for key,value in protocol_attributes_raw_dict.items() if key in ['columns', 'data']}
-        resource_dict = {'id': resource[0], 'protocolAttributes': protocol_attributes_dict, 'normalizedSOA': resource[2]}
-
+    try:
+        if resource is not None:
+            if resource[1] is not None:
+                protocol_attributes_raw_dict = ast.literal_eval(json.loads(resource[1]))
+                protocol_attributes = {key:value for key,value in protocol_attributes_raw_dict.items() if key in ['columns', 'data']}
+            if resource[2] is not None:
+                norm_soa = ast.literal_eval(json.loads(resource[2]))
+            
+            resource_dict = {'id': resource[0], 'protocolAttributes': protocol_attributes, 'normalizedSOA': norm_soa}
+    except Exception as exc:
+        logger.exception(f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
+    
     return resource_dict
