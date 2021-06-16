@@ -6,6 +6,7 @@ from dataclasses import asdict
 from etmfa.server.config import Config
 from flask import send_from_directory,make_response
 from pathlib import Path
+from http import HTTPStatus
 
 from etmfa.consts import Consts as consts
 from etmfa.db import utils
@@ -247,12 +248,12 @@ class DocumentprocessingAPI(Resource):
             return abort(500, SERVER_ERROR.format(e))
 
 @ns.route('/protocol_attributes_soa')
-@ns.response(500, 'Server error.')
+@ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
 class DocumentprocessingAPI(Resource):
     @ns.expect(protocol_attr_soa_input)
     @ns.marshal_with(protocol_attr_soa_get)
-    @ns.response(200, 'Success.')
-    @ns.response(404, 'Document Processing resource not found.')
+    @ns.response(HTTPStatus.OK, 'Success.')
+    @ns.response(HTTPStatus.NOT_FOUND, 'Document Processing resource not found.')
     def get(self):
         """Get Protocol Attributes and Normalized SOA"""
         args = protocol_attr_soa_input.parse_args()
@@ -263,14 +264,14 @@ class DocumentprocessingAPI(Resource):
 
             if not protocol_number or not aidoc_id:
                 logger.error(f"Invalid user inputs received: {args}")
-                return abort(404, INVALID_USER_INPUT.format(args))
+                return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
 
             resource = get_attr_soa_details(protocol_number = protocol_number, aidoc_id = aidoc_id)
 
             if len(resource) == 0:
-                return abort(404, DOCUMENT_NOT_FOUND.format(args))
+                return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
             else:
                 return resource
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
-            return abort(500, SERVER_ERROR.format(e))
+            return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
