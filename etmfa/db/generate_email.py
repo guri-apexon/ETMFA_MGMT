@@ -11,6 +11,7 @@ from etmfa.consts import Consts as consts
 from etmfa.db import config
 from etmfa.db.__init__ import received_documentprocessing_error_event
 from etmfa.error import ErrorCodes, ManagementException
+from etmfa.server.config import Config
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -51,9 +52,8 @@ class SendEmail:
         try:
             for row in db_data:
                 subject = f"Protocol Digitization: An alert was generated for protocol # {row.protocol}"
-                body = f"""An alert was generated for protocol # {row.protocol}. You can sign into the Protocol Digitalization library to view this activity.\n\nToday, these notifications are provided when when an approved protocol document (determined by protocol number) has been uploaded and digitized in the PD library AND that document has an approval date that is later than any of its associated documents. """
+                body = f"""An alert was generated for protocol # {row.protocol}. You are receiving this alert because you chose to follow this protocol number in the Protocol Digitalization (PD) Library.\n\nPlease sign into the Protocol Digitalization library to view additional information activity at the following link: {Config.PD_UI_LINK}\n\nThis alert notification is triggered when an approved protocol document with the above protocol number has been uploaded and digitized in the PD Library AND that document has an approval date that is later than any of its associated documents, indicating that it is a new approved version of that protocol.\n\nNote:  At this time, alert notifications are not triggered when drafts or legacy versions of this protocol are uploaded and digitized in the PD Library, but may be viewed by signing into the PD library at the above link.\n\nIf you would like to opt out of receiving email notifications for this protocol, please sign into the PD library at the above link, navigate to view all protocols you are following, and turn off the follow action for this protocol."""
                 SendEmail.send_email(doc_id=doc_id, email_to=row.email, subject=subject, body=body)
-
 
                 time_ = datetime.utcnow()
 
