@@ -25,6 +25,8 @@ class Config(object):
     LOGSTASH_HOST = 'ca2spdml01q'
     LOGSTASH_PORT = 5959
 
+    PD_UI_LINK = "https://protocoldigitalization-ui.work.iqvia.com/dashboard"
+
 
 class TestConfig(Config):
     """Configurations for Testing."""
