@@ -29,6 +29,7 @@ class PDProtocolMetadata(db_context.Model):
     errorReason = db_context.Column(db_context.String(500))
     percentComplete = db_context.Column(db_context.String(100))
     status = db_context.Column(db_context.String(100))
+    qcStatus = db_context.Column(db_context.String(100))
     compareStatus = db_context.Column(db_context.String(100))
     iqvXmlPathProc = db_context.Column(db_context.String(1500))
     iqvXmlPathComp = db_context.Column(db_context.String(1500))

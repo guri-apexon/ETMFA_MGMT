@@ -56,9 +56,9 @@ def test_alert_functions(new_app_context, ai_doc_id, protocol_no, short_title, a
             protocolMetadata = db_context.session.query(PDProtocolMetadata).filter(and_(PDProtocolMetadata.protocol == protocol_no,PDProtocolMetadata.status == 'ERROR')).all()
 
             for row in protocolMetadata:
-                row.status = meta_data_dict[row.id]
-                PDProtocolMetadata.errorCode = None
-                PDProtocolMetadata.errorReason = None
+                row.status = 'PROCESS_COMPLETED'
+                row.errorCode = None
+                row.errorReason = None
                 db_context.session.add(row)
             db_context.session.commit()
 

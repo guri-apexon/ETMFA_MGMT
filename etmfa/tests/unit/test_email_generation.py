@@ -51,6 +51,15 @@ def test_email(new_app_context, ai_doc_id, email_flag, comment):
                 for row in db_data:
                     assert email_flag == True and row.emailSentFlag == True and row.emailSentTime is not None
 
-        except Exception as e:
+            protocolMetadata = db_context.session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == ai_doc_id).first()
+
+            protocolMetadata.status = 'PROCESS_COMPLETED'
+            protocolMetadata.errorCode = None
+            protocolMetadata.errorReason = None
+            db_context.session.add(protocolMetadata)
+            db_context.session.commit()
+
+
+        except Exception as ex:
             db_context.session.rollback()
             logging.error(ex)
