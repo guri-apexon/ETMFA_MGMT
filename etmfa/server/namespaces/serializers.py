@@ -305,7 +305,7 @@ eTMFA_object_post.add_argument('moleculeDevice',
                                help='Molecule Device')
 eTMFA_object_post.add_argument('userId',
                                type=str,
-                               required=False,
+                               required=True,
                                help='userId')
 eTMFA_object_post.add_argument('file',
                                type=werkzeug.datastructures.FileStorage,

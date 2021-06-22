@@ -20,7 +20,7 @@ from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
 from etmfa.error import ErrorCodes, ManagementException
 from etmfa.messaging.models.processing_status import (FeedbackStatus,
-                                                      ProcessingStatus)
+                                                      ProcessingStatus, QcStatus)
 from flask import g
 from sqlalchemy import and_, func, or_
 from sqlalchemy.sql import text
@@ -142,9 +142,8 @@ def document_compare(aidocid, protocol_number, document_path):
                                                             PDProtocolMetadata.documentFilePath
                                                             ).filter(and_(PDProtocolMetadata.protocol == protocol_number,
                                                                           PDProtocolMetadata.id != aidocid,
-                                                                          or_(PDProtocolMetadata.status == 'QC1',
-                                                                              PDProtocolMetadata.status == 'QC2',
-                                                                              PDProtocolMetadata.status == 'PROCESS_COMPLETED'))).all()
+                                                                          PDProtocolMetadata.status == 'PROCESS_COMPLETED'
+                                                                          )).all()
 
             IQVXMLPath1 = utils.get_iqvxml_file_path(document_path, 'FIN_')
             if IQVXMLPath1:
@@ -237,7 +236,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     finalattributes = finalattributes['db_data']
     resource = get_doc_resource_by_id(id)
     resource.isProcessing = False
-    resource.isActive = True  # changed it back to true
+    resource.isActive = True
     protocolmetadata=db_context.session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == id).first()
 
     protocoldata = Protocoldata()
@@ -253,7 +252,8 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     protocoldata.documentFilePath = finalattributes['documentPath']
     protocoldata.iqvdataToc = str(json.dumps(finalattributes['toc']))
     protocoldata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
-    protocoldata.iqvdataSoaStd = str(json.dumps(finalattributes['normalized_soa']))
+    protocoldata.iqvdataSoaStd = (None if finalattributes['normalized_soa'] == '' or finalattributes['normalized_soa'] is None \
+                                        else str(json.dumps(finalattributes['normalized_soa'])))
     protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
 
 
@@ -265,7 +265,8 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     protocolqcdata.documentFilePath = finalattributes['documentPath']
     protocolqcdata.iqvdataToc = str(json.dumps(finalattributes['toc']))
     protocolqcdata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
-    protocolqcdata.iqvdataSoaStd = str(json.dumps(finalattributes['normalized_soa']))
+    protocolqcdata.iqvdataSoaStd = (None if finalattributes['normalized_soa'] == '' or finalattributes['normalized_soa'] is None \
+                                        else str(json.dumps(finalattributes['normalized_soa'])))
     protocolqcdata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
 
     update_user_protocols(finalattributes['UserId'], finalattributes['ProjectId'], finalattributes['ProtocolNo'])
@@ -281,7 +282,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         db_context.session.add(protocolqcdata)
         db_context.session.add(summary_record)
         db_context.session.commit()
-        update_doc_processing_status(id, ProcessingStatus.QC1)
+        update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED)
     except Exception as ex:
         logger.error("Error while writing record to file in DB for ID: {},{}".format(id, str(ex)))
         db_context.session.rollback()
@@ -357,6 +358,7 @@ def save_doc_processing(request, _id, doc_path, draftVersion):
     resource.draftVersion = draftVersion
     resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
     resource.status = ProcessingStatus.TRIAGE_STARTED.name
+    resource.qcStatus = QcStatus.NOT_STARTED.value
 
 
     try:

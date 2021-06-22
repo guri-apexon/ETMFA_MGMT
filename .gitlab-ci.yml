@@ -35,8 +35,11 @@ flake8:
     - flake8 --ignore=E etmfa
   allow_failure: true # Remove it, when ready
   only:
-    - develop
-    - merge_requests
+    refs:
+      - develop
+      - merge_requests
+    variables: 
+      - $ENVIRONMENT== "dev"
 
 unit-tests:
   tags:
@@ -51,8 +54,11 @@ unit-tests:
       - test_results.xml
       - coverage.xml
   only:
-    - develop
-    - merge_requests
+    refs:
+      - develop
+      - merge_requests
+    variables: 
+      - $ENVIRONMENT== "dev"
 
 build:
   tags:
@@ -66,9 +72,12 @@ build:
     paths:
       - dist/
   only:
-    - develop
-    - merge_requests
-    
+    refs:
+      - develop
+      - merge_requests
+    variables: 
+      - $ENVIRONMENT== "dev"
+
 deploy-dev:
   tags:
     - pd-dev-windows-ml01q
@@ -80,7 +89,10 @@ deploy-dev:
   environment:
     name: dev
   only:
-    - develop
+    refs:
+      - develop
+    variables: 
+      - $ENVIRONMENT== "dev"
 
 build-svt:
   tags:
