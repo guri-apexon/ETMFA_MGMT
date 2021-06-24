@@ -11,15 +11,15 @@ from sqlalchemy import and_
 from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 
-@pytest.mark.parametrize("ai_doc_id, protocol_no, short_title, approval_date, insert_flag, comment",
+@pytest.mark.parametrize("ai_doc_id, protocol_no, protocol_title, approval_date, insert_flag, comment",
                         [
-                            ('8410e658-074a-4c6e-a45d-010d1663a0ca', 'test_compare_0213_K-877-302', '', '20200101', 1, "Entry in alert table to be made."),
-                            ('b204ffb3-18c6-481a-9108-3c7745fdd6e6', 'test_compare_0213_K-877-302', '', '18990101', 0, "Entry in alert table not to be made."),
-                            ('b204ffb3-18c6-481a-9108-3c7745fdd6e6', '', '', '20200101', 0, "Entry in alert table not to be made."),
-                            ('b204ffb3-18c6-481a-9108-3c7745fdd6e6', 'test_compare_0213_K-877-302', '', '', 0, "Entry in alert table not to be made."),
-                            ('b204ffb3-18c6-481a-9108-3c7745fdd6e6', 'test_compare_0213_K-877-302', '', '202001', 0, "Entry in alert table not to be made.")
+                            ('8410e658-074a-4c6e-a45d-010d1663a0ca', 'test_compare_0213_K-877-302', 'PEMAFIBRATE TO REDUCE CARDIOVASCULAR OUTCOMES BY REDUCING TRIGLYCERIDES IN PATIENTS WITH DIABETES', '20200101', 1, "Entry in alert table to be made."),
+                            ('b204ffb3-18c6-481a-9108-3c7745fdd6e6', 'test_compare_0213_K-877-302', 'PEMAFIBRATE TO REDUCE CARDIOVASCULAR OUTCOMES BY REDUCING TRIGLYCERIDES IN PATIENTS WITH DIABETES', '18990101', 0, "Entry in alert table not to be made."),
+                            ('b204ffb3-18c6-481a-9108-3c7745fdd6e6', '', 'PEMAFIBRATE TO REDUCE CARDIOVASCULAR OUTCOMES BY REDUCING TRIGLYCERIDES IN PATIENTS WITH DIABETES', '20200101', 0, "Entry in alert table not to be made."),
+                            ('b204ffb3-18c6-481a-9108-3c7745fdd6e6', 'test_compare_0213_K-877-302', 'PEMAFIBRATE TO REDUCE CARDIOVASCULAR OUTCOMES BY REDUCING TRIGLYCERIDES IN PATIENTS WITH DIABETES', '', 0, "Entry in alert table not to be made."),
+                            ('b204ffb3-18c6-481a-9108-3c7745fdd6e6', 'test_compare_0213_K-877-302', 'PEMAFIBRATE TO REDUCE CARDIOVASCULAR OUTCOMES BY REDUCING TRIGLYCERIDES IN PATIENTS WITH DIABETES', '202001', 0, "Entry in alert table not to be made.")
                         ])
-def test_alert_functions(new_app_context, ai_doc_id, protocol_no, short_title, approval_date, insert_flag, comment):
+def test_alert_functions(new_app_context, ai_doc_id, protocol_no, protocol_title, approval_date, insert_flag, comment):
     try:
         _, _app_context = new_app_context
         with _app_context:
@@ -27,7 +27,7 @@ def test_alert_functions(new_app_context, ai_doc_id, protocol_no, short_title, a
 
             finalattributes['AiDocId'] = ai_doc_id
             finalattributes['ProtocolNo'] = protocol_no
-            finalattributes['ShortTitle'] = short_title
+            finalattributes['ProtocolTitle'] = protocol_title
             finalattributes['approval_date'] = approval_date
 
             alert_res = Protocolalert.query.filter(and_(Protocolalert.protocol == finalattributes['ProtocolNo'],

@@ -209,7 +209,7 @@ def insert_into_alert_table(finalattributes):
                     protocolalert = Protocolalert()
                     protocolalert.aidocId = finalattributes['AiDocId']
                     protocolalert.protocol = finalattributes['ProtocolNo']
-                    protocolalert.shortTitle = finalattributes['ShortTitle']
+                    protocolalert.protocolTitle = finalattributes['ProtocolTitle']
                     protocolalert.id = pd_user_protocol.id
                     protocolalert.isActive = True
                     protocolalert.emailSentFlag = False

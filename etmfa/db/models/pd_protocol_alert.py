@@ -7,7 +7,7 @@ class Protocolalert(db_context.Model):
     id = db_context.Column(db_context.String(100), primary_key=True)
     aidocId = db_context.Column(db_context.String(100), primary_key=True)
     protocol = db_context.Column(db_context.String(500))
-    shortTitle = db_context.Column(db_context.String(1500))
+    protocolTitle = db_context.Column(db_context.String(1500))
     readFlag = db_context.Column(db_context.Boolean(), default=False)
     readTime = db_context.Column(db_context.DateTime(timezone=True))
     emailSentFlag = db_context.Column(db_context.Boolean(), default=False)
