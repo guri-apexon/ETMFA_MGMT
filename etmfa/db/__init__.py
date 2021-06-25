@@ -44,7 +44,7 @@ def init_db(app):
         db_context.create_all()
 
 
-def update_doc_processing_status(id: str, process_status: ProcessingStatus):
+def update_doc_processing_status(id: str, process_status: ProcessingStatus, qc_status: QcStatus = None):
     """ Receives id for the document being processed along with percent_complete and present status of document
         If the document id being processed is present in DB, this function will update the percent_complete and
         status of document.
@@ -54,6 +54,9 @@ def update_doc_processing_status(id: str, process_status: ProcessingStatus):
     if resource is not None:
         resource.percentComplete = process_status.value
         resource.status = process_status.name
+
+        if qc_status is not None:
+            resource.qcStatus = qc_status.value
 
         resource.lastUpdated = datetime.utcnow()
 
@@ -282,7 +285,13 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         db_context.session.add(protocolqcdata)
         db_context.session.add(summary_record)
         db_context.session.commit()
-        update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED)
+
+        # Send all 'final' documents to QC process for mCRA
+        if protocolmetadata.documentStatus == 'final':
+            update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED, qc_status = QcStatus.QC1)
+        else:
+            update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED)
+
     except Exception as ex:
         logger.error("Error while writing record to file in DB for ID: {},{}".format(id, str(ex)))
         db_context.session.rollback()
