@@ -82,7 +82,7 @@ class DocumentprocessingAPI(Resource):
         source_filename = args['sourceFileName'] if args['sourceFileName'] is not None else ' '
         version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
         protocol = args['protocolNumber'] if args['protocolNumber'] is not None else ' '  # protocol check
-        document_status = args['documentStatus'] if args['documentStatus'] is not None else ' '  # Doc status check
+        document_status = args['documentStatus'].lower().strip() if args['documentStatus'] is not None else ' '  # Doc status check
         environment = args['environment'] if args['environment'] is not None else ' '
         source_system = args['sourceSystem'] if args['sourceSystem'] is not None else ' '
         sponsor = args['sponsor'] if args['sponsor'] is not None else ' '
