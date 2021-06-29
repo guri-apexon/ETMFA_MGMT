@@ -248,7 +248,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     protocolmetadata.shortTitle = finalattributes['ShortTitle']
     protocolmetadata.phase = finalattributes['phase']
     protocolmetadata.approvalDate = (None if finalattributes['approval_date'] == '' else finalattributes['approval_date'])
-    protocoldata.isActive = False
+    protocoldata.isActive = True
     protocoldata.id = finalattributes['AiDocId']
     protocoldata.userId = finalattributes['UserId']
     protocoldata.fileName = finalattributes['SourceFileName']
@@ -554,17 +554,18 @@ def set_draft_version(document_status, sponsor, protocol, version_number):
                 draftVersion = float(version_number) + 0.01
     else:
         draftVersion = None
-    return draftVersion 
+    return draftVersion
+
 
 def get_latest_protocol(protocol_number, version_number="", approval_date="", aidoc_id="", document_status="", qc_status="", is_top_1_only=True):
     """
     Get top-1 or all the protocol based on input arguments
     """
     resource = None
-    
+
     # Get dynamic conditions
     all_filter, order_condition = utils.get_filter_conditions(protocol_number, version_number, approval_date, aidoc_id, document_status)
-        
+
     try:
         if is_top_1_only:
             resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata.draftVersion, PDProtocolMetadata.amendment, PDProtocolMetadata.uploadDate, PDProtocolMetadata.documentFilePath,
@@ -572,7 +573,7 @@ def get_latest_protocol(protocol_number, version_number="", approval_date="", ai
                                                    ).join(PDProtocolMetadata, and_(PDProtocolQCSummaryData.aidocId == PDProtocolMetadata.id, PDProtocolQCSummaryData.source == 'QC')
                                                    ).filter(text(all_filter)
                                                    ).order_by(text(order_condition)).first()
-           
+
         else:
             resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata.draftVersion, PDProtocolMetadata.amendment, PDProtocolMetadata.uploadDate, PDProtocolMetadata.documentFilePath,
                                                 PDProtocolMetadata.projectId, PDProtocolMetadata.documentStatus, PDProtocolMetadata.protocol,
@@ -581,13 +582,13 @@ def get_latest_protocol(protocol_number, version_number="", approval_date="", ai
                                                    ).join(PDProtocolMetadata, PDProtocolQCSummaryData.aidocId == PDProtocolMetadata.id
                                                    ).filter(text(all_filter)
                                                    ).order_by(text(order_condition)).all()
-            
+
             resource = utils.filter_qc_status(resources = resource, qc_status = qc_status)
     except Exception as e:
         logger.error(f"No document resource was found in DB [Protocol: {protocol_number}; Version: {version_number}; approval_date: {approval_date}; \
             doc_id: {aidoc_id}; document_status: {document_status}; qc_status: {qc_status}]")
         logger.error(f"Exception message:\n{e}")
-    
+
     return resource
 
 
