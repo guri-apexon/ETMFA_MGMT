@@ -68,8 +68,6 @@ class SendEmail:
         except Exception as ex:
             db_context.session.rollback()
             logger.exception(f"doc_id={doc_id}, message={str(ex.args)}")
-            exception = ManagementException(doc_id, ErrorCodes.ERROR_EMAIL_GENERATION)
-            received_documentprocessing_error_event(exception.__dict__)
 
 
 

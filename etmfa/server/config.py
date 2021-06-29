@@ -1,6 +1,3 @@
-from collections import defaultdict
-
-
 class Config(object):
     """Parent configuration class."""
     DFS_UPLOAD_FOLDER = '//quintiles.net/enterprise/Services/protdigtest/pilot_iqvxml'

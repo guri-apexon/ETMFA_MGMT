@@ -1,5 +1,6 @@
 import logging
 from etmfa.db import utils, generate_email
+from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 
 import pytest
 import pytest_check as check
