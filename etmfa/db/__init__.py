@@ -647,27 +647,29 @@ def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
     resource_dict = dict()
     protocol_attributes = ""
     norm_soa = ""
-    order_condition = "pd_protocol_data.timeUpdated desc"
-    
-    try:
-        resource = db_context.session.query(Protocoldata.id, Protocoldata.iqvdataSummary, Protocoldata.iqvdataSoaStd
-                                                ).join(PDProtocolMetadata, and_(PDProtocolMetadata.id == Protocoldata.id, PDProtocolMetadata.protocol == protocol_number, PDProtocolMetadata.id == aidoc_id)
-                                                ).order_by(text(order_condition)).first()
 
-        
+    try:
+        resource = PDProtocolMetadata.query.filter(and_(PDProtocolMetadata.id == aidoc_id, PDProtocolMetadata.protocol == protocol_number,
+                                                                                    PDProtocolMetadata.isActive == True)).first()
+        if resource is None:
+            return resource_dict
+        if resource.qcStatus == 'QC_COMPLETED':
+            resource = Protocoldata.query.filter(Protocoldata.id == aidoc_id).first()
+        else:
+            resource = Protocolqcdata.query.filter(Protocolqcdata.id == aidoc_id).first()
     except Exception as e:
         logger.error(f"No document resource was found in DB [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]")
         logger.error(f"Exception message:\n{e}")
     
     try:
         if resource is not None:
-            if resource[1] is not None:
-                protocol_attributes_raw_dict = ast.literal_eval(json.loads(resource[1]))
+            if resource.iqvdataSummary is not None:
+                protocol_attributes_raw_dict = json.loads(json.loads(resource.iqvdataSummary))
                 protocol_attributes = {key:value for key,value in protocol_attributes_raw_dict.items() if key in ['columns', 'data']}
-            if resource[2] is not None:
-                norm_soa = ast.literal_eval(json.loads(resource[2]))
+            if resource.iqvdataSoaStd is not None:
+                norm_soa = json.loads(json.loads(resource.iqvdataSoaStd))
             
-            resource_dict = {'id': resource[0], 'protocolAttributes': protocol_attributes, 'normalizedSOA': norm_soa}
+            resource_dict = {'id': resource.id, 'protocolAttributes': protocol_attributes, 'normalizedSOA': norm_soa}
     except Exception as exc:
         logger.exception(f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
     
