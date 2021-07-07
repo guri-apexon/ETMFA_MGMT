@@ -58,4 +58,5 @@ def test_compare_functions(new_app_context, aidocid, protocol_number, document_p
     except Exception as ex:
         db_context.session.rollback()
         logging.error(ex)
+        assert False
 
