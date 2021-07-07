@@ -45,6 +45,16 @@ def test_alert_functions(new_app_context, ai_doc_id, protocol_no, protocol_title
 
             insert_into_alert_table(finalattributes)
 
+            protocolMetadata = db_context.session.query(PDProtocolMetadata).filter(
+                and_(PDProtocolMetadata.protocol == protocol_no, PDProtocolMetadata.status == 'ERROR')).all()
+
+            for row in protocolMetadata:
+                row.status = 'PROCESS_COMPLETED'
+                row.errorCode = None
+                row.errorReason = None
+                db_context.session.add(row)
+            db_context.session.commit()
+
             alert_res = Protocolalert.query.filter(and_(Protocolalert.protocol == finalattributes['ProtocolNo'],
                                                         Protocolalert.aidocId == finalattributes['AiDocId'])).all()
 
@@ -65,5 +75,6 @@ def test_alert_functions(new_app_context, ai_doc_id, protocol_no, protocol_title
     except Exception as ex:
         db_context.session.rollback()
         logging.error(ex)
+        assert False
 
 

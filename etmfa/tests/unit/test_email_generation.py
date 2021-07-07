@@ -11,6 +11,7 @@ from etmfa.db.db import db_context
 from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_users import User
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
+from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 
 @pytest.mark.parametrize(["ai_doc_id", "email_flag", "comment"],
                         [
@@ -41,8 +42,19 @@ def test_email(new_app_context, ai_doc_id, email_flag, comment):
 
             generate_email.SendEmail.send_status_email(ai_doc_id)
 
+            protocolMetadata = db_context.session.query(PDProtocolMetadata).filter(
+                PDProtocolMetadata.id == ai_doc_id).first()
+
+            if protocolMetadata:
+                protocolMetadata.status = 'PROCESS_COMPLETED'
+                protocolMetadata.errorCode = None
+                protocolMetadata.errorReason = None
+                db_context.session.add(protocolMetadata)
+                db_context.session.commit()
+
             db_data = db_context.session.query(Protocolalert.emailSentFlag,
-                                               Protocolalert.emailSentTime).join(PDUserProtocols, and_(Protocolalert.aidocId == ai_doc_id,
+                                               Protocolalert.emailSentTime).join(PDUserProtocols, and_(
+                Protocolalert.aidocId == ai_doc_id,
                 Protocolalert.id == PDUserProtocols.id)).join(User, User.username.in_(
                 ('q' + PDUserProtocols.userId, 'u' + PDUserProtocols.userId, PDUserProtocols.userId))).all()
 
@@ -53,14 +65,15 @@ def test_email(new_app_context, ai_doc_id, email_flag, comment):
                     assert email_flag == True and row.emailSentFlag == True and row.emailSentTime is not None
 
             protocolMetadata = db_context.session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == ai_doc_id).first()
-
-            protocolMetadata.status = 'PROCESS_COMPLETED'
-            protocolMetadata.errorCode = None
-            protocolMetadata.errorReason = None
-            db_context.session.add(protocolMetadata)
-            db_context.session.commit()
+            if protocolMetadata:
+                protocolMetadata.status = 'PROCESS_COMPLETED'
+                protocolMetadata.errorCode = None
+                protocolMetadata.errorReason = None
+                db_context.session.add(protocolMetadata)
+                db_context.session.commit()
 
 
         except Exception as ex:
             db_context.session.rollback()
             logging.error(ex)
+            assert False
