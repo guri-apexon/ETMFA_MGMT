@@ -7,21 +7,17 @@ variables:
   NSSM_PATH: "/D/Projects/PD/softwares/nssm/nssm-2.24/win64/nssm.exe"
   SERVICE_NAME: "pd-ci-mgmt"
   PACKAGE: "pd-mgmt"
-  GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
-  CI_DEBUG_TRACE: "false"
+#   GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
+#   CI_DEBUG_TRACE: "false"
 
 
 stages:
   - test
+  - sonar-scan
   - build
   - deploy
-  - build_svt
-  - deploy_svt
-  - build_uat
-  - deploy_uat
-  - build_prod
-  - deploy_prod
-
+  - build-test
+  - deploy-test
 default:
   before_script:
     - sh etmfa/ci_scripts/create_venv.sh
@@ -48,7 +44,8 @@ unit-tests:
   before_script:
     - . $VE_PATH
   script:
-    - python -m pytest -v --junit-xml=test_results.xml --cov=etmfa --cov-report=xml
+    - python -m pytest --cov=./ --cov-report xml -v --junitxml="test_results.xml"
+
   artifacts:
       paths:
       - test_results.xml
@@ -59,6 +56,34 @@ unit-tests:
       - merge_requests
     variables: 
       - $ENVIRONMENT== "dev"
+      
+Perform Sonarqube Analysis and quality gate:  
+  image: sonarsource/sonar-scanner-cli
+  stage: sonar-scan
+  only:
+    - branches
+    - tags
+  before_script:
+    - echo "Setting up for Sonarqube Analysis on $CI_COMMIT_REF_NAME branch"
+    - apk upgrade --update-cache --available && apk add openssl
+    - openssl s_client -connect   usadc-vspsq01.quintiles.net:443 | keytool -import -noprompt -alias sonarqbue_test -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit
+  script:
+    - echo "Running Sonarqube Analysis on $CI_COMMIT_REF_NAME branch"
+    - apk upgrade --update-cache --available && apk add openssl
+    - sh scripts/sonarqube.sh branch > /tmp/sonar.log
+    - cat /tmp/sonar.log
+    - echo "Running Sonarqube quality gate on $CI_COMMIT_REF_NAME branch"
+    - sh scripts/qualitygate.sh
+  allow_failure: true    
+  tags:
+    - ca2ugitla006p-D4
+  only:
+    refs:
+      - develop
+      - merge_requests
+    variables: 
+      - $ENVIRONMENT== "dev" 
+      
 
 build:
   tags:
@@ -93,11 +118,11 @@ deploy-dev:
       - develop
     variables: 
       - $ENVIRONMENT== "dev"
-
-build-svt:
+      
+build:
   tags:
-    - ca2spdml15q
-  stage: build_svt
+    - pd-test-windows-ml101q
+  stage: build-test
   before_script:
     - . $VE_PATH  
   script:
@@ -108,95 +133,32 @@ build-svt:
   only:
     refs:
       - develop
-      - master
-      - pd-release/1.3
+      - merge_requests
     variables: 
-      - $ENVIRONMENT== "svt"
+      - $ENVIRONMENT== "test"
 
-deploy-svt:
+deploy-test:
   tags:
-    - ca2spdml15q
-  stage: deploy_svt
+    - pd-test-windows-ml101q
+  stage: deploy-test
   variables:
-    VERIFICATION_URL: "http://ca2spdml15q:9001/pd/api/health"
+    VERIFICATION_URL: "http://ca2spdml101q:9001/pd/api/health"
   script:
     - sh etmfa/ci_scripts/deploy.sh dist
   environment:
-    name: svt
+    name: test
   only:
     refs:
       - develop
-      - master
-      - pd-release/1.3
-    variables: 
-      - $ENVIRONMENT== "svt"
+    variables:
+      - $ENVIRONMENT== "test"
+  
+      
+      
+      
+      
+      
 
-build-uat:
-  tags:
-    - ca2spdml05c
-  stage: build_uat
-  before_script:
-    - . $VE_PATH  
-  script:
-    - python setup.py sdist
-  artifacts:
-    paths:
-      - dist/
-  only:
-    refs:
-      - master
-      - pd-release/1.3
-    variables: 
-      - $ENVIRONMENT== "uat"
 
-deploy-uat:
-  tags:
-    - ca2spdml05c
-  stage: deploy_uat
-  variables:
-    VERIFICATION_URL: "http://ca2spdml05c:9001/pd/api/health"
-  script:
-    - sh etmfa/ci_scripts/deploy.sh dist
-  environment:
-    name: uat
-  only:
-    refs:
-      - master
-      - pd-release/1.3
-    variables: 
-      - $ENVIRONMENT== "uat"
 
-build-prod:
-  tags:
-    - ca2spdml05p
-  stage: build_prod
-  before_script:
-    - . $VE_PATH    
-  script:
-    - python setup.py sdist
-  artifacts:
-    paths:
-      - dist/
-  only:
-    refs:
-      - master
-      - pd-release/1.3
-    variables: 
-      - $ENVIRONMENT== "prod"
-
-deploy-prod:
-  tags:
-    - ca2spdml05p
-  stage: deploy_prod
-  variables:
-    VERIFICATION_URL: "http://ca2spdml05p:9001/pd/api/health"
-  script:
-    - sh etmfa/ci_scripts/deploy.sh dist
-  environment:
-    name: prod
-  only:
-    refs:
-      - master
-      - pd-release/1.3
-    variables: 
-      - $ENVIRONMENT== "prod"
+ 
