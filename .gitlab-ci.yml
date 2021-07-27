@@ -132,7 +132,7 @@ build:
       - dist/
   only:
     refs:
-      - develop
+      - feature/cicd-changes-test
       - merge_requests
     variables: 
       - $ENVIRONMENT== "test"
@@ -149,7 +149,7 @@ deploy-test:
     name: test
   only:
     refs:
-      - develop
+      - feature/cicd-changes-test
     variables:
       - $ENVIRONMENT== "test"
   
