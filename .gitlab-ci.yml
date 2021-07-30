@@ -7,8 +7,8 @@ variables:
   NSSM_PATH: "/D/Projects/PD/softwares/nssm/nssm-2.24/win64/nssm.exe"
   SERVICE_NAME: "pd-ci-mgmt"
   PACKAGE: "pd-mgmt"
-  GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
-  CI_DEBUG_TRACE: "false"
+#   GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
+#   CI_DEBUG_TRACE: "false"
 
 
 stages:
