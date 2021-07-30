@@ -137,7 +137,7 @@ build-test:
       - dist/
   only:
     refs:
-      - develop
+      - feature/cicd-changes-test
       - pd-release/1.3
       - merge_requests
     variables: 
@@ -155,7 +155,7 @@ deploy-test:
     name: test
   only:
     refs:
-      - develop
+      - feature/cicd-changes-test
       - pd-release/1.3
     variables:
       - $ENVIRONMENT== "test"
