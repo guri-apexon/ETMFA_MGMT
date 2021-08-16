@@ -35,7 +35,7 @@ class PDProtocolMetadata(db_context.Model):
     iqvXmlPathComp = db_context.Column(db_context.String(1500))
     
     # output fields
-    protocolTitle = db_context.Column(db_context.String(1500))
+    protocolTitle = db_context.Column(db_context.VARCHAR(None))
     shortTitle = db_context.Column(db_context.String(1500))
     phase = db_context.Column(db_context.String(500))
     digitizedConfidenceInterval = db_context.Column(db_context.String(500))
