@@ -409,17 +409,10 @@ def get_file_contents_by_id(protocol_number:str, aidoc_id:str, protocol_number_v
     aidoc_id = cleaned_inputs.get('aidoc_id', '')
     
     try:
-        if protocol_number_verified:
-            where_clause = f"id = '{aidoc_id}' AND isActive = 1"
-            resource = db_context.session.query(Protocoldata.id, Protocoldata.iqvdataToc
-                                                       ).filter(text(where_clause)
-                                                       ).first()
-        else:
-            resource = db_context.session.query(Protocoldata.id, Protocoldata.iqvdataToc
+        resource = db_context.session.query(Protocoldata.id, Protocoldata.iqvdataToc
                                                    ).join(PDProtocolMetadata, and_(PDProtocolMetadata.id == Protocoldata.id, 
-                                                        PDProtocolMetadata.protocol == protocol_number, Protocoldata.id == aidoc_id, Protocoldata.isActive == 1)
+                                                        PDProtocolMetadata.protocol == protocol_number, PDProtocolMetadata.qcStatus== 'QC_COMPLETED', Protocoldata.id == aidoc_id)
                                                         ).first()
-                             
         if resource:
             result = resource[1]
         else:
