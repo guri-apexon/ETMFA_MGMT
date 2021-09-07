@@ -24,6 +24,11 @@ class Config(object):
 
     PD_UI_LINK = "https://protocoldigitalization-ui.work.iqvia.com/dashboard"
 
+    # User Authentication
+    AUTH_DETAILS = {'ypd_api_dev': '$pbkdf2-sha256$8000$yfn/n3Oudc75Pw$A7BQFNmip/A/VqQcQphknV32gdGmFHzq56jjBHN0lXY',
+                    'ypd_unit_test': '$pbkdf2-sha256$8000$MqZ0jnGO8d77fw$7tT5b7tJbmV0ofz97G75mAUPeDrf5O8ythuRfO6vrWo'}
+
+    UNIT_TEST_HEADERS = {"X-API-KEY": "ypd_unit_test:!53*URTa$k1j4t^h2~uSseatnai@nr"}
 
 class TestConfig(Config):
     """Configurations for Testing."""
