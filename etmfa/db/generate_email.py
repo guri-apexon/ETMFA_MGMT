@@ -29,9 +29,9 @@ class SendEmail:
         msg["From"] = config.email_settings['EMAILS_FROM_EMAIL']
         if body is not None:
             msg.set_content(body)
-        s = smtplib.SMTP(config.email_settings['SMTP_HOST'], config.email_settings['SMTP_PORT'])
-        s.send_message(msg)
-        s.quit()
+        smtp_obj = smtplib.SMTP(config.email_settings['SMTP_HOST'], config.email_settings['SMTP_PORT'])
+        smtp_obj.send_message(msg)
+        smtp_obj.quit()
         extra = {'doc_id': doc_id, 'msg_body': 'Email Sent'}
         logger.info(f'Status email sent to : {email_to}', extra)
 
@@ -63,7 +63,7 @@ class SendEmail:
                 protocolalert.emailSentTime = time_
                 db_context.session.add(protocolalert)
 
-            ret_val = db_context.session.commit()
+            db_context.session.commit()
 
         except Exception as ex:
             db_context.session.rollback()

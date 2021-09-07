@@ -14,6 +14,7 @@ from etmfa.db import (
     pd_fetch_summary_data,
     save_doc_processing,
     get_doc_processing_by_id,
+    get_doc_status_processing_by_id,
     get_file_contents_by_id,
     get_latest_protocol,
     set_draft_version,
@@ -28,12 +29,14 @@ from etmfa.server.namespaces.serializers import (
     eTMFA_object_post,
     latest_protocol_input,
     latest_protocol_get,
+    eTMFA_object_get_status,
     latest_protocol_download_input,
     latest_protocol_contents_input,
     pd_qc_check_update_post,
     protocol_attr_soa_input,
     protocol_attr_soa_get
 )
+from etmfa.auth import authenticate
 from flask import current_app, request, abort, g
 from flask_restplus import Resource, abort
 
@@ -48,7 +51,6 @@ DOCUMENT_COMPARISON_ALREADY_PRESENT = 'Comparison already present for given prot
 ns = api.namespace('PD', path='/v1/documents', description='REST endpoints for PD workflows.')
 
 
-
 @ns.route('/')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
@@ -56,6 +58,8 @@ class DocumentprocessingAPI(Resource):
     @ns.marshal_with(eTMFA_object_get)
     @ns.response(400, 'Invalid Request.')
     @ns.response(200, 'Success')
+    @api.doc(security='apikey')
+    @authenticate    
     def post(self):
         """Create document Processing REST object and returns document Processing API object """
 
@@ -108,12 +112,36 @@ class DocumentprocessingAPI(Resource):
         # Return response object
         return get_doc_processing_by_id(_id, full_mapping=True)
 
+@ns.route('/<string:id>/status')
+@ns.response(404, 'Document Processing resource not found.')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.marshal_with(eTMFA_object_get_status)
+    @ns.response(200, 'Success.')
+    @api.doc(security='apikey')
+    @authenticate  
+    def get(self, id):
+        """Get document processing object status. This includes any locations of processed documents"""
+        try:
+            g.aidocid = id
+            resource = get_doc_status_processing_by_id(id, full_mapping=True)
+            if resource is None:
+                return abort(404, DOCUMENT_NOT_FOUND.format(id))
+            else:
+                return resource
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
+
+
 @ns.route('/pd_qc_check_update')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
     @ns.expect(pd_qc_check_update_post)
     @ns.marshal_with(PD_qc_get)
     @ns.response(200, 'Success.')
+    @api.doc(security='apikey')
+    @authenticate
     def post(self):
         """Perform post processing once the document completes QC check"""
         args = pd_qc_check_update_post.parse_args()
@@ -134,6 +162,8 @@ class DocumentprocessingAPI(Resource):
     @ns.expect(latest_protocol_download_input)
     @ns.response(200, 'Success.')
     @ns.response(404, 'Document Processing resource not found.')
+    @api.doc(security='apikey')
+    @authenticate    
     def get(self):
         """Get the source protocol document"""
         args = latest_protocol_download_input.parse_args()
@@ -175,6 +205,8 @@ class DocumentprocessingAPI(Resource):
     @ns.expect(latest_protocol_contents_input)
     @ns.response(200, 'Success.')
     @ns.response(404, 'Document Processing resource not found.')
+    @api.doc(security='apikey')
+    @authenticate    
     def get(self):
         """Get the digitized file contents"""
         resource = None
@@ -220,6 +252,8 @@ class DocumentprocessingAPI(Resource):
     @ns.marshal_with(latest_protocol_get)
     @ns.response(200, 'Success.')
     @ns.response(404, 'Document Processing resource not found.')
+    @api.doc(security='apikey')
+    @authenticate
     def get(self):
         """Get all the protocols processed in PD based on input parameters"""
         args = latest_protocol_input.parse_args()
@@ -254,6 +288,8 @@ class DocumentprocessingAPI(Resource):
     @ns.marshal_with(protocol_attr_soa_get)
     @ns.response(HTTPStatus.OK, 'Success.')
     @ns.response(HTTPStatus.NOT_FOUND, 'Document Processing resource not found.')
+    @api.doc(security='apikey')
+    @authenticate    
     def get(self):
         """Get Protocol Attributes and Normalized SOA"""
         args = protocol_attr_soa_input.parse_args()

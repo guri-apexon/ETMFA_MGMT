@@ -2,6 +2,7 @@ import ast
 import json
 import logging
 from http import HTTPStatus
+from etmfa.server.config import Config
 
 import pytest
 from etmfa.consts import Consts as consts
@@ -35,8 +36,9 @@ def test_protocol_versions(new_app_context, api_endpoint, protocol_number, versi
     client = new_app.test_client()
     input_dict = {"protocolNumber": protocol_number, "versionNumber": version_number, "documentStatus": document_status, \
                         "qcStatus": qc_status, "sourceSystem": source_system}
+
     with client:
-        response = client.get(api_endpoint, json = input_dict)
+        response = client.get(api_endpoint, json = input_dict, headers = Config.UNIT_TEST_HEADERS)
         assert response.status_code == expected_status_cd
 
         if response.status_code == HTTPStatus.OK:

@@ -80,8 +80,9 @@ class MessageListener(ConsumerMixin):
                 #json.loads(json.dumps(body)),
                 MessagePublisher(self.connection_str, self.exchange_name)
             )
-            message.ack()
         except Exception as ex:
-            logger.error("Fatal message error while processing queue: {}, {}".format(queue_name, ex))
+            logger.error(f"Fatal message error while processing queue [{queue_name}]:\n Exception message: {str(ex)} \n Received message_body: {message_body}")
+        finally:
+            message.ack()
 
 

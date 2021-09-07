@@ -10,9 +10,17 @@ def specs_url(self):
     """
     return url_for(self.endpoint('specs'), _external=True, _scheme='https')
 
+authorizations = {
+    'apikey': {
+        'type': 'apiKey',
+        'in': 'header',
+        'name': 'X-API-KEY'
+    }
+}
 
 api = Api(version='0.1',
           title='PD Automation Service API',
           description='PD Automation Service API for document processing.',
-          contact="jiju.mohan@quintiles.com"
+          contact="jiju.mohan@quintiles.com",
+          authorizations=authorizations
           )

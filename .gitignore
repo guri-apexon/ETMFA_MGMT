@@ -120,3 +120,4 @@ cnn_mapping/
 *.log
 *.db
 etmfa/server/config.py
+**/fiu_temp*.py

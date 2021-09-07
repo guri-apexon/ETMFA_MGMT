@@ -4,6 +4,7 @@ from http import HTTPStatus
 
 import pytest
 from etmfa.consts import Consts as consts
+from etmfa.server.config import Config
 
 # Setup logger
 logger = logging.getLogger(consts.LOGGING_NAME)
@@ -22,7 +23,7 @@ def test_attr_soa(new_app_context, protocol_number, aidoc_id, source_system, exp
     input_dict = {"protocolNumber": protocol_number, "id": aidoc_id, "sourceSystem": source_system}
     with client:
         logger.debug(f"test_attr_soa: Processing for unit test type [{comments}]: [{protocol_number}, {aidoc_id}]")
-        response = client.get("/pd/api/v1/documents/protocol_attributes_soa", json = input_dict)
+        response = client.get("/pd/api/v1/documents/protocol_attributes_soa", json = input_dict, headers = Config.UNIT_TEST_HEADERS)
         assert response.status_code == expected_status_cd
 
         if response.status_code == HTTPStatus.OK:

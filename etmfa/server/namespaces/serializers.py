@@ -54,6 +54,31 @@ PD_qc_get = api.model('Document Processing Status Model',
                              }
                              )
 
+eTMFA_object_get_status = api.model('Document Processing Status Model',
+                                    {
+                                        'id': fields.String(readOnly=True,
+                                                            description='The unique identifier (UUID) of eTMFA document.'),
+                                        'isProcessing': fields.Boolean(readOnly=True,
+                                                                       description='The document is being processed. Final attributes of documents may not exist.'),
+                                        'percentComplete': fields.String(readOnly=False,
+                                                                         description='The percentage of document is being processed. Final attributes of documents will be ready when percentage is 100.'),
+                                        'status': fields.String(readOnly=False,
+                                                                description='Processing document stage (triage/ocr/classifier/xtractor/finalizer)'),
+                                        'fileName': fields.String(readOnly=True,
+                                                                  description='The name of the original eTMF file to automate'),
+                                        'documentFilePath': fields.String(readOnly=True,
+                                                                          description='The path of the original eTMF file to automate'),
+                                        'errorCode': fields.String(readOnly=True,
+                                                                   description='Error code corresponding to any process error during TMF document automation.' +
+                                                                               ' Empty error codes corrspond to no errors.'),
+                                        'errorReason': fields.String(readOnly=True,
+                                                                     description='If an error code is present, an attempt will be made to supply a user-friendly error reason.'),
+                                        'timeCreated': fields.DateTime,
+                                        'lastUpdated': fields.DateTime,
+
+                                    }
+                                    )
+
 
 eTMFA_metrics_get = api.model('Document Processing Metrics Model',
                               {
@@ -257,6 +282,7 @@ pd_qc_check_update_post.add_argument('qcApprovedBy',
 eTMFA_object_post = reqparse.RequestParser()
 eTMFA_object_post.add_argument('sourceFileName',
                                type=str,
+                               required=True,
                                help='Source Input document name')
 eTMFA_object_post.add_argument('versionNumber',
                                type=str,
@@ -285,11 +311,12 @@ eTMFA_object_post.add_argument('studyStatus',
                                help='Study Status')
 eTMFA_object_post.add_argument('amendmentNumber',
                                type=str,
-                               required=False,
+                               required=True,
+                               choices=['Y', 'N'],
                                help='Amendment Number')
 eTMFA_object_post.add_argument('projectID',
                                type=str,
-                               required=True,
+                               required=False,
                                help='project ID')
 eTMFA_object_post.add_argument('environment',
                                type=str,
