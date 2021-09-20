@@ -18,7 +18,8 @@ from etmfa.db import (
     get_file_contents_by_id,
     get_latest_protocol,
     set_draft_version,
-    get_attr_soa_details
+    get_attr_soa_details,
+    get_attr_soa_compare
 )
 from etmfa.messaging.messagepublisher import MessagePublisher
 from etmfa.messaging.models.triage_request import TriageRequest
@@ -34,7 +35,9 @@ from etmfa.server.namespaces.serializers import (
     latest_protocol_contents_input,
     pd_qc_check_update_post,
     protocol_attr_soa_input,
-    protocol_attr_soa_get
+    protocol_attr_soa_get,
+    norm_soa_compare_input,
+    norm_soa_compare_get,
 )
 from etmfa.auth import authenticate
 from flask import current_app, request, abort, g
@@ -303,6 +306,38 @@ class DocumentprocessingAPI(Resource):
                 return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
 
             resource = get_attr_soa_details(protocol_number = protocol_number, aidoc_id = aidoc_id)
+
+            if len(resource) == 0:
+                return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
+            else:
+                return resource
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
+
+@ns.route('/norm_soa_compare')
+@ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(norm_soa_compare_input)
+    @ns.marshal_with(norm_soa_compare_get)
+    @ns.response(HTTPStatus.OK, 'Success.')
+    @ns.response(HTTPStatus.NOT_FOUND, 'Document Processing resource not found.')
+    @api.doc(security='apikey')
+    @authenticate    
+    def get(self):
+        """Get Normalized SOA difference"""
+        args = norm_soa_compare_input.parse_args()
+        try:
+            cleaned_inputs = utils.clean_inputs(protocol_number = args['protocolNumber'], aidoc_id = args['baseDocId'], compare_doc_id = args['compareDocId'])
+            protocol_number = cleaned_inputs.get('protocol_number', '')
+            aidoc_id = cleaned_inputs.get('aidoc_id', '')
+            compare_doc_id = cleaned_inputs.get('compare_doc_id', '')
+
+            if not protocol_number or not aidoc_id or not compare_doc_id:
+                logger.error(f"Invalid user inputs received: {args}")
+                return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
+
+            resource = get_attr_soa_compare(protocol_number = protocol_number, aidoc_id = aidoc_id, compare_doc_id = compare_doc_id)
 
             if len(resource) == 0:
                 return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))

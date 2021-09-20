@@ -13,6 +13,8 @@ class Documentcompare(db_context.Model):
     compareCSVPath = db_context.Column(db_context.String(1000))
     compareJSONPath = db_context.Column(db_context.String(1000))
     numChangesTotal = db_context.Column(db_context.Integer())
+    compareCSVPathNormSOA = db_context.Column(db_context.String(1000))
+    compareJSONPathNormSOA = db_context.Column(db_context.String(1000))
     swap = db_context.Column(db_context.Boolean(), default = False)
     createdDate = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
     updatedDate = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)

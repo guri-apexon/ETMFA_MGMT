@@ -267,6 +267,18 @@ protocol_attr_soa_get = api.model('Protocol Attributes and Normalized SOA',
                                                                   description='Normalized SOA')
                              })
 
+# Normalized SOA compare 
+norm_soa_compare_input = reqparse.RequestParser()
+norm_soa_compare_input.add_argument('protocolNumber', type=str, required=True, help='Protocol number')
+norm_soa_compare_input.add_argument('baseDocId', type=str, required=True, help='Unique PD id of protocol')
+norm_soa_compare_input.add_argument('compareDocId', type=str, required=True, help='compare PD id of protocol')
+norm_soa_compare_input.add_argument('sourceSystem', type=str, required=False, help='Source system calling this API')
+
+norm_soa_compare_get = api.model('Normalized SOA compare',
+                              {
+                                 'normalizedSOADifference': fields.String(readOnly=True,
+                                                            description='Normalized SOA Difference')
+                             })
 
 pd_qc_check_update_post = reqparse.RequestParser()
 pd_qc_check_update_post.add_argument('aidoc_id',
