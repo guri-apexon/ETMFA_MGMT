@@ -21,7 +21,8 @@ from etmfa.db.models.pd_user_protocols import PDUserProtocols
 from etmfa.error import ErrorCodes, ManagementException
 from etmfa.messaging.models.processing_status import (FeedbackStatus,
                                                       ProcessingStatus, QcStatus)
-from flask import g
+from pathlib import Path
+from flask import g, abort
 from sqlalchemy import and_, func, or_
 from sqlalchemy.sql import text
 from etmfa.messaging.models.queue_names import EtmfaQueues
@@ -128,6 +129,8 @@ def received_comparecomplete_event(compare_dict, message_publisher):
         resource.compareCSVPath = compare_dict.get('CSVPath', '')
         resource.compareJSONPath = compare_dict.get('JSONPath', '')
         resource.numChangesTotal = int(compare_dict.get('NumChangesTotal', '')) if compare_dict.get('NumChangesTotal','').isdigit() else 0
+        resource.compareCSVPathNormSOA = compare_dict.get('CSVPathNormSOA', '')
+        resource.compareJSONPathNormSOA = compare_dict.get('JSONPathNormSOA', '')
         resource.updatedDate = datetime.utcnow()
         db_context.session.add(resource)
         db_context.session.commit()
@@ -668,5 +671,33 @@ def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
             resource_dict = {'id': resource.id, 'protocolAttributes': protocol_attributes, 'normalizedSOA': norm_soa}
     except Exception as exc:
         logger.exception(f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
+    
+    return resource_dict
+
+def get_attr_soa_compare(protocol_number, aidoc_id, compare_doc_id) -> dict:
+    """
+    Get Normalized SOA Difference
+    """
+    resource = None
+    resource_dict = dict()
+    norm_soa_diff = ""
+
+    try:
+        resource = Documentcompare.query.filter(and_(Documentcompare.id1 == aidoc_id, Documentcompare.protocolNumber == protocol_number,
+                                                                                    Documentcompare.id2 == compare_doc_id)).first()
+        if resource is None:
+            return resource_dict
+        else:          
+            JSONPathNormSOA = Path(resource.compareJSONPathNormSOA)
+            if JSONPathNormSOA:
+                with open(JSONPathNormSOA, 'rb') as file_obj:
+                    norm_soa_diff = json.load(file_obj)
+                    file_obj.close()
+            else:
+                return abort(NO_RESOURCE_FOUND.format(protocol_number, aidoc_id, compare_doc_id))
+
+            resource_dict = {'normalizedSOADifference': norm_soa_diff}
+    except Exception as exc:
+        logger.exception(f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}; compare_id: {compare_doc_id}]. Exception: {str(exc)}")
     
     return resource_dict

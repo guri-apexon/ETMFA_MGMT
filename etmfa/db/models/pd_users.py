@@ -1,3 +1,4 @@
+import datetime
 from etmfa.db import db_context
 
 
@@ -14,6 +15,7 @@ class User(db_context.Model):
     date_of_registration = db_context.Column(db_context.DateTime(timezone=True), nullable=False)
     login_id = db_context.Column(db_context.Integer(), db_context.ForeignKey("login.id"))
     user_type = db_context.Column(db_context.String(100))
+    lastUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
     login = db_context.relationship("Login", back_populates="user")
 
     def as_dict(self):

@@ -35,7 +35,7 @@ flake8:
     - pd-dev-windows-ml01q
   stage: test
   script:
-    - flake8 --ignore=E etmfa
+    - flake8 --exit-zero --max-line-length=120
   allow_failure: true # Remove it, when ready
   only:
     refs:
@@ -66,9 +66,6 @@ unit-tests:
 Perform Sonarqube Analysis and quality gate:  
   image: sonarsource/sonar-scanner-cli
   stage: sonar-scan
-  only:
-    - branches
-    - tags
   before_script:
     - echo "Setting up for Sonarqube Analysis on $CI_COMMIT_REF_NAME branch"
     - apk upgrade --update-cache --available && apk add openssl

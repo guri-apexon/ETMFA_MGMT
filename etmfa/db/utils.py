@@ -68,7 +68,7 @@ def get_updated_qc_summary_record(doc_id, source, summary_dict, is_active_flg=Tr
                     for tab_col, (json_col, max_len, data_type, data_format) in config.summary_table_json_mapper.items()]
     return qc_summ_record
 
-def clean_inputs(protocol_number="", version_number="", approval_date="", aidoc_id="", document_status="", qc_status="") -> dict:
+def clean_inputs(protocol_number="", version_number="", approval_date="", aidoc_id="", document_status="", qc_status="", compare_doc_id="") -> dict:
     """
     Clean the input arguments
     """
@@ -81,6 +81,7 @@ def clean_inputs(protocol_number="", version_number="", approval_date="", aidoc_
     cleaned_inputs['aidoc_id'] = aidoc_id.strip() if aidoc_id is not None else ''
     cleaned_inputs['document_status'] = document_status.strip().lower() if document_status is not None else ''
     cleaned_inputs['qc_status'] = qc_status.strip().lower() if qc_status is not None else ''
+    cleaned_inputs['compare_doc_id'] = compare_doc_id.strip() if compare_doc_id is not None else ''
     return cleaned_inputs
 
 def validate_inputs(protocol_number = "") -> bool:
