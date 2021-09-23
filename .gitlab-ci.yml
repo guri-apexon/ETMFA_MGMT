@@ -56,6 +56,7 @@ unit-tests:
       paths:
       - test_results.xml
       - coverage.xml
+  allow_failure: true
   only:
     refs:
       - develop
