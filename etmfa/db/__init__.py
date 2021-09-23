@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 
 from etmfa.db.db import db_context
-from etmfa.db import utils, generate_email
+from etmfa.db import utils, generate_email, config
 from etmfa.consts import Consts as consts
 from etmfa.db.models.documentcompare import Documentcompare
 from etmfa.db.models.pd_protocol_data import Protocoldata
@@ -106,6 +106,7 @@ def add_compare_event(compare_protocol_list, id_):
                 compare.id1 = row['id1']
                 compare.id2 = row['id2']
                 compare.protocolNumber = row['protocolNumber']
+                compare.redactProfile = row['redact_profile']
                 compare.createdDate = datetime.utcnow()
                 compare.updatedDate = datetime.utcnow()
                 compare_db_data.append(compare)
@@ -142,6 +143,7 @@ def received_comparecomplete_event(compare_dict, message_publisher):
 
 
 def document_compare(aidocid, protocol_number, document_path):
+    redact_profile_list = {'profile_0', 'profile_1'}
     if protocol_number:
         ids_compare_protocol = db_context.session.query(PDProtocolMetadata.id,
                                                         PDProtocolMetadata.protocol,
@@ -158,21 +160,24 @@ def document_compare(aidocid, protocol_number, document_path):
                 IQVXMLPath2 = utils.get_iqvxml_file_path(row.documentFilePath[:row.documentFilePath.rfind('\\')],
                                                             'FIN_')
                 if IQVXMLPath2:
-                    ids_compare_protocol_1.extend([{'compareId': str(uuid.uuid4()),
-                                                    'id1': aidocid,
-                                                    'IQVXMLPath1': IQVXMLPath1,
-                                                    'id2': row.id,
-                                                    'protocolNumber': protocol_number,
-                                                    'IQVXMLPath2': IQVXMLPath2
-                                                    },
-                                                    {'compareId': str(uuid.uuid4()),
-                                                    'id1': row.id,
-                                                    'IQVXMLPath1': IQVXMLPath2,
-                                                    'id2': aidocid,
-                                                    'protocolNumber': protocol_number,
-                                                    'IQVXMLPath2': IQVXMLPath1
-                                                    }
-                                                    ])
+                    for redact_profile in redact_profile_list:
+                        ids_compare_protocol_1.extend([{'compareId': str(uuid.uuid4()),
+                                                        'id1': aidocid,
+                                                        'IQVXMLPath1': IQVXMLPath1,
+                                                        'id2': row.id,
+                                                        'protocolNumber': protocol_number,
+                                                        'IQVXMLPath2': IQVXMLPath2,
+                                                        'redact_profile': redact_profile
+                                                        },
+                                                        {'compareId': str(uuid.uuid4()),
+                                                        'id1': row.id,
+                                                        'IQVXMLPath1': IQVXMLPath2,
+                                                        'id2': aidocid,
+                                                        'protocolNumber': protocol_number,
+                                                        'IQVXMLPath2': IQVXMLPath1,
+                                                        'redact_profile': redact_profile
+                                                        }
+                                                        ])
             ids_compare_protocol = ids_compare_protocol_1
             ret_val = add_compare_event(ids_compare_protocol, aidocid)
             if ret_val:

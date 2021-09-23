@@ -7,4 +7,5 @@ class CompareRequest:
     IQVXMLPath1: str
     id2: str
     IQVXMLPath2: str
+    redact_profile: str
     QUEUE_NAME: str
