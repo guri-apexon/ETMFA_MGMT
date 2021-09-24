@@ -135,7 +135,7 @@ def on_finalization_complete(msg_proc_obj, message_publisher):
                 logger = logging.getLogger(consts.LOGGING_NAME)
                 logger.info("FIN_ file does not exist for ID {}".format(row['id2']))
                 continue
-            request = CompareRequest(row['compareId'], row['id1'], row['IQVXMLPath1'], row['id2'], row['IQVXMLPath2'], dest_queue_name)
+            request = CompareRequest(row['compareId'], row['id1'], row['IQVXMLPath1'], row['id2'], row['IQVXMLPath2'], row['redact_profile'], dest_queue_name)
             message_publisher.send_dict(asdict(request), dest_queue_name)
 
 
