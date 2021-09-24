@@ -143,7 +143,7 @@ def received_comparecomplete_event(compare_dict, message_publisher):
 
 
 def document_compare(aidocid, protocol_number, document_path):
-    redact_profile_list = {'profile_0', 'profile_1'}
+    redact_profile_list = {"profile_0", "profile_1"}
     if protocol_number:
         ids_compare_protocol = db_context.session.query(PDProtocolMetadata.id,
                                                         PDProtocolMetadata.protocol,
