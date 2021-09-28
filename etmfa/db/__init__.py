@@ -271,6 +271,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
                                             else str(json.dumps(finalattributes['normalized_soa'])))
         protocolqcdata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
 
+        # Assign userRole and redact profile
         update_user_protocols(finalattributes['UserId'], finalattributes['ProjectId'], finalattributes['ProtocolNo'])
 
         # Entry in summary table
@@ -283,11 +284,8 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         db_context.session.add(summary_record)
         db_context.session.commit()
 
-        # Send all 'final' documents to QC process for mCRA
-        if protocolmetadata.documentStatus == 'final':
-            update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED, qc_status = QcStatus.QC1)
-        else:
-            update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED)
+        # No documents sent for QC by default
+        update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED)
 
         compare_request_list = document_compare(finalattributes['AiDocId'], finalattributes['ProtocolNo'], finalattributes['documentPath'])
         insert_into_alert_table(finalattributes)
@@ -623,6 +621,8 @@ def update_user_protocols(user_id, project_id, protocol_number):
         userprotocols.userId = user_id
         userprotocols.projectId = project_id
         userprotocols.protocol = protocol_number
+        userprotocols.userRole = config.UPLOADED_USERROLE
+        userprotocols.redactProfile = config.USERROLE_REDACTPROFILE_MAP.get(config.UPLOADED_USERROLE)
         try:
             db_context.session.add(userprotocols)
             db_context.session.commit()
@@ -634,7 +634,8 @@ def update_user_protocols(user_id, project_id, protocol_number):
         for record in records:
             record.isActive = True
             record.follow = True
-            record.userRole = "primary"
+            record.userRole = config.UPLOADED_USERROLE
+            record.redactProfile = config.USERROLE_REDACTPROFILE_MAP.get(config.UPLOADED_USERROLE)
             record.lastUpdated = datetime.utcnow()
             try:
                 db_context.session.merge(record)

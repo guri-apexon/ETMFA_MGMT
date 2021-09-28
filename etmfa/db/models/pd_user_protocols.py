@@ -1,6 +1,6 @@
 import datetime
 
-from etmfa.db import db_context
+from etmfa.db import db_context, config
 
 
 class PDUserProtocols(db_context.Model):
@@ -12,7 +12,8 @@ class PDUserProtocols(db_context.Model):
     protocol = db_context.Column(db_context.String(200))
     projectId = db_context.Column(db_context.String(200))
     follow = db_context.Column(db_context.Boolean(), default=False)
-    userRole = db_context.Column(db_context.String(200), default="primary")
+    userRole = db_context.Column(db_context.String(200), default=config.UPLOADED_USERROLE)
+    redactProfile = db_context.Column(db_context.String(50), default=config.USERROLE_REDACTPROFILE_MAP.get(config.UPLOADED_USERROLE))
     
     userCreated = db_context.Column(db_context.String(100))
     timeCreated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)

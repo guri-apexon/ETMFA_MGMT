@@ -56,3 +56,7 @@ summary_table_json_mapper = {
     'protocolName': ('protocol_name', 256, 'string', ''),
     'isAmendment': ('is_amendment', 8, 'string', ''),
 }
+
+# User Role - Redact profile mapping
+UPLOADED_USERROLE = "primary"
+USERROLE_REDACTPROFILE_MAP = {"primary": "profile_1", "secondary": "profile_0", "default": "profile_0"}
