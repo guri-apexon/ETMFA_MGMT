@@ -10,13 +10,13 @@ from etmfa.server.config import Config
 logger = logging.getLogger(consts.LOGGING_NAME)
 
 @pytest.mark.parametrize("protocol_number, aidoc_id, compare_doc_id, source_system, expected_status_cd, comments",
-                         [("AKB-6548-CI-0014", "edde6896-7eb1-4dfb-b0db-e40ea90daf1d", "9e8af4da-8989-4882-9875-806a21f2d438", "unit_test", HTTPStatus.OK, "Normal"),
-                          ("", "edde6896-7eb1-4dfb-b0db-e40ea90daf1d", "9e8af4da-8989-4882-9875-806a21f2d438", "unit_test", HTTPStatus.NOT_FOUND, "Missing protocol"),
-                          ("AKB-6548-CI-0014", "", "9e8af4da-8989-4882-9875-806a21f2d438", "unit_test", HTTPStatus.NOT_FOUND, "Missing aidoc_id"),
-                          ("AKB-6548-CI-0014", "edde6896-7eb1-4dfb-b0db-e40ea90daf1d", "","unit_test", HTTPStatus.NOT_FOUND, "Missing compare_doc_id"),
+                         [("test_AKB-6548-CI-0014", "0a1a6d7d-81c5-4da5-8625-0972aa1dbcae", "06c65de2-e9df-442c-a7c0-399675640475", "unit_test", HTTPStatus.OK, "Normal"),
+                          ("", "0a1a6d7d-81c5-4da5-8625-0972aa1dbcae", "06c65de2-e9df-442c-a7c0-399675640475", "unit_test", HTTPStatus.NOT_FOUND, "Missing protocol"),
+                          ("test_AKB-6548-CI-0014", "", "06c65de2-e9df-442c-a7c0-399675640475", "unit_test", HTTPStatus.NOT_FOUND, "Missing aidoc_id"),
+                          ("test_AKB-6548-CI-0014", "0a1a6d7d-81c5-4da5-8625-0972aa1dbcae", "","unit_test", HTTPStatus.NOT_FOUND, "Missing compare_doc_id"),
                           ("", "", "", "unit_test", HTTPStatus.NOT_FOUND, "All missing"),
-                          ("AKB-6548-CI-0014", "a89de6a0-fc10-4964-9364-fa20962d45f", "","unit_test", HTTPStatus.NOT_FOUND, "Non existing aidoc_id"),
-                          ("AKB-6548-CI-0014", "a89de6a0-fc10-4964-9364-fa20962d44ef", "a89de6a0-fc10-4964-9364-fa20962d45g","unit_test", HTTPStatus.NOT_FOUND, "Non existing compare_doc_id"),
+                          ("test_AKB-6548-CI-0014", "a89de6a0-fc10-4964-9364-fa20962d45f", "","unit_test", HTTPStatus.NOT_FOUND, "Non existing aidoc_id"),
+                          ("test_AKB-6548-CI-0014", "a89de6a0-fc10-4964-9364-fa20962d44ef", "a89de6a0-fc10-4964-9364-fa20962d45g","unit_test", HTTPStatus.NOT_FOUND, "Non existing compare_doc_id"),
                           ("SSR_1002-04", "a89de6a0-fc10-4964-9364-fa20962d44ef", "a89de6a0-fc10-4964-9364-fa20962d45g","unit_test", HTTPStatus.NOT_FOUND, "Non existing protocol number"),
                           ])
 def test_attr_soa(new_app_context, protocol_number, aidoc_id, compare_doc_id, source_system, expected_status_cd, comments):

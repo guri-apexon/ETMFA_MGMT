@@ -15,6 +15,8 @@ class Documentcompare(db_context.Model):
     numChangesTotal = db_context.Column(db_context.Integer())
     compareCSVPathNormSOA = db_context.Column(db_context.String(1000))
     compareJSONPathNormSOA = db_context.Column(db_context.String(1000))
+    compareExcelPathNormSOA = db_context.Column(db_context.String(1000))
+    compareHTMLPathNormSOA = db_context.Column(db_context.String(1000))
     redactProfile = db_context.Column(db_context.String(100))
     feedbackRun = db_context.Column(db_context.Integer())
     swap = db_context.Column(db_context.Boolean(), default = False)

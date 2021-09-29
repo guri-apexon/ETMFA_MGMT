@@ -51,11 +51,12 @@ unit-tests:
   before_script:
     - . $VE_PATH
   script:
-    - python -m pytest -v --junit-xml=test_results.xml --cov=etmfa --cov-report=xml
+    - python -m pytest -v --cov=./ --cov-report xml -v --junitxml="test_results.xml"
   artifacts:
-      paths:
-      - test_results.xml
+    paths:
       - coverage.xml
+    reports:
+      junit: test_results.xml
   allow_failure: true
   only:
     refs:

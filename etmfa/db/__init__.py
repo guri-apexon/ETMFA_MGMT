@@ -107,6 +107,7 @@ def add_compare_event(compare_protocol_list, id_):
                 compare.id2 = row['id2']
                 compare.protocolNumber = row['protocolNumber']
                 compare.redactProfile = row['redact_profile']
+                compare.feedbackRun = 0
                 compare.createdDate = datetime.utcnow()
                 compare.updatedDate = datetime.utcnow()
                 compare_db_data.append(compare)
@@ -132,9 +133,13 @@ def received_comparecomplete_event(compare_dict, message_publisher):
         resource.numChangesTotal = int(compare_dict.get('NumChangesTotal', '')) if compare_dict.get('NumChangesTotal','').isdigit() else 0
         resource.compareCSVPathNormSOA = compare_dict.get('CSVPathNormSOA', '')
         resource.compareJSONPathNormSOA = compare_dict.get('JSONPathNormSOA', '')
+        resource.compareExcelPathNormSOA = compare_dict.get('ExcelPathNormSOA', '')
+        resource.compareHTMLPathNormSOA = compare_dict.get('HTMLPathNormSOA', '')
         resource.updatedDate = datetime.utcnow()
         db_context.session.add(resource)
         db_context.session.commit()
+
+        update_feedback_run(compare_id = compare_dict.get('compare_id', ''))
     except Exception as ex:
         db_context.session.rollback()
         exception = ManagementException(compare_dict.get('compare_id', ''), ErrorCodes.ERROR_PROTOCOL_DATA)
@@ -684,17 +689,25 @@ def get_attr_soa_compare(protocol_number, aidoc_id, compare_doc_id) -> dict:
     """
     Get Normalized SOA Difference
     """
+    redact_profile = 'profile_1'
     resource = None
     resource_dict = dict()
     norm_soa_diff = ""
 
     try:
         resource = Documentcompare.query.filter(and_(Documentcompare.id1 == aidoc_id, Documentcompare.protocolNumber == protocol_number,
-                                                                                    Documentcompare.id2 == compare_doc_id)).first()
-        if resource is None:
+                                                                                    Documentcompare.id2 == compare_doc_id, 
+                                                                                    Documentcompare.redactProfile == redact_profile)).all()
+
+        if not resource:
             return resource_dict
-        else:          
-            JSONPathNormSOA = Path(resource.compareJSONPathNormSOA)
+        else:    
+            for row in resource:
+                if row.feedbackRun is None:
+                    return resource_dict
+
+            compare_record = max(resource, key = lambda record : record.feedbackRun)  
+            JSONPathNormSOA = Path(compare_record.compareJSONPathNormSOA)
             if JSONPathNormSOA:
                 with open(JSONPathNormSOA, 'rb') as file_obj:
                     norm_soa_diff = json.load(file_obj)
@@ -707,3 +720,24 @@ def get_attr_soa_compare(protocol_number, aidoc_id, compare_doc_id) -> dict:
         logger.exception(f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}; compare_id: {compare_doc_id}]. Exception: {str(exc)}")
     
     return resource_dict
+
+def update_feedback_run(compare_id):
+    """
+        update the feedbackRun count for every rerun.
+    """
+    try:
+        resource = Documentcompare.query.filter(Documentcompare.compareId == compare_id).first()
+        document_compare_list = Documentcompare.query.filter(and_(Documentcompare.id1 == resource.id1, Documentcompare.id2 == resource.id2,
+                                                                                    Documentcompare.redactProfile == resource.redactProfile)).all()
+        if len(document_compare_list) == 1:
+            feedback_run_count = 0
+        else:       
+            compare_record = max(document_compare_list, key = lambda record : record.feedbackRun)
+            feedback_run_count = compare_record.feedbackRun
+            feedback_run_count = feedback_run_count + 1
+        resource.feedbackRun = feedback_run_count
+        db_context.session.add(resource)
+        db_context.session.commit()
+    except Exception as exc:
+        logger.exception(f"No Document found for [aidoc_id: {resource.id1}; compare_base_id: {resource.id2}; redact_profile: {resource.redactProfile}]. Exception: {str(exc)}")
+    

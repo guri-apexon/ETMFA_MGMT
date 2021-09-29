@@ -7,7 +7,7 @@ sonar-scanner \
   -Dsonar.sources=. \
   -Dsonar.sourceEncoding=UTF-8 \
   -Dsonar.branch.name=$CI_COMMIT_REF_NAME \
-  -Dsonar.coverage.exclusions=main.py,setup.py,tests/** \
+  -Dsonar.coverage.exclusions=main.py,setup.py,manage.py,etmfa/tests/** \
   -Dsonar.python.coverage.reportPath=coverage.xml \
   -Dsonar.python.xunit.reportPath=test_results.xml \
   -Dsonar.gitlab.ref_name=$CI_COMMIT_REF_NAME \
