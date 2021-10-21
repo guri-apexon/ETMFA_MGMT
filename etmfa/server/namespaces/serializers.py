@@ -39,7 +39,10 @@ eTMFA_object_get = api.model('Document Processing Status Model',
                                  'timeCreated': fields.DateTime,
                                  'lastUpdated': fields.DateTime,
                                  'status': fields.String(readOnly=True,
-                                                         description='Document processing stage (triage/ocr/classifier/extractor/finalizer'),
+                                                         description='Document processing stage (triage/dig1/dig2/omop/extractor/finalizer'),
+                                 'qcStatus': fields.String(readOnly=True,
+                                                         description='QC status (NOT started/QC1/QC2/Feedback run/completed)'),
+                                 'runId': fields.Integer(readOnly=True, description='Feedback Run ID')
                              }
                              )
 
@@ -284,7 +287,11 @@ pd_qc_check_update_post = reqparse.RequestParser()
 pd_qc_check_update_post.add_argument('aidoc_id',
                                    type=str,
                                    required=True,
-                                   help='Aidoc id')
+                                   help='Aidoc id'),
+pd_qc_check_update_post.add_argument('parent_path',
+                                   type=str,
+                                   required=True,
+                                   help='DFS parent location')
 pd_qc_check_update_post.add_argument('qcApprovedBy',
                                type=str,
                                required=True,

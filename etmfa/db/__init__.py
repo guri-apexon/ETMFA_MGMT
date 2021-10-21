@@ -74,6 +74,46 @@ def update_doc_processing_status(id: str, process_status: ProcessingStatus, qc_s
 
     return False
 
+def update_doc_resource_by_id(aidoc_id, resource):
+    """
+    Updates DB resource based on aidoc_id
+    """
+    resource.lastUpdated = datetime.utcnow()
+
+    try:
+        db_context.session.commit()
+    except Exception as ex:
+        db_context.session.rollback()
+        exception = ManagementException(aidoc_id, ErrorCodes.ERROR_PROCESSING_STATUS)
+        received_documentprocessing_error_event(exception.__dict__)
+        logger.error(ERROR_PROCESSING_STATUS.format(aidoc_id, ex))
+
+    return resource    
+
+def update_run_id(aidoc_id: str):
+    """ 
+    Increments runId
+        Input: doc id
+        Ouput: New Run id
+    """
+    resource = get_doc_resource_by_id(aidoc_id)
+    if resource is not None:
+        run_id = resource.runId
+        next_run_id = run_id + 1
+        resource.runId = next_run_id
+
+        resource.lastUpdated = datetime.utcnow()
+
+        try:
+            db_context.session.commit()
+            return next_run_id
+        except Exception as ex:
+            db_context.session.rollback()
+
+            exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS)
+            received_documentprocessing_error_event(exception.__dict__)
+            logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
+    
 
 def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
     resource = get_doc_status_processing_by_id(id, full_mapping=True)
@@ -340,16 +380,20 @@ def received_documentprocessing_error_event(error_dict):
     else:
         logger.error(NO_RESOURCE_FOUND.format(doc_id))
 
-def pd_fetch_summary_data(aidocid, userid):
+def pd_fetch_summary_data(aidocid, userid, source=config.SRC_QC):
     try:
-        resource = Protocoldata.query.filter(Protocoldata.id == aidocid).first()
+        if source == config.SRC_QC:
+            resource = Protocolqcdata.query.filter(Protocolqcdata.id == aidocid).first()
+        else:
+            resource = Protocoldata.query.filter(Protocoldata.id == aidocid).first()
+
         if resource:
             summary = ast.literal_eval(json.loads(resource.iqvdataSummary))
             summary_dict = {k:v for k, v, _ in summary['data']}
         else:
             return None
 
-        summary_record = utils.get_updated_qc_summary_record(doc_id=aidocid, source=config.SRC_QC, summary_dict=summary_dict, is_active_flg=True, qc_approved_by=userid)            
+        summary_record = utils.get_updated_qc_summary_record(doc_id=aidocid, source=source, summary_dict=summary_dict, is_active_flg=True, qc_approved_by=userid)            
         db_context.session.merge(summary_record)
         db_context.session.commit()
         return aidocid
@@ -382,6 +426,7 @@ def save_doc_processing(request, _id, doc_path, draftVersion):
     resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
     resource.status = ProcessingStatus.TRIAGE_STARTED.name
     resource.qcStatus = QcStatus.NOT_STARTED.value
+    resource.runId = 0
 
 
     try:
