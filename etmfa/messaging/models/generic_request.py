@@ -25,4 +25,11 @@ class DIG2OMAPRequest:
     id: str
     omop_xml_path: str
 
-
+@dataclass
+class FeedbackRun:
+    id: str
+    IQVXMLPath: str
+    FeedbackJSONPath: str
+    FeedbackRunId: str
+    OutputFilePrefix: str
+    QUEUE_NAME: str

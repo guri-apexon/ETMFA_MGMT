@@ -21,6 +21,7 @@ from etmfa.db import (
     get_attr_soa_details,
     get_attr_soa_compare
 )
+from etmfa.db import feedback_utils as fb_utlis
 from etmfa.messaging.messagepublisher import MessagePublisher
 from etmfa.messaging.models.triage_request import TriageRequest
 from etmfa.server.api import api
@@ -99,6 +100,7 @@ class DocumentprocessingAPI(Resource):
         indication = args['indication'] if args['indication'] is not None else ' '
         molecule_device = args['moleculeDevice'] if args['moleculeDevice'] is not None else ' '
         user_id = args['userId'] if args['userId'] is not None else ' '
+        feedback_run_id = 0
 
         draftVersion = set_draft_version(document_status, sponsor, protocol, version_number)
         save_doc_processing(args, _id, str(file_path), draftVersion)
@@ -108,7 +110,7 @@ class DocumentprocessingAPI(Resource):
 
         post_req_msg = TriageRequest(_id, str(file_path), source_filename, version_number, protocol, document_status,
                                     environment, source_system, sponsor, study_status, amendment_number, project_id,
-                                    indication, molecule_device, user_id)
+                                    indication, molecule_device, user_id, feedback_run_id)
 
         MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(asdict(post_req_msg), EtmfaQueues.TRIAGE.request)
 
@@ -151,9 +153,16 @@ class DocumentprocessingAPI(Resource):
         try:
             aidocid = args['aidoc_id'] if args['aidoc_id'] is not None else ' '
             userid = args['qcApprovedBy'] if args['qcApprovedBy'] is not None else ''
+            parent_path = args['parent_path'] if args['parent_path'] is not None else ''
+
             resource = pd_fetch_summary_data(aidocid, userid)
             if resource is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(aidocid))
+
+            feedback_run_started = fb_utlis.on_qc_approval_complete(aidoc_id=aidocid, parent_path=parent_path)
+            if not feedback_run_started:
+                return abort(404, "Problem in initiating Feedback Run")
+
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
