@@ -1,6 +1,5 @@
 import ast
 import datetime
-import json
 import logging
 import os
 import json
@@ -18,12 +17,13 @@ from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
+from etmfa.db.models.pd_protocol_summary_entities import ProtocolSummaryEntities
 from etmfa.error import ErrorCodes, ManagementException
 from etmfa.messaging.models.processing_status import (FeedbackStatus,
                                                       ProcessingStatus, QcStatus)
 from pathlib import Path
 from flask import g, abort
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, func
 from sqlalchemy.sql import text
 from etmfa.messaging.models.queue_names import EtmfaQueues
 
@@ -32,6 +32,7 @@ os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
 NO_RESOURCE_FOUND = "No document resource is found for requested input(s): {}"
 NO_COMPARE_RESOURCE_FOUND = "No document resource is found for requested input(s): {}, {}"
 ERROR_PROCESSING_STATUS = "Error while updating processing status to pd_protocol_metadata to DB for ID: {},{}"
+
 
 # Global DB ORM object
 def init_db(app):
@@ -88,10 +89,10 @@ def update_doc_resource_by_id(aidoc_id, resource):
         received_documentprocessing_error_event(exception.__dict__)
         logger.error(ERROR_PROCESSING_STATUS.format(aidoc_id, ex))
 
-    return resource    
+    return resource
 
 def update_run_id(aidoc_id: str):
-    """ 
+    """
     Increments runId
         Input: doc id
         Ouput: New Run id
@@ -113,7 +114,7 @@ def update_run_id(aidoc_id: str):
             exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS)
             received_documentprocessing_error_event(exception.__dict__)
             logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
-    
+
 
 def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
     resource = get_doc_status_processing_by_id(id, full_mapping=True)
@@ -161,6 +162,7 @@ def add_compare_event(compare_protocol_list, id_):
         exception = ManagementException(id_, ErrorCodes.ERROR_PROTOCOL_DATA)
         received_documentprocessing_error_event(exception.__dict__)
         return False
+
 
 def received_comparecomplete_event(compare_dict, message_publisher):
 
@@ -236,7 +238,8 @@ def insert_into_alert_table(finalattributes):
     approval_date_flag = finalattributes['approval_date'] != '' and len(finalattributes['approval_date']) == 8 and finalattributes['approval_date'].isdigit()
     if doc_status_flag and approval_date_flag and finalattributes['ProtocolNo']:
 
-        # The query below is to check if the approval date for protocol which alert needs to be generated greater than all other approval dates for the protocols.
+        # The query below is to check if the approval date for protocol which alert needs to be generated
+        # greater than all other approval dates for the protocols.
         resources = db_context.session.query(PDProtocolQCSummaryData,
                                                 PDProtocolQCSummaryData.source,
                                                 PDProtocolQCSummaryData.approvalDate,
@@ -288,6 +291,8 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
 
         protocoldata = Protocoldata()
         protocolqcdata = Protocolqcdata()
+        protocol_summary_entities = ProtocolSummaryEntities()
+
         protocolmetadata.protocolTitle = finalattributes['ProtocolTitle']
         protocolmetadata.shortTitle = finalattributes['ShortTitle']
         protocolmetadata.phase = finalattributes['phase']
@@ -303,8 +308,7 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
                                             else str(json.dumps(finalattributes['normalized_soa'])))
         protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
 
-
-        #Protocol qc data table updation for Backup purpose of original data
+        # Protocol qc data table updation for Backup purpose of original data
         protocolqcdata.isActive = False
         protocolqcdata.id = finalattributes['AiDocId']
         protocolqcdata.userId = finalattributes['UserId']
@@ -316,17 +320,28 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
                                             else str(json.dumps(finalattributes['normalized_soa'])))
         protocolqcdata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
 
+        # Protocol Summary Entities table updating
+        protocol_summary_entities.aidocId = finalattributes['AiDocId']
+        protocol_summary_entities.runId = finalattributes.get("runId", 0)
+        protocol_summary_entities.source = finalattributes.get("source", "NA")
+        protocol_summary_entities.iqvdataSummaryEntities = str(json.dumps(finalattributes.get('summary_entities', {})))
+        protocol_summary_entities.isActive = resource.isActive
+
         # Assign userRole and redact profile
         update_user_protocols(finalattributes['UserId'], finalattributes['ProjectId'], finalattributes['ProtocolNo'])
 
         # Entry in summary table
         summary_json_dict = ast.literal_eval(finalattributes['summary'])
-        summary_dict = {k:v for k, v, _ in summary_json_dict['data']}
+        summary_dict = {k: v for k, v, _ in summary_json_dict['data']}
         summary_record = utils.get_updated_qc_summary_record(doc_id=id, source=config.SRC_EXTRACT, summary_dict=summary_dict, is_active_flg=True)
 
         db_context.session.add(protocoldata)
         db_context.session.add(protocolqcdata)
         db_context.session.add(summary_record)
+
+        if finalattributes.get('summary_entities', {}):
+            db_context.session.add(protocol_summary_entities)
+
         db_context.session.commit()
 
         # No documents sent for QC by default
@@ -345,7 +360,6 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         return
 
 
-
 def send_to_error_queue(error_dict, message_publisher):
     """
     Sends the error details to error RMQ
@@ -356,6 +370,7 @@ def send_to_error_queue(error_dict, message_publisher):
         message_publisher.send_dict(error_dict, error_queue_name)
     except Exception as exc:
         logger.error(f"Received exception while sending {error_dict} to error processing queue {error_queue_name}: {str(exc)}")    
+
 
 def received_documentprocessing_error_event(error_dict):
     doc_id = error_dict.get('id')
@@ -380,6 +395,7 @@ def received_documentprocessing_error_event(error_dict):
     else:
         logger.error(NO_RESOURCE_FOUND.format(doc_id))
 
+
 def pd_fetch_summary_data(aidocid, userid, source=config.SRC_QC):
     try:
         if source == config.SRC_QC:
@@ -393,7 +409,7 @@ def pd_fetch_summary_data(aidocid, userid, source=config.SRC_QC):
         else:
             return None
 
-        summary_record = utils.get_updated_qc_summary_record(doc_id=aidocid, source=source, summary_dict=summary_dict, is_active_flg=True, qc_approved_by=userid)            
+        summary_record = utils.get_updated_qc_summary_record(doc_id=aidocid, source=source, summary_dict=summary_dict, is_active_flg=True, qc_approved_by=userid)
         db_context.session.merge(summary_record)
         db_context.session.commit()
         return aidocid
@@ -402,7 +418,6 @@ def pd_fetch_summary_data(aidocid, userid, source=config.SRC_QC):
         db_context.session.rollback()
         exception = ManagementException(aidocid, ErrorCodes.ERROR_QC_SUMMARY_DATA)
         received_documentprocessing_error_event(exception.__dict__)
-
 
 
 def save_doc_processing(request, _id, doc_path, draftVersion):
@@ -427,7 +442,6 @@ def save_doc_processing(request, _id, doc_path, draftVersion):
     resource.status = ProcessingStatus.TRIAGE_STARTED.name
     resource.qcStatus = QcStatus.NOT_STARTED.value
     resource.runId = 0
-
 
     try:
         db_context.session.add(resource)
@@ -456,7 +470,8 @@ def get_doc_proc_metrics_by_id(id, full_mapping=True):
 
     return resource_dict
 
-def get_file_contents_by_id(protocol_number:str, aidoc_id:str, protocol_number_verified:bool = False) -> str:
+
+def get_file_contents_by_id(protocol_number: str, aidoc_id: str, protocol_number_verified:bool = False) -> str:
     """
     Extracts file toc json by aidoc_id
     
@@ -481,6 +496,7 @@ def get_file_contents_by_id(protocol_number:str, aidoc_id:str, protocol_number_v
         result = None
     return result
 
+
 def get_compare_documents(base_doc_id, compare_doc_id):
     basedocid = base_doc_id
     comparedocid = compare_doc_id
@@ -492,16 +508,16 @@ def get_compare_documents(base_doc_id, compare_doc_id):
                                                 Documentcompare.id2 == basedocid).first()
         flag_order=-1
 
-
     else:
         None
-    #to check none
+    # to check none
     if resource is not None:
         resource_IQVdata = resource.iqvdata
     else:
         logger.error(NO_COMPARE_RESOURCE_FOUND.format(basedocid, comparedocid))
 
     return resource_IQVdata
+
 
 def get_doc_metrics_by_id(id):
     g.aidocid = id
@@ -518,6 +534,7 @@ def get_doc_status_processing_by_id(id, full_mapping=True):
 
     return resource_dict
 
+
 def get_compare_resource_by_compare_id(comparevalues):
     compareid = comparevalues['COMPARE_ID']
     resource = Documentcompare.query.filter(Documentcompare.compareId == compareid).first()
@@ -525,6 +542,7 @@ def get_compare_resource_by_compare_id(comparevalues):
     if resource is None:
         logger.error(NO_RESOURCE_FOUND.format(compareid))
     return resource
+
 
 def get_doc_resource_by_id(id):
     g.aidocid = id
@@ -535,6 +553,7 @@ def get_doc_resource_by_id(id):
 
     return resource
 
+
 def get_user_protocol_by_id(id):
     g.aidocid = id
     resource = PDUserProtocols.query.filter(PDUserProtocols.id.like(str(id))).first()
@@ -543,6 +562,7 @@ def get_user_protocol_by_id(id):
         logger.error(NO_RESOURCE_FOUND.format(id))
 
     return resource
+
 
 def upsert_attributevalue(doc_processing_id, namekey, value):
     g.aidocid = id
@@ -580,6 +600,7 @@ def safe_unicode(obj, *args):
         ascii_text = str(obj).encode('string_escape')
         return str(ascii_text)
 
+
 def get_latest_record(sponsor, protocol_number, version_number):
     # to get the latest record based on sponsor, protocol_number, version_number
     resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.sponsor == sponsor,
@@ -587,6 +608,7 @@ def get_latest_record(sponsor, protocol_number, version_number):
                                                PDProtocolMetadata.versionNumber == version_number).order_by(PDProtocolMetadata.timeCreated.desc()).first()
 
     return resource
+
 
 def set_draft_version(document_status, sponsor, protocol, version_number):
     # to set draft version for documents
@@ -650,11 +672,13 @@ def get_record_by_userid_protocol(user_id, protocol_number):
 
     return resource
 
+
 def get_record_by_userid_projectid(user_id, project_id):
     # get record from user_protocol table on userid and projectid fields
     resource = PDUserProtocols.query.filter(PDUserProtocols.userId == user_id, PDUserProtocols.projectId == project_id).all()
 
     return resource
+
 
 def update_user_protocols(user_id, project_id, protocol_number):
     userprotocols = PDUserProtocols()
@@ -694,6 +718,7 @@ def update_user_protocols(user_id, project_id, protocol_number):
                 db_context.session.rollback()
                 logger.error("Error while updating record to PD_user_protocol file in DB for user id: {},{}".format(user_id, ex))
 
+
 def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
     """
     Get protocol attributes and Normalized SOA
@@ -730,6 +755,7 @@ def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
     
     return resource_dict
 
+
 def get_attr_soa_compare(protocol_number, aidoc_id, compare_doc_id) -> dict:
     """
     Get Normalized SOA Difference
@@ -765,6 +791,7 @@ def get_attr_soa_compare(protocol_number, aidoc_id, compare_doc_id) -> dict:
         logger.exception(f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}; compare_id: {compare_doc_id}]. Exception: {str(exc)}")
     
     return resource_dict
+
 
 def update_feedback_run(compare_id):
     """
