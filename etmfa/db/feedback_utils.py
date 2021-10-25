@@ -4,7 +4,6 @@ import os
 from dataclasses import asdict
 
 from etmfa.consts import Consts as consts
-from etmfa.db import get_doc_resource_by_id, update_doc_resource_by_id
 from etmfa.messaging.messagepublisher import MessagePublisher
 from etmfa.messaging.models.generic_request import FeedbackRun
 from etmfa.messaging.models.queue_names import EtmfaQueues
@@ -38,6 +37,8 @@ def on_qc_approval_complete(aidoc_id, parent_path):
     """
     Initiate feedback run process
     """
+    from etmfa.db import get_doc_resource_by_id, update_doc_resource_by_id
+
     dest_queue_name = EtmfaQueues.FEEDBACK.request
     # next_run_id = update_run_id(aidoc_id)
     metadata_resource = get_doc_resource_by_id(aidoc_id)

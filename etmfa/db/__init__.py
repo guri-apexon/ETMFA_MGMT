@@ -148,7 +148,7 @@ def add_compare_event(compare_protocol_list, id_):
                 compare.id2 = row['id2']
                 compare.protocolNumber = row['protocolNumber']
                 compare.redactProfile = row['redact_profile']
-                compare.feedbackRun = 0
+                compare.compareRun = 0
                 compare.createdDate = datetime.utcnow()
                 compare.updatedDate = datetime.utcnow()
                 compare_db_data.append(compare)
@@ -165,14 +165,13 @@ def add_compare_event(compare_protocol_list, id_):
 
 
 def received_comparecomplete_event(compare_dict, message_publisher):
-
     resource = Documentcompare.query.filter(Documentcompare.compareId == compare_dict.get('compare_id', '')).first()
     try:
         resource.compareId = compare_dict.get('compare_id', '')
         resource.compareIqvXmlPath = compare_dict.get('IQVXMLPath', '')
         resource.compareCSVPath = compare_dict.get('CSVPath', '')
         resource.compareJSONPath = compare_dict.get('JSONPath', '')
-        resource.numChangesTotal = int(compare_dict.get('NumChangesTotal', '')) if compare_dict.get('NumChangesTotal','').isdigit() else 0
+        resource.numChangesTotal = int(compare_dict.get('NumChangesTotal', '')) if compare_dict.get('NumChangesTotal', '').isdigit() else 0
         resource.compareCSVPathNormSOA = compare_dict.get('CSVPathNormSOA', '')
         resource.compareJSONPathNormSOA = compare_dict.get('JSONPathNormSOA', '')
         resource.compareExcelPathNormSOA = compare_dict.get('ExcelPathNormSOA', '')
@@ -181,7 +180,10 @@ def received_comparecomplete_event(compare_dict, message_publisher):
         db_context.session.add(resource)
         db_context.session.commit()
 
-        update_feedback_run(compare_id = compare_dict.get('compare_id', ''))
+        # update compare run no of a document
+        update_compare_run(compare_id=compare_dict.get('compare_id', ''))
+        # update run no of each document in compare process
+        update_document_run_no(compare_id=compare_dict.get('compare_id', ''))
     except Exception as ex:
         db_context.session.rollback()
         exception = ManagementException(compare_dict.get('compare_id', ''), ErrorCodes.ERROR_PROTOCOL_DATA)
@@ -190,22 +192,24 @@ def received_comparecomplete_event(compare_dict, message_publisher):
 
 
 def document_compare(aidocid, protocol_number, document_path):
+    from etmfa.db.feedback_utils import get_latest_file_path
     redact_profile_list = {"profile_0", "profile_1"}
     if protocol_number:
         ids_compare_protocol = db_context.session.query(PDProtocolMetadata.id,
                                                         PDProtocolMetadata.protocol,
                                                         PDProtocolMetadata.documentFilePath
                                                         ).filter(and_(PDProtocolMetadata.protocol == protocol_number,
-                                                                        PDProtocolMetadata.id != aidocid,
-                                                                        PDProtocolMetadata.status == 'PROCESS_COMPLETED'
-                                                                        )).all()
+                                                                      PDProtocolMetadata.id != aidocid,
+                                                                      PDProtocolMetadata.status == 'PROCESS_COMPLETED'
+                                                                      )).all()
 
-        IQVXMLPath1 = utils.get_iqvxml_file_path(document_path, 'FIN_')
+        IQVXMLPath1 = get_latest_file_path(document_path, prefix="FIN_", suffix="*.xml*")
+
         if IQVXMLPath1:
             ids_compare_protocol_1 = list()
             for row in ids_compare_protocol:
-                IQVXMLPath2 = utils.get_iqvxml_file_path(row.documentFilePath[:row.documentFilePath.rfind('\\')],
-                                                            'FIN_')
+                IQVXMLPath2_documentFilePath = row.documentFilePath[:row.documentFilePath.rfind('\\')]
+                IQVXMLPath2 = get_latest_file_path(IQVXMLPath2_documentFilePath, prefix='FIN_', suffix="*.xml*")
                 if IQVXMLPath2:
                     for redact_profile in redact_profile_list:
                         ids_compare_protocol_1.extend([{'compareId': str(uuid.uuid4()),
@@ -216,7 +220,7 @@ def document_compare(aidocid, protocol_number, document_path):
                                                         'IQVXMLPath2': IQVXMLPath2,
                                                         'redact_profile': redact_profile
                                                         },
-                                                        {'compareId': str(uuid.uuid4()),
+                                                       {'compareId': str(uuid.uuid4()),
                                                         'id1': row.id,
                                                         'IQVXMLPath1': IQVXMLPath2,
                                                         'id2': aidocid,
@@ -224,7 +228,7 @@ def document_compare(aidocid, protocol_number, document_path):
                                                         'IQVXMLPath2': IQVXMLPath1,
                                                         'redact_profile': redact_profile
                                                         }
-                                                        ])
+                                                       ])
             ids_compare_protocol = ids_compare_protocol_1
             ret_val = add_compare_event(ids_compare_protocol, aidocid)
             if ret_val:
@@ -760,56 +764,74 @@ def get_attr_soa_compare(protocol_number, aidoc_id, compare_doc_id) -> dict:
     """
     Get Normalized SOA Difference
     """
-    redact_profile = 'profile_1'
+    redact_profile = config.USERROLE_REDACTPROFILE_MAP.get('primary')
     resource = None
     resource_dict = dict()
     norm_soa_diff = ""
 
     try:
         resource = Documentcompare.query.filter(and_(Documentcompare.id1 == aidoc_id, Documentcompare.protocolNumber == protocol_number,
-                                                                                    Documentcompare.id2 == compare_doc_id, 
-                                                                                    Documentcompare.redactProfile == redact_profile)).all()
-
+                                                     Documentcompare.id2 == compare_doc_id,
+                                                     Documentcompare.redactProfile == redact_profile)).all()
         if not resource:
             return resource_dict
-        else:    
-            for row in resource:
-                if row.feedbackRun is None:
-                    return resource_dict
 
-            compare_record = max(resource, key = lambda record : record.feedbackRun)  
-            JSONPathNormSOA = Path(compare_record.compareJSONPathNormSOA)
-            if JSONPathNormSOA:
-                with open(JSONPathNormSOA, 'rb') as file_obj:
-                    norm_soa_diff = json.load(file_obj)
-                    file_obj.close()
-            else:
-                return abort(NO_RESOURCE_FOUND.format(protocol_number, aidoc_id, compare_doc_id))
+        compare_record = max(resource, key=lambda record: record.compareRun)
+        JSONPathNormSOA = Path(compare_record.compareJSONPathNormSOA)
+        if JSONPathNormSOA:
+            with open(JSONPathNormSOA, 'rb') as file_obj:
+                norm_soa_diff = json.load(file_obj)
+                file_obj.close()
+        else:
+            return abort(NO_RESOURCE_FOUND.format(protocol_number, aidoc_id, compare_doc_id))
 
-            resource_dict = {'normalizedSOADifference': norm_soa_diff}
+        resource_dict = {'normalizedSOADifference': norm_soa_diff}
     except Exception as exc:
-        logger.exception(f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}; compare_id: {compare_doc_id}]. Exception: {str(exc)}")
-    
+        logger.exception(
+            f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}; compare_id: {compare_doc_id}]. Exception: {str(exc)}")
+
     return resource_dict
 
 
-def update_feedback_run(compare_id):
+def update_compare_run(compare_id):
     """
-        update the feedbackRun count for every rerun.
+        update the compareRun i.e, how many times compare process runs for particular combination.
     """
     try:
         resource = Documentcompare.query.filter(Documentcompare.compareId == compare_id).first()
-        document_compare_list = Documentcompare.query.filter(and_(Documentcompare.id1 == resource.id1, Documentcompare.id2 == resource.id2,
-                                                                                    Documentcompare.redactProfile == resource.redactProfile)).all()
+        document_compare_list = Documentcompare.query.filter(and_(Documentcompare.id1 == resource.id1,
+                                                                  Documentcompare.id2 == resource.id2,
+                                                                  Documentcompare.redactProfile == resource.redactProfile)).all()
         if len(document_compare_list) == 1:
-            feedback_run_count = 0
-        else:       
-            compare_record = max(document_compare_list, key = lambda record : record.feedbackRun)
-            feedback_run_count = compare_record.feedbackRun
-            feedback_run_count = feedback_run_count + 1
-        resource.feedbackRun = feedback_run_count
+            compare_run_count = 0
+        else:
+            compare_record = max(document_compare_list, key=lambda record: record.compareRun)
+            compare_run_count = compare_record.compareRun
+            compare_run_count += 1
+        resource.compareRun = compare_run_count
         db_context.session.add(resource)
         db_context.session.commit()
     except Exception as exc:
-        logger.exception(f"No Document found for [aidoc_id: {resource.id1}; compare_base_id: {resource.id2}; redact_profile: {resource.redactProfile}]. Exception: {str(exc)}")
-    
+        logger.exception(
+            f"No Document found for [aidoc_id: {resource.id1}; compare_base_id: {resource.id2}; redact_profile: {resource.redactProfile}]. Exception: {str(exc)}")
+
+
+def update_document_run_no(compare_id):
+    """
+        update the document run no of id1 and id2 for which comparison occurred.
+    """
+    try:
+        resource = Documentcompare.query.filter(Documentcompare.compareId == compare_id).first()
+        metadata_resource = get_doc_resource_by_id(resource.id1)
+        doc1_run_no = metadata_resource.runId
+        resource.doc1runId = doc1_run_no
+
+        metadata_resource = get_doc_resource_by_id(resource.id2)
+        doc2_run_no = metadata_resource.runId
+        resource.doc2runId = doc2_run_no
+
+        db_context.session.add(resource)
+        db_context.session.commit()
+    except Exception as exc:
+        logger.exception(
+            f"No Document found for [compare_id: {compare_id}].Exception: {str(exc)}")

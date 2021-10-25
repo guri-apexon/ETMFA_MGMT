@@ -62,7 +62,7 @@ unit-tests:
     refs:
       - develop
       - merge_requests
-    variables: 
+    variables:
       - $ENVIRONMENT== "dev"
 
 Perform Sonarqube Analysis and quality gate:  
