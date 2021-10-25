@@ -14,9 +14,9 @@ from sqlalchemy import or_
 
 @pytest.mark.parametrize("aidocid, protocol_number, document_path, insert_flag",
                         [
-                           ('bf729bbf-454e-437e-bcc1-d40962adb7a9', 'cicl.2c0f9dfa-e254-487c-b4c5-c47474552eea', r'./etmfa/tests/data/bf729bbf-454e-437e-bcc1-d40962adb7a9', 1),
-                           ('bf729bbf-454e-437e-bcc1-d40962adb7a9', '', r'./etmfa/tests/data/bf729bbf-454e-437e-bcc1-d40962adb7a9', 0),
-                           ('bf729bbf-454e-437e-bcc1-d40962adb7a9', 'cicl.2c0f9dfa-e254-487c-b4c5-c47474552eea', '', 0),
+                           ('9f1f6bd8-3899-48b3-9629-69bdb5f83263', 'Redaction-SDS-PROT', r'./etmfa/tests/data/9f1f6bd8-3899-48b3-9629-69bdb5f83263', 1),
+                           ('9f1f6bd8-3899-48b3-9629-69bdb5f83263', '', r'./etmfa/tests/data/9f1f6bd8-3899-48b3-9629-69bdb5f83263', 0),
+                           ('9f1f6bd8-3899-48b3-9629-69bdb5f83263', 'Redaction-SDS-PROT', '', 0),
                         ])
 def test_compare_functions(new_app_context, aidocid, protocol_number, document_path, insert_flag):
     try:
