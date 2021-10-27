@@ -45,7 +45,7 @@ def fix_data(value, json_col, max_len, data_type, data_format):
             return ''
     return value
 
-def get_updated_qc_summary_record(doc_id, source, summary_dict, is_active_flg=True, qc_approved_by=''):
+def get_updated_qc_summary_record(doc_id, source, summary_dict, is_active_flg=True, qc_approved_by='', FeedbackRunId = 0):
     """
     Returns the Updated Summary record table record based on summary_dict
     """
@@ -57,6 +57,7 @@ def get_updated_qc_summary_record(doc_id, source, summary_dict, is_active_flg=Tr
     qc_summ_record.isActive = is_active_flg
     qc_summ_record.qcApprovedBy = qc_approved_by
     qc_summ_record.timeUpdated = current_utctime
+    qc_summ_record.runId = FeedbackRunId
 
     resource = PDProtocolQCSummaryData.query.filter(PDProtocolQCSummaryData.aidocId == doc_id, PDProtocolQCSummaryData.source == source).first()
     if resource:

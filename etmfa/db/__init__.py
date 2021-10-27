@@ -149,6 +149,8 @@ def add_compare_event(compare_protocol_list, id_):
                 compare.protocolNumber = row['protocolNumber']
                 compare.redactProfile = row['redact_profile']
                 compare.compareRun = 0
+                compare.doc1runId = 0
+                compare.doc2runId = 0
                 compare.createdDate = datetime.utcnow()
                 compare.updatedDate = datetime.utcnow()
                 compare_db_data.append(compare)
@@ -287,49 +289,18 @@ def insert_into_alert_table(finalattributes):
 
 def received_finalizationcomplete_event(id, finalattributes, message_publisher):
     try:
+        from etmfa.db import table_update_utils
+        FeedbackRunId = finalattributes.get('FeedbackRunId', 0)
         finalattributes = finalattributes['db_data']
+
         resource = get_doc_resource_by_id(id)
         resource.isProcessing = False
         resource.isActive = True
-        protocolmetadata=db_context.session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == id).first()
 
-        protocoldata = Protocoldata()
-        protocolqcdata = Protocolqcdata()
-        protocol_summary_entities = ProtocolSummaryEntities()
-
-        protocolmetadata.protocolTitle = finalattributes['ProtocolTitle']
-        protocolmetadata.shortTitle = finalattributes['ShortTitle']
-        protocolmetadata.phase = finalattributes['phase']
-        protocolmetadata.approvalDate = (None if finalattributes['approval_date'] == '' else finalattributes['approval_date'])
-        protocoldata.isActive = True
-        protocoldata.id = finalattributes['AiDocId']
-        protocoldata.userId = finalattributes['UserId']
-        protocoldata.fileName = finalattributes['SourceFileName']
-        protocoldata.documentFilePath = finalattributes['documentPath']
-        protocoldata.iqvdataToc = str(json.dumps(finalattributes['toc']))
-        protocoldata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
-        protocoldata.iqvdataSoaStd = (None if finalattributes['normalized_soa'] == '' or finalattributes['normalized_soa'] is None \
-                                            else str(json.dumps(finalattributes['normalized_soa'])))
-        protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
-
-        # Protocol qc data table updation for Backup purpose of original data
-        protocolqcdata.isActive = False
-        protocolqcdata.id = finalattributes['AiDocId']
-        protocolqcdata.userId = finalattributes['UserId']
-        protocolqcdata.fileName = finalattributes['SourceFileName']
-        protocolqcdata.documentFilePath = finalattributes['documentPath']
-        protocolqcdata.iqvdataToc = str(json.dumps(finalattributes['toc']))
-        protocolqcdata.iqvdataSoa = str(json.dumps(finalattributes['soa']))
-        protocolqcdata.iqvdataSoaStd = (None if finalattributes['normalized_soa'] == '' or finalattributes['normalized_soa'] is None \
-                                            else str(json.dumps(finalattributes['normalized_soa'])))
-        protocolqcdata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
-
-        # Protocol Summary Entities table updating
-        protocol_summary_entities.aidocId = finalattributes['AiDocId']
-        protocol_summary_entities.runId = finalattributes.get("runId", 0)
-        protocol_summary_entities.source = finalattributes.get("source", "NA")
-        protocol_summary_entities.iqvdataSummaryEntities = str(json.dumps(finalattributes.get('summary_entities', {})))
-        protocol_summary_entities.isActive = resource.isActive
+        table_update_utils.update_protocol_metadata(id, FeedbackRunId, finalattributes)
+        protocoldata = table_update_utils.upsert_protocol_data(finalattributes)
+        protocolqcdata = table_update_utils.upsert_protocol_qcdata(finalattributes)
+        protocol_summary_entities = table_update_utils.upsert_summary_entities(FeedbackRunId, finalattributes)
 
         # Assign userRole and redact profile
         update_user_protocols(finalattributes['UserId'], finalattributes['ProjectId'], finalattributes['ProtocolNo'])
@@ -337,14 +308,16 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         # Entry in summary table
         summary_json_dict = ast.literal_eval(finalattributes['summary'])
         summary_dict = {k: v for k, v, _ in summary_json_dict['data']}
-        summary_record = utils.get_updated_qc_summary_record(doc_id=id, source=config.SRC_EXTRACT, summary_dict=summary_dict, is_active_flg=True)
 
-        db_context.session.add(protocoldata)
-        db_context.session.add(protocolqcdata)
-        db_context.session.add(summary_record)
+        source = config.SRC_EXTRACT if FeedbackRunId == 0 else config.SRC_FEEDBACK_RUN
+        summary_record = utils.get_updated_qc_summary_record(doc_id=id, source=source, summary_dict=summary_dict, is_active_flg=True, FeedbackRunId = FeedbackRunId)
+
+        db_context.session.merge(protocoldata)
+        db_context.session.merge(protocolqcdata)
+        db_context.session.merge(summary_record)
 
         if finalattributes.get('summary_entities', {}):
-            db_context.session.add(protocol_summary_entities)
+            db_context.session.merge(protocol_summary_entities)
 
         db_context.session.commit()
 
@@ -352,8 +325,11 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED)
 
         compare_request_list = document_compare(finalattributes['AiDocId'], finalattributes['ProtocolNo'], finalattributes['documentPath'])
-        insert_into_alert_table(finalattributes)
-        generate_email.SendEmail.send_status_email(finalattributes['AiDocId'])
+
+        if FeedbackRunId == 0:
+            insert_into_alert_table(finalattributes)
+            generate_email.SendEmail.send_status_email(finalattributes['AiDocId'])
+
         return compare_request_list
 
     except Exception as ex:
