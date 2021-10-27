@@ -1,6 +1,7 @@
 # Source type
 SRC_EXTRACT = 'LM'
 SRC_QC = 'QC'
+SRC_FEEDBACK_RUN = 'FEEDBACK_RUN'
 JSON_DEFAULT_MISSING_VALUE = ''
 
 # Valid status

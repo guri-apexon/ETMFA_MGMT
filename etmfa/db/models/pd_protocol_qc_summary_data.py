@@ -8,6 +8,7 @@ class PDProtocolQCSummaryData(db_context.Model):
 
     aidocId = db_context.Column(db_context.String(128), primary_key=True)
     source = db_context.Column(db_context.String(32), primary_key=True)
+    runId = db_context.Column(db_context.String(50), primary_key=True)
     sponsor = db_context.Column(db_context.String(256))
     protocolName = db_context.Column(db_context.String(256))
     protocolNumber = db_context.Column(db_context.String(64))
