@@ -81,7 +81,7 @@ Perform Sonarqube Analysis and quality gate:
     - sh scripts/qualitygate.sh
   allow_failure: true    
   tags:
-    - ca2ugitla006p-D4
+    - ca2ugitla008p-D3
   only:
     refs:
       - develop

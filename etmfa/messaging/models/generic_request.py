@@ -5,6 +5,8 @@ from dataclasses import dataclass
 class GenericRequest:
     id: str
     IQVXMLPath: str
+    FeedbackRunId: int
+    OutputFilePrefix: str
 
 # @dataclass
 # class CompareRequest:
@@ -17,6 +19,8 @@ class OmapRequest:
     id: str
     OMOPPath: str
     IQVXMLPath: str
+    FeedbackRunId: int
+    OutputFilePrefix: str
     QUEUE_NAME: str
 
 
@@ -24,12 +28,14 @@ class OmapRequest:
 class DIG2OMAPRequest:
     id: str
     omop_xml_path: str
+    FeedbackRunId: int
+    OutputFilePrefix: str
 
 @dataclass
 class FeedbackRun:
     id: str
     IQVXMLPath: str
     FeedbackJSONPath: str
-    FeedbackRunId: str
+    FeedbackRunId: int
     OutputFilePrefix: str
     QUEUE_NAME: str

@@ -298,8 +298,8 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         resource.isActive = True
 
         table_update_utils.update_protocol_metadata(id, FeedbackRunId, finalattributes)
-        protocoldata = table_update_utils.upsert_protocol_data(finalattributes)
-        protocolqcdata = table_update_utils.upsert_protocol_qcdata(finalattributes)
+        protocoldata = table_update_utils.upsert_protocol_data(FeedbackRunId, finalattributes)
+        protocolqcdata = table_update_utils.upsert_protocol_qcdata(FeedbackRunId, finalattributes)
         protocol_summary_entities = table_update_utils.upsert_summary_entities(FeedbackRunId, finalattributes)
 
         # Assign userRole and redact profile
@@ -322,7 +322,8 @@ def received_finalizationcomplete_event(id, finalattributes, message_publisher):
         db_context.session.commit()
 
         # No documents sent for QC by default
-        update_doc_processing_status(id, ProcessingStatus.PROCESS_COMPLETED)
+        qc_status = None if FeedbackRunId == 0 else QcStatus.COMPLETED
+        update_doc_processing_status(id=id, process_status=ProcessingStatus.PROCESS_COMPLETED, qc_status=qc_status)
 
         compare_request_list = document_compare(finalattributes['AiDocId'], finalattributes['ProtocolNo'], finalattributes['documentPath'])
 
