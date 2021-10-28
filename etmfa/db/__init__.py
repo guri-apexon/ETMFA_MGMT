@@ -401,7 +401,7 @@ def pd_fetch_summary_data(aidocid, userid, source=config.SRC_QC):
         received_documentprocessing_error_event(exception.__dict__)
 
 
-def save_doc_processing(request, _id, doc_path, draftVersion):
+def save_doc_processing(request, _id, doc_path):
     resource = PDProtocolMetadata.from_post_request(request, _id, doc_path)
 
     resource.documentFilePath = doc_path
@@ -418,7 +418,6 @@ def save_doc_processing(request, _id, doc_path, draftVersion):
     resource.environment = request['environment']
     resource.indication = request['indication']
     resource.moleculeDevice = request['moleculeDevice']
-    resource.draftVersion = draftVersion
     resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
     resource.status = ProcessingStatus.TRIAGE_STARTED.name
     resource.qcStatus = QcStatus.NOT_STARTED.value

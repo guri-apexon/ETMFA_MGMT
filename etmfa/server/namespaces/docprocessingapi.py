@@ -102,8 +102,8 @@ class DocumentprocessingAPI(Resource):
         user_id = args['userId'] if args['userId'] is not None else ' '
         feedback_run_id = 0
 
-        draftVersion = set_draft_version(document_status, sponsor, protocol, version_number)
-        save_doc_processing(args, _id, str(file_path), draftVersion)
+        #draftVersion = set_draft_version(document_status, sponsor, protocol, version_number)
+        save_doc_processing(args, _id, str(file_path))
         
         BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
         EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
