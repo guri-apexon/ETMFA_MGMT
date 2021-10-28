@@ -305,7 +305,7 @@ eTMFA_object_post.add_argument('sourceFileName',
                                help='Source Input document name')
 eTMFA_object_post.add_argument('versionNumber',
                                type=str,
-                               required=False,
+                               required=True,
                                help='Version Number')
 eTMFA_object_post.add_argument('protocolNumber',
                                type=str,
