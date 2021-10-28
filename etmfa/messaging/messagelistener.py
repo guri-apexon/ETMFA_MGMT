@@ -64,6 +64,7 @@ class MessageListener(ConsumerMixin):
         self.queue_callback_dict[queue_name] = callback
 
     def _on_message(self, body, message):
+        message_body = None
         queue_name = message.delivery_info['routing_key']
         try:
             message_body = json.loads(body)
@@ -72,7 +73,7 @@ class MessageListener(ConsumerMixin):
         except Exception as ex:
             logger.error("Could not parse message on queue: {}, body: {} {}".format(queue_name, body, ex))
 
-        logger.info("Received message on queue: {}".format(queue_name))
+        logger.info("Received message on queue: {} and message_body: {}".format(queue_name, json.dumps(message_body)[:500]))
 
         try:
             self.queue_callback_dict[queue_name](

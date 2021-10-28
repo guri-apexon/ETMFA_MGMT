@@ -23,11 +23,9 @@ def update_protocol_metadata(id, FeedbackRunId, finalattributes):
         protocolmetadata.shortTitle = finalattributes['ShortTitle']
         protocolmetadata.phase = finalattributes['phase']
         protocolmetadata.approvalDate = (None if finalattributes['approval_date'] == '' else finalattributes['approval_date'])
-    elif FeedbackRunId > 0:
-        protocolmetadata.qcStatus = QcStatus.COMPLETED.value
     protocolmetadata.runId = FeedbackRunId  # Only need to update this field during rerun in metadatatable
 
-def upsert_protocol_data(finalattributes):
+def upsert_protocol_data(FeedbackRunId, finalattributes):
     protocoldata = Protocoldata()
     protocoldata.id = finalattributes['AiDocId']
     protocoldata.userId = finalattributes['UserId']
@@ -41,11 +39,16 @@ def upsert_protocol_data(finalattributes):
         None if finalattributes['normalized_soa'] == '' or finalattributes['normalized_soa'] is None else str(
             json.dumps(finalattributes['normalized_soa'])))
     protocoldata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
+    current_time = datetime.datetime.utcnow()
+    protocoldata.timeUpdated = current_time
+    if FeedbackRunId == 0:
+        protocoldata.timeCreated = current_time
+
 
     return protocoldata
 
 
-def upsert_protocol_qcdata(finalattributes):
+def upsert_protocol_qcdata(FeedbackRunId, finalattributes):
     protocolqcdata = Protocolqcdata()
     protocolqcdata.id = finalattributes['AiDocId']
     protocolqcdata.userId = finalattributes['UserId']
@@ -59,6 +62,11 @@ def upsert_protocol_qcdata(finalattributes):
         None if finalattributes['normalized_soa'] == '' or finalattributes['normalized_soa'] is None \
             else str(json.dumps(finalattributes['normalized_soa'])))
     protocolqcdata.iqvdataSummary = str(json.dumps(finalattributes['summary']))
+    current_time = datetime.datetime.utcnow()
+    protocolqcdata.timeUpdated = current_time
+    if FeedbackRunId == 0:
+        protocolqcdata.timeCreated = current_time
+
 
     return protocolqcdata
 
@@ -68,5 +76,10 @@ def upsert_summary_entities(FeedbackRunId, finalattributes):
     protocol_summary_entities.runId = FeedbackRunId
     protocol_summary_entities.source = 'LM' if FeedbackRunId == 0 else 'FEEDBACK_RUN'
     protocol_summary_entities.iqvdataSummaryEntities = str(json.dumps(finalattributes.get('summary_entities', {})))
+    current_time = datetime.datetime.utcnow()
+    protocol_summary_entities.timeUpdated = current_time
+    if FeedbackRunId > 0:
+        protocol_summary_entities.timeCreated = current_time
+
 
     return protocol_summary_entities
