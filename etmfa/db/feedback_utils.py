@@ -47,18 +47,18 @@ def on_qc_approval_complete(aidoc_id, parent_path):
     output_file_prefix = "R" + str(next_run_id).zfill(2)
     # dfs_folder_path = os.path.join(parent_path, aidoc_id)
  
-    finalizer_xml_path = get_latest_file_path(dfs_folder_path=parent_path, prefix="FIN_", suffix="*.xml*")
+    dig2_xml_path = get_latest_file_path(dfs_folder_path=parent_path, prefix="D2_", suffix="*.xml*")
     qc_json_path = get_latest_file_path(dfs_folder_path=parent_path, prefix="QC_", suffix="*.json")
-    feedback_request = FeedbackRun(id=aidoc_id, IQVXMLPath=finalizer_xml_path, FeedbackJSONPath=qc_json_path, FeedbackRunId=next_run_id, OutputFilePrefix=output_file_prefix, QUEUE_NAME=dest_queue_name)
+    feedback_request = FeedbackRun(id=aidoc_id, IQVXMLPath=dig2_xml_path, FeedbackJSONPath=qc_json_path, FeedbackRunId=next_run_id, OutputFilePrefix=output_file_prefix, QUEUE_NAME=dest_queue_name)
     BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
     EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
-    if qc_json_path and finalizer_xml_path:
+    if qc_json_path and dig2_xml_path:
         metadata_resource.runId = next_run_id
         metadata_resource.qcStatus = 'FEEDBACK_RUN'
         _ = update_doc_resource_by_id(aidoc_id=aidoc_id, resource=metadata_resource)
         MessagePublisher(BROKER_ADDR, EXCHANGE).send_dict(asdict(feedback_request), dest_queue_name)
     else:
-        logger.warning(f"Could not locate proper: qc_json_path:[{qc_json_path}] OR dig2_xml_path:[{finalizer_xml_path}]")
+        logger.warning(f"Could not locate proper: qc_json_path:[{qc_json_path}] OR dig2_xml_path:[{dig2_xml_path}]")
         return False
 
     return True
