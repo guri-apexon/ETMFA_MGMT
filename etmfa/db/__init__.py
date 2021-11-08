@@ -463,6 +463,7 @@ def get_file_contents_by_id(protocol_number: str, aidoc_id: str, protocol_number
     aidoc_id = cleaned_inputs.get('aidoc_id', '')
     
     try:
+
         resource = db_context.session.query(Protocoldata.id, Protocoldata.iqvdataToc
                                                    ).join(PDProtocolMetadata, and_(PDProtocolMetadata.id == Protocoldata.id, 
                                                         PDProtocolMetadata.protocol == protocol_number, PDProtocolMetadata.qcStatus== 'QC_COMPLETED', Protocoldata.id == aidoc_id)
@@ -624,13 +625,14 @@ def get_latest_protocol(protocol_number, version_number="", approval_date="", ai
         if is_top_1_only:
             resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata.draftVersion, PDProtocolMetadata.amendment, PDProtocolMetadata.uploadDate, PDProtocolMetadata.documentFilePath,
                                                 PDProtocolMetadata.projectId, PDProtocolMetadata.documentStatus, PDProtocolMetadata.protocol
-                                                   ).join(PDProtocolMetadata, and_(PDProtocolQCSummaryData.aidocId == PDProtocolMetadata.id, PDProtocolQCSummaryData.source == 'QC')
-                                                   ).filter(text(all_filter)
-                                                   ).order_by(text(order_condition)).first()
-
+                                                ).join(PDProtocolMetadata, and_(PDProtocolQCSummaryData.aidocId == PDProtocolMetadata.id, PDProtocolQCSummaryData.source == 'QC', PDProtocolMetadata.qcStatus == 'QC_COMPLETED')
+                                                       ).filter(text(all_filter)
+                                                                ).order_by(text(order_condition)).first()
         else:
-            resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata.draftVersion, PDProtocolMetadata.amendment, PDProtocolMetadata.uploadDate, PDProtocolMetadata.documentFilePath,
-                                                PDProtocolMetadata.projectId, PDProtocolMetadata.documentStatus, PDProtocolMetadata.protocol,
+            resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata.draftVersion,
+                                                PDProtocolMetadata.amendment, PDProtocolMetadata.uploadDate,
+                                                PDProtocolMetadata.documentFilePath, PDProtocolMetadata.projectId,
+                                                PDProtocolMetadata.documentStatus, PDProtocolMetadata.protocol,
                                                 PDProtocolQCSummaryData.source,
                                                 func.rank().over(partition_by = PDProtocolQCSummaryData.aidocId, order_by = PDProtocolQCSummaryData.source.desc()).label('rank')
                                                    ).join(PDProtocolMetadata, PDProtocolQCSummaryData.aidocId == PDProtocolMetadata.id
