@@ -174,6 +174,7 @@ def apply_contract_rules(top_resource:dict, metadata_fields:list, ignore_filepat
     approval_date = ''
     metadata_dict = get_metadata_dict(metadata_fields)
     top_resource.update(metadata_dict)
+    top_resource['amendmentFlag'] = metadata_dict['amendmentFlag'] if pd.isnull(top_resource['isAmendment']) else top_resource['isAmendment']
 
     approval_date = approval_date if pd.isnull(top_resource['approvalDate']) else top_resource['approvalDate'].strftime('%Y%m%d')
     top_resource['approvalDate'] = '' if approval_date == config.DEFAULT_DATE_VALUE else approval_date
