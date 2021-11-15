@@ -138,6 +138,7 @@ build-test:
     refs:
       - develop
       - pd-release/1.3_qc
+      - /^pd-release/*/
       - merge_requests
     variables: 
       - $ENVIRONMENT== "test"
@@ -156,6 +157,7 @@ deploy-test:
     refs:
       - develop
       - pd-release/1.3_qc
+      - /^pd-release/*/
     variables:
       - $ENVIRONMENT== "test"
   
@@ -177,6 +179,7 @@ build-svt:
       - develop
       - master
       - pd-release/1.3_qc
+      - /^pd-release/*/
       - merge_requests
     variables: 
       - $ENVIRONMENT== "svt"
@@ -197,7 +200,7 @@ deploy-svt:
       - develop
       - master
       - pd-release/1.3_qc
-      
+      - /^pd-release/*/
     variables: 
       - $ENVIRONMENT== "svt"
 
@@ -217,6 +220,7 @@ build-uat:
       - feature/cicd-changes-svt
       - master
       - pd-release/1.3_qc
+      - /^pd-release/*/
       - merge_requests
     variables: 
       - $ENVIRONMENT== "uat"
@@ -236,6 +240,7 @@ deploy-uat:
       - feature/cicd-changes-svt
       - master
       - pd-release/1.3_qc
+      - /^pd-release/*/
     variables: 
       - $ENVIRONMENT== "uat"
 
@@ -254,6 +259,7 @@ build-prod:
     refs:
       - master
       - pd-release/1.3
+      - /^pd-release/*/
     variables: 
       - $ENVIRONMENT== "prod"
 
@@ -271,5 +277,6 @@ deploy-prod:
     refs:
       - master
       - pd-release/1.3
+      - /^pd-release/*/
     variables: 
       - $ENVIRONMENT== "prod"
