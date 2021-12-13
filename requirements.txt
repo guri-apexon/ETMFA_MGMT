@@ -1,5 +1,6 @@
 certifi==2020.6.20
 filehash==0.1.dev5
+Flask==1.1.2
 Flask-Cors==3.0.8
 flask-restplus==0.13.0
 Flask-SQLAlchemy==2.4.4
@@ -15,5 +16,6 @@ wincertstore==0.2
 Werkzeug==0.16.1
 PyMySQL==0.10.0
 mysqlclient==2.0.1
-etmfa-core
 requests==2.22.0
+PyYAML==6.0
+SQLAlchemy==1.4.13

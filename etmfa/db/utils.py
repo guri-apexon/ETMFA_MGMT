@@ -7,28 +7,30 @@ from etmfa.consts import Consts as consts
 from etmfa.db import config
 from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 from etmfa.server.namespaces.serializers import latest_protocol_contract_fields
-from etmfa.error import ManagementException
-from etmfa.error import ErrorCodes
-
+# from etmfa.error import ManagementException
+# from etmfa.error import ErrorCodes
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
 
-def get_iqvxml_file_path(dfs_folder_path, prefix):
-    try:
-        files = os.listdir(dfs_folder_path)
-        file = [file for file in files if file.startswith(prefix)][0]
-        return os.path.join(dfs_folder_path, file)
-    except Exception as ex:
-        logger.error("Could not {} XML file in path: {} {}".format(prefix, dfs_folder_path, str(ex)))
-        exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
+
+# def get_iqvxml_file_path(dfs_folder_path, prefix):
+#     try:
+#         files = os.listdir(dfs_folder_path)
+#         file = [file for file in files if file.startswith(prefix)][0]
+#         return os.path.join(dfs_folder_path, file)
+#     except Exception as ex:
+#         logger.error("Could not {} XML file in path: {} {}".format(prefix, dfs_folder_path, str(ex)))
+#         exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
 
 def get_summary_records(aidoc_id, source):
     """
         Fetch the summary record
     """
-    all_summary_records = PDProtocolQCSummaryData.query.filter(PDProtocolQCSummaryData.aidocId == aidoc_id, PDProtocolQCSummaryData.source == source).all()
+    all_summary_records = PDProtocolQCSummaryData.query.filter(PDProtocolQCSummaryData.aidocId == aidoc_id,
+                                                               PDProtocolQCSummaryData.source == source).all()
     return all_summary_records
+
 
 def fix_data(value, json_col, max_len, data_type, data_format):
     """
@@ -41,11 +43,13 @@ def fix_data(value, json_col, max_len, data_type, data_format):
         try:
             datetime.strptime(value, data_format)
         except ValueError as exc:
-            logging.warning(f"{json_col} received data [{value}] not matching the expected format[{data_format}], default value used.\nException: {str(exc)}")    
+            logging.warning(
+                f"{json_col} received data [{value}] not matching the expected format[{data_format}], default value used.\nException: {str(exc)}")
             return ''
     return value
 
-def get_updated_qc_summary_record(doc_id, source, summary_dict, is_active_flg=True, qc_approved_by='', FeedbackRunId = 0):
+
+def get_updated_qc_summary_record(doc_id, source, summary_dict, is_active_flg=True, qc_approved_by='', FeedbackRunId=0):
     """
     Returns the Updated Summary record table record based on summary_dict
     """
@@ -59,17 +63,22 @@ def get_updated_qc_summary_record(doc_id, source, summary_dict, is_active_flg=Tr
     qc_summ_record.timeUpdated = current_utctime
     qc_summ_record.runId = FeedbackRunId
 
-    resource = PDProtocolQCSummaryData.query.filter(PDProtocolQCSummaryData.aidocId == doc_id, PDProtocolQCSummaryData.source == source).first()
+    resource = PDProtocolQCSummaryData.query.filter(PDProtocolQCSummaryData.aidocId == doc_id,
+                                                    PDProtocolQCSummaryData.source == source).first()
     if resource:
         qc_summ_record.timeCreated = resource.timeCreated
     else:
         qc_summ_record.timeCreated = current_utctime
 
-    _ = [setattr(qc_summ_record, tab_col, fix_data(summary_dict.get(json_col, config.JSON_DEFAULT_MISSING_VALUE), json_col, max_len, data_type, data_format)) \
-                    for tab_col, (json_col, max_len, data_type, data_format) in config.summary_table_json_mapper.items()]
+    _ = [setattr(qc_summ_record, tab_col,
+                 fix_data(summary_dict.get(json_col, config.JSON_DEFAULT_MISSING_VALUE), json_col, max_len, data_type,
+                          data_format)) \
+         for tab_col, (json_col, max_len, data_type, data_format) in config.summary_table_json_mapper.items()]
     return qc_summ_record
 
-def clean_inputs(protocol_number="", version_number="", approval_date="", aidoc_id="", document_status="", qc_status="", compare_doc_id="") -> dict:
+
+def clean_inputs(protocol_number="", version_number="", approval_date="", aidoc_id="", document_status="", qc_status="",
+                 compare_doc_id="") -> dict:
     """
     Clean the input arguments
     """
@@ -85,7 +94,8 @@ def clean_inputs(protocol_number="", version_number="", approval_date="", aidoc_
     cleaned_inputs['compare_doc_id'] = compare_doc_id.strip() if compare_doc_id is not None else ''
     return cleaned_inputs
 
-def validate_inputs(protocol_number = "") -> bool:
+
+def validate_inputs(protocol_number="") -> bool:
     """
     Verify if the input arguments are valid to proceed further OR not
     """
@@ -97,11 +107,14 @@ def validate_inputs(protocol_number = "") -> bool:
     else:
         return False
 
-def get_filter_conditions(protocol_number, version_number="", approval_date="", aidoc_id="", document_status="") -> (str, str):
+
+def get_filter_conditions(protocol_number, version_number="", approval_date="", aidoc_id="", document_status="") -> (
+str, str):
     """
     Build dynamic filter condition based on input arguments
     """
-    cleaned_inputs = clean_inputs(protocol_number=protocol_number, version_number=version_number, approval_date=approval_date, aidoc_id=aidoc_id, document_status=document_status)
+    cleaned_inputs = clean_inputs(protocol_number=protocol_number, version_number=version_number,
+                                  approval_date=approval_date, aidoc_id=aidoc_id, document_status=document_status)
     protocol_number = cleaned_inputs.get('protocol_number', '')
     version_number = cleaned_inputs.get('version_number', '')
     approval_date = cleaned_inputs.get('approval_date', '')
@@ -112,10 +125,10 @@ def get_filter_conditions(protocol_number, version_number="", approval_date="", 
     additional_filter = None
     all_filter = None
     order_condition = None
-    
+
     # Default filter
     default_filter = f"pd_protocol_qc_summary_data.isActive = 1 AND pd_protocol_metadata.protocol = '{protocol_number}'"
-    
+
     # Build filter based on document Status
     if document_status == 'all':
         all_filter = default_filter
@@ -123,9 +136,9 @@ def get_filter_conditions(protocol_number, version_number="", approval_date="", 
         document_status = document_status if document_status in config.VALID_DOCUMENT_STATUS else config.DEFAULT_DOCUMENT_STATUS
         document_status_filter = f"pd_protocol_metadata.documentStatus = '{document_status}'"
         all_filter = default_filter + ' AND ' + document_status_filter
-        
+
     logger.debug(f"Initial all_filter: {all_filter}\n")
-        
+
     # Build filter based on other input arguments
     if aidoc_id:
         logger.debug("In aidoc_id type ...")
@@ -144,13 +157,15 @@ def get_filter_conditions(protocol_number, version_number="", approval_date="", 
 
     if additional_filter:
         all_filter = all_filter + ' AND ' + additional_filter
-        
-    # order condition
-    order_condition = f"pd_protocol_qc_summary_data.approvalDate desc, pd_protocol_metadata.uploadDate desc"        
 
-    logger.debug(f"Input arguments: protocol={protocol_number}; version_number={version_number}; approval_date={approval_date}; aidoc_id={aidoc_id}; document_status={document_status} \
+    # order condition
+    order_condition = f"pd_protocol_qc_summary_data.approvalDate desc, pd_protocol_metadata.uploadDate desc"
+
+    logger.debug(
+        f"Input arguments: protocol={protocol_number}; version_number={version_number}; approval_date={approval_date}; aidoc_id={aidoc_id}; document_status={document_status} \
                   \nDynamic conditions: {all_filter}\n order by {order_condition}")
     return all_filter, order_condition
+
 
 def get_metadata_dict(field_values) -> dict:
     """
@@ -166,7 +181,8 @@ def get_metadata_dict(field_values) -> dict:
     metadata_dict['protocol'] = field_values[6]
     return metadata_dict
 
-def apply_contract_rules(top_resource:dict, metadata_fields:list, ignore_filepath=False) -> dict:
+
+def apply_contract_rules(top_resource: dict, metadata_fields: list, ignore_filepath=False) -> dict:
     """
     Restrict only the fields present in the contract
     """
@@ -174,18 +190,21 @@ def apply_contract_rules(top_resource:dict, metadata_fields:list, ignore_filepat
     approval_date = ''
     metadata_dict = get_metadata_dict(metadata_fields)
     top_resource.update(metadata_dict)
-    top_resource['amendmentFlag'] = metadata_dict['amendmentFlag'] if pd.isnull(top_resource['isAmendment']) else top_resource['isAmendment']
+    top_resource['amendmentFlag'] = metadata_dict['amendmentFlag'] if pd.isnull(top_resource['isAmendment']) else \
+    top_resource['isAmendment']
 
-    approval_date = approval_date if pd.isnull(top_resource['approvalDate']) else top_resource['approvalDate'].strftime('%Y%m%d')
+    approval_date = approval_date if pd.isnull(top_resource['approvalDate']) else top_resource['approvalDate'].strftime(
+        '%Y%m%d')
     top_resource['approvalDate'] = '' if approval_date == config.DEFAULT_DATE_VALUE else approval_date
-    
+
     _ = indications if pd.isnull(top_resource['indications']) else indications.append(top_resource['indications'])
     top_resource['indications'] = str(indications)
-    
-    top_resource['uploadDate'] = '' if pd.isnull(top_resource['uploadDate']) else top_resource['uploadDate'].isoformat()
-    restricted_top_resource = {key:('' if value is None else value) for key, value in top_resource.items() if key in latest_protocol_contract_fields}
 
-    if not ignore_filepath: # Used in download API
+    top_resource['uploadDate'] = '' if pd.isnull(top_resource['uploadDate']) else top_resource['uploadDate'].isoformat()
+    restricted_top_resource = {key: ('' if value is None else value) for key, value in top_resource.items() if
+                               key in latest_protocol_contract_fields}
+
+    if not ignore_filepath:  # Used in download API
         restricted_top_resource['documentFilePath'] = metadata_dict['documentFilePath']
     return restricted_top_resource
 
@@ -203,20 +222,23 @@ def post_process_resource(resources, multiple_records=False) -> dict:
             logger.debug(f"\n----- Processing for {idx} resource...")
             resource_dict = resource[0].as_dict()
 
-            resource_dict = apply_contract_rules(top_resource = resource_dict, metadata_fields = resource[1:], ignore_filepath = True)
+            resource_dict = apply_contract_rules(top_resource=resource_dict, metadata_fields=resource[1:],
+                                                 ignore_filepath=True)
             resource_list.append(resource_dict)
-        
+
         first_row = resources[0]
         top_resource = first_row[0].as_dict()
 
-        top_resource = apply_contract_rules(top_resource = top_resource, metadata_fields = first_row[1:], ignore_filepath = True)
+        top_resource = apply_contract_rules(top_resource=top_resource, metadata_fields=first_row[1:],
+                                            ignore_filepath=True)
         top_resource['allVersions'] = resource_list
-        
+
     elif not multiple_records and resources is not None:
         logger.debug(f"\nTOP_1_RESPONSE:")
         top_resource = resources[0].as_dict()
-        
-        top_resource = apply_contract_rules(top_resource = top_resource, metadata_fields = resources[1:], ignore_filepath = False)
+
+        top_resource = apply_contract_rules(top_resource=top_resource, metadata_fields=resources[1:],
+                                            ignore_filepath=False)
     else:
         logger.warning(f"No data for post process")
 

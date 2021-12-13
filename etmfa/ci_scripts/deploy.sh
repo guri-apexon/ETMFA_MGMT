@@ -18,13 +18,25 @@ $NSSM_PATH stop "$SERVICE_NAME"
 
 ## Re-install the package
 echo "Re-installing service package..."
-pip uninstall "$PACKAGE" -y
+pip uninstall "$PACKAGE" -y && pip uninstall etmfa-core -y
+
+REGISTRY_PYPI_URL=$REGISTRY_PYPI_URL REGISTRY_SERVER=$REGISTRY_SERVER
 
 echo "REGISTRY_PYPI_URL is $REGISTRY_PYPI_URL"
 echo "REGISTRY_SERVER is $REGISTRY_SERVER"
 echo "INSTALL_PACKAGE is $INSTALL_PACKAGE"
 
 pip install -e . --no-cache-dir --upgrade --extra-index-url "$REGISTRY_PYPI_URL/simple" --trusted-host "$REGISTRY_SERVER" "$INSTALL_PACKAGE"
+
+pip install --upgrade --extra-index-url "$REGISTRY_PYPI_URL/simple" etmfa-core
+
+echo "Updating Configuration "
+echo `pwd`
+VM_DEBUG=$VM_DEBUG VM_MQUSER=$VM_MQUSER VM_MQHOST=$VM_MQHOST VM_MQPASS=$VM_MQPASS VM_LOGSTASH_HOST=$VM_LOGSTASH_HOST
+VM_DFS_UPLOAD_FOLDER=$VM_DFS_UPLOAD_FOLDER VM_SQLALCHEMY_DATABASE_URI=$VM_SQLALCHEMY_DATABASE_URI
+VM_PD_UI_LINK=$VM_PD_UI_LINK VM_AUTH_DETAILS=$VM_AUTH_DETAILS VM_UNIT_TEST_HEADERS=$VM_UNIT_TEST_HEADERS
+envsubst < etmfa/ci_scripts/config_template.txt > $CI_BUILDS_DIR/$RUNNING_ENV/server_config.yaml
+echo "Updated Configuration"
 
 ## Start service
 echo "Starting service..."
