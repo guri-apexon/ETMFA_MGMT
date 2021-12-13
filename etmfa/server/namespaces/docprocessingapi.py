@@ -17,7 +17,7 @@ from etmfa.db import (
     get_doc_status_processing_by_id,
     get_file_contents_by_id,
     get_latest_protocol,
-    set_draft_version,
+    update_user_protocols,
     get_attr_soa_details,
     get_attr_soa_compare
 )
@@ -102,9 +102,11 @@ class DocumentprocessingAPI(Resource):
         user_id = args['userId'] if args['userId'] is not None else ' '
         feedback_run_id = 0
 
-        #draftVersion = set_draft_version(document_status, sponsor, protocol, version_number)
         save_doc_processing(args, _id, str(file_path))
-        
+
+        # Mark the user primary for the protocol
+        update_user_protocols(user_id=user_id, project_id=project_id, protocol_number=protocol)
+
         BROKER_ADDR = current_app.config['MESSAGE_BROKER_ADDR']
         EXCHANGE = current_app.config['MESSAGE_BROKER_EXCHANGE']
 

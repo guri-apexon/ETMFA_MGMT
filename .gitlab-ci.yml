@@ -7,8 +7,7 @@ variables:
   NSSM_PATH: "/D/Projects/PD/softwares/nssm/nssm-2.24/win64/nssm.exe"
   SERVICE_NAME: "pd-ci-mgmt"
   PACKAGE: "pd-mgmt"
-#   GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
-#   CI_DEBUG_TRACE: "false"
+  CI_DEBUG_TRACE: "false"
 
 
 stages:
@@ -22,6 +21,8 @@ stages:
   - deploy_svt
   - build_uat
   - deploy_uat
+  - build_uat1
+  - deploy_uat1
   - build_prod
   - deploy_prod
 
@@ -34,13 +35,18 @@ flake8:
   tags:
     - pd-dev-windows-ml01q
   stage: test
+  variables:
+    GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
+    REGISTRY_PYPI_URL: $REGISTRY_PYPI_URL
+    REGISTRY_SERVER: $REGISTRY_SERVER
   script:
     - flake8 --exit-zero --max-line-length=120
-  allow_failure: true # Remove it, when ready
+  allow_failure: true
   only:
     refs:
       - develop
       - merge_requests
+      - /^pd-release/*/
     variables: 
       - $ENVIRONMENT== "dev"
 
@@ -62,6 +68,7 @@ unit-tests:
     refs:
       - develop
       - merge_requests
+      - /^pd-release/*/
     variables:
       - $ENVIRONMENT== "dev"
 
@@ -86,15 +93,16 @@ Perform Sonarqube Analysis and quality gate:
     refs:
       - develop
       - merge_requests
-    variables: 
-      - $ENVIRONMENT== "dev"       
+      - /^pd-release/*/
+    variables:
+      - $ENVIRONMENT== "dev"
 
 build:
   tags:
     - pd-dev-windows-ml01q
   stage: build
   before_script:
-    - . $VE_PATH  
+    - . $VE_PATH
   script:
     - python setup.py sdist
   artifacts:
@@ -104,6 +112,7 @@ build:
     refs:
       - develop
       - merge_requests
+      - /^pd-release/*/
     variables: 
       - $ENVIRONMENT== "dev"
 
@@ -112,7 +121,21 @@ deploy-dev:
     - pd-dev-windows-ml01q
   stage: deploy
   variables:
+    VM_DEBUG: $DEV_VM_DEBUG
+    VM_MQUSER: $DEV_VM_MQUSER
+    VM_MQPASS: $DEV_VM_MQPASS
+    VM_MQHOST: $DEV_VM_MQHOST
+    VM_LOGSTASH_HOST: $DEV_VM_LOGSTASH_HOST
+    VM_DFS_UPLOAD_FOLDER: $DEV_VM_DFS_UPLOAD_FOLDER
+    VM_SQLALCHEMY_DATABASE_URI: $DEV_VM_SQLALCHEMY_DATABASE_URI
+    VM_PD_UI_LINK: $DEV_VM_PD_UI_LINK
+    VM_AUTH_DETAILS: $DEV_VM_AUTH_DETAILS
+    VM_UNIT_TEST_HEADERS: $DEV_VM_UNIT_TEST_HEADERS
+    REGISTRY_PYPI_URL: $REGISTRY_PYPI_URL
+    REGISTRY_SERVER: $REGISTRY_SERVER
     VERIFICATION_URL: "http://ca2spdml01q:9001/pd/api/health"
+  before_script:
+    - . $VE_PATH
   script:
     - sh etmfa/ci_scripts/deploy.sh dist
   environment:
@@ -120,6 +143,7 @@ deploy-dev:
   only:
     refs:
       - develop
+      - /^pd-release/*/
     variables: 
       - $ENVIRONMENT== "dev"
       
@@ -127,8 +151,10 @@ build-test:
   tags:
     - pd-test-windows-ml101q
   stage: build-test
-  before_script:
-    - . $VE_PATH  
+  variables:
+    GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
+    REGISTRY_PYPI_URL: $REGISTRY_PYPI_URL
+    REGISTRY_SERVER: $REGISTRY_SERVER
   script:
     - python setup.py sdist
   artifacts:
@@ -137,7 +163,6 @@ build-test:
   only:
     refs:
       - develop
-      - pd-release/1.3_qc
       - /^pd-release/*/
       - merge_requests
     variables: 
@@ -148,7 +173,21 @@ deploy-test:
     - pd-test-windows-ml101q
   stage: deploy-test
   variables:
+    VM_DEBUG: $TEST_VM_DEBUG
+    VM_MQUSER: $TEST_VM_MQUSER
+    VM_MQPASS: $TEST_VM_MQPASS
+    VM_MQHOST: $TEST_VM_MQHOST
+    VM_LOGSTASH_HOST: $TEST_VM_LOGSTASH_HOST
+    VM_DFS_UPLOAD_FOLDER: $TEST_VM_DFS_UPLOAD_FOLDER
+    VM_SQLALCHEMY_DATABASE_URI: $TEST_VM_SQLALCHEMY_DATABASE_URI
+    VM_PD_UI_LINK: $TEST_VM_PD_UI_LINK
+    VM_AUTH_DETAILS: $TEST_VM_AUTH_DETAILS
+    VM_UNIT_TEST_HEADERS: $TEST_VM_UNIT_TEST_HEADERS
+    REGISTRY_PYPI_URL: $REGISTRY_PYPI_URL
+    REGISTRY_SERVER: $REGISTRY_SERVER
     VERIFICATION_URL: "http://ca2spdml101q:9001/pd/api/health"
+  before_script:
+    - . $VE_PATH
   script:
     - sh etmfa/ci_scripts/deploy.sh dist
   environment:
@@ -156,18 +195,18 @@ deploy-test:
   only:
     refs:
       - develop
-      - pd-release/1.3_qc
       - /^pd-release/*/
     variables:
       - $ENVIRONMENT== "test"
-  
 
 build-svt:
   tags:
     - ca2spdml15q
   stage: build_svt
-  before_script:
-    - . $VE_PATH  
+  variables:
+    GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
+    REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
+    REGISTRY_SERVER: $TEST_REGISTRY_SERVER
   script:
     - python setup.py sdist
   artifacts:
@@ -175,12 +214,7 @@ build-svt:
       - dist/
   only:
     refs:
-      - feature/cicd-changes-svt
-      - develop
-      - master
-      - pd-release/1.3_qc
       - /^pd-release/*/
-      - merge_requests
     variables: 
       - $ENVIRONMENT== "svt"
 
@@ -189,17 +223,27 @@ deploy-svt:
     - ca2spdml15q
   stage: deploy_svt
   variables:
+    VM_DEBUG: $SVT_VM_DEBUG
+    VM_MQUSER: $SVT_VM_MQUSER
+    VM_MQPASS: $SVT_VM_MQPASS
+    VM_MQHOST: $SVT_VM_MQHOST
+    VM_LOGSTASH_HOST: $SVT_VM_LOGSTASH_HOST
+    VM_DFS_UPLOAD_FOLDER: $SVT_VM_DFS_UPLOAD_FOLDER
+    VM_SQLALCHEMY_DATABASE_URI: $SVT_VM_SQLALCHEMY_DATABASE_URI
+    VM_PD_UI_LINK: $SVT_VM_PD_UI_LINK
+    VM_AUTH_DETAILS: $SVT_VM_AUTH_DETAILS
+    VM_UNIT_TEST_HEADERS: $SVT_VM_UNIT_TEST_HEADERS
+    REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
+    REGISTRY_SERVER: $TEST_REGISTRY_SERVER
     VERIFICATION_URL: "http://ca2spdml15q:9001/pd/api/health"
+  before_script:
+    - . $VE_PATH
   script:
     - sh etmfa/ci_scripts/deploy.sh dist
   environment:
     name: svt
   only:
     refs:
-      - feature/cicd-changes-svt
-      - develop
-      - master
-      - pd-release/1.3_qc
       - /^pd-release/*/
     variables: 
       - $ENVIRONMENT== "svt"
@@ -208,8 +252,10 @@ build-uat:
   tags:
     - ca2spdml05c
   stage: build_uat
-  before_script:
-    - . $VE_PATH  
+  variables:
+    GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
+    REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
+    REGISTRY_SERVER: $TEST_REGISTRY_SERVER
   script:
     - python setup.py sdist
   artifacts:
@@ -217,11 +263,7 @@ build-uat:
       - dist/
   only:
     refs:
-      - feature/cicd-changes-svt
-      - master
-      - pd-release/1.3_qc
       - /^pd-release/*/
-      - merge_requests
     variables: 
       - $ENVIRONMENT== "uat"
 
@@ -230,26 +272,39 @@ deploy-uat:
     - ca2spdml05c
   stage: deploy_uat
   variables:
+    VM_DEBUG: $UAT_VM_DEBUG
+    VM_MQUSER: $UAT_VM_MQUSER
+    VM_MQPASS: $UAT_VM_MQPASS
+    VM_MQHOST: $UAT_VM_MQHOST
+    VM_LOGSTASH_HOST: $UAT_VM_LOGSTASH_HOST
+    VM_DFS_UPLOAD_FOLDER: $UAT_VM_DFS_UPLOAD_FOLDER
+    VM_SQLALCHEMY_DATABASE_URI: $UAT_VM_SQLALCHEMY_DATABASE_URI
+    VM_PD_UI_LINK: $UAT_VM_PD_UI_LINK
+    VM_AUTH_DETAILS: $UAT_VM_AUTH_DETAILS
+    VM_UNIT_TEST_HEADERS: $UAT_VM_UNIT_TEST_HEADERS
+    REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
+    REGISTRY_SERVER: $TEST_REGISTRY_SERVER
     VERIFICATION_URL: "http://ca2spdml05c:9001/pd/api/health"
+  before_script:
+    - . $VE_PATH
   script:
     - sh etmfa/ci_scripts/deploy.sh dist
   environment:
     name: uat
   only:
     refs:
-      - feature/cicd-changes-svt
-      - master
-      - pd-release/1.3_qc
       - /^pd-release/*/
     variables: 
       - $ENVIRONMENT== "uat"
 
-build-prod:
+build-uat1:
   tags:
-    - ca2spdml05p
-  stage: build_prod
-  before_script:
-    - . $VE_PATH    
+    - ca2spdml101d
+  stage: build_uat1
+  variables:
+    GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
+    REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
+    REGISTRY_SERVER: $TEST_REGISTRY_SERVER
   script:
     - python setup.py sdist
   artifacts:
@@ -257,8 +312,57 @@ build-prod:
       - dist/
   only:
     refs:
-      - master
-      - pd-release/1.3
+      - feature/ci-cd-uat1
+      - /^pd-release/*/
+    variables:
+      - $ENVIRONMENT== "uat1"
+
+deploy-uat1:
+  tags:
+    - ca2spdml101d
+  stage: deploy_uat1
+  variables:
+    VM_DEBUG: $UAT1_VM_DEBUG
+    VM_MQUSER: $UAT1_VM_MQUSER
+    VM_MQPASS: $UAT1_VM_MQPASS
+    VM_MQHOST: $UAT1_VM_MQHOST
+    VM_LOGSTASH_HOST: $UAT1_VM_LOGSTASH_HOST
+    VM_DFS_UPLOAD_FOLDER: $UAT1_VM_DFS_UPLOAD_FOLDER
+    VM_SQLALCHEMY_DATABASE_URI: $UAT1_VM_SQLALCHEMY_DATABASE_URI
+    VM_PD_UI_LINK: $UAT1_VM_PD_UI_LINK
+    VM_AUTH_DETAILS: $UAT1_VM_AUTH_DETAILS
+    VM_UNIT_TEST_HEADERS: $UAT1_VM_UNIT_TEST_HEADERS
+    REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
+    REGISTRY_SERVER: $TEST_REGISTRY_SERVER
+    VERIFICATION_URL: "http://ca2spdml101d:9001/pd/api/health"
+  before_script:
+    - . $VE_PATH
+  script:
+    - sh etmfa/ci_scripts/deploy.sh dist
+  environment:
+    name: uat1
+  only:
+    refs:
+      - feature/ci-cd-uat1
+      - /^pd-release/*/
+    variables:
+      - $ENVIRONMENT== "uat1"
+
+build-prod:
+  tags:
+    - ca2spdml05p
+  stage: build_prod
+  variables:
+    GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
+    REGISTRY_PYPI_URL: $PROD_REGISTRY_PYPI_URL
+    REGISTRY_SERVER: $PROD_REGISTRY_SERVER
+  script:
+    - python setup.py sdist
+  artifacts:
+    paths:
+      - dist/
+  only:
+    refs:
       - /^pd-release/*/
     variables: 
       - $ENVIRONMENT== "prod"
@@ -268,15 +372,27 @@ deploy-prod:
     - ca2spdml05p
   stage: deploy_prod
   variables:
+    VM_DEBUG: $PROD_VM_DEBUG
+    VM_MQUSER: $PROD_VM_MQUSER
+    VM_MQPASS: $PROD_VM_MQPASS
+    VM_MQHOST: $PROD_VM_MQHOST
+    VM_LOGSTASH_HOST: $PROD_VM_LOGSTASH_HOST
+    VM_DFS_UPLOAD_FOLDER: $PROD_VM_DFS_UPLOAD_FOLDER
+    VM_SQLALCHEMY_DATABASE_URI: $PROD_VM_SQLALCHEMY_DATABASE_URI
+    VM_PD_UI_LINK: $PROD_VM_PD_UI_LINK
+    VM_AUTH_DETAILS: $PROD_VM_AUTH_DETAILS
+    VM_UNIT_TEST_HEADERS: $PROD_VM_UNIT_TEST_HEADERS
+    REGISTRY_PYPI_URL: $PROD_REGISTRY_PYPI_URL
+    REGISTRY_SERVER: $PROD_REGISTRY_SERVER
     VERIFICATION_URL: "http://ca2spdml05p:9001/pd/api/health"
+  before_script:
+    - . $VE_PATH
   script:
     - sh etmfa/ci_scripts/deploy.sh dist
   environment:
     name: prod
   only:
     refs:
-      - master
-      - pd-release/1.3
       - /^pd-release/*/
     variables: 
       - $ENVIRONMENT== "prod"
