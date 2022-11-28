@@ -19,3 +19,5 @@ mysqlclient==2.0.1
 requests==2.22.0
 PyYAML==6.0
 SQLAlchemy==1.4.13
+twine==3.7.1
+importlib-metadata==4.10.0

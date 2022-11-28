@@ -25,6 +25,7 @@ stages:
   - deploy_uat1
   - build_prod
   - deploy_prod
+  - rollback
 
 default:
   before_script:
@@ -47,7 +48,7 @@ flake8:
       - develop
       - merge_requests
       - /^pd-release/*/
-    variables: 
+    variables:
       - $ENVIRONMENT== "dev"
 
 unit-tests:
@@ -72,7 +73,7 @@ unit-tests:
     variables:
       - $ENVIRONMENT== "dev"
 
-Perform Sonarqube Analysis and quality gate:  
+Perform Sonarqube Analysis and quality gate:
   image: sonarsource/sonar-scanner-cli
   stage: sonar-scan
   before_script:
@@ -86,7 +87,7 @@ Perform Sonarqube Analysis and quality gate:
     - cat /tmp/sonar.log
     - echo "Running Sonarqube quality gate on $CI_COMMIT_REF_NAME branch"
     - sh scripts/qualitygate.sh
-  allow_failure: true    
+  allow_failure: true
   tags:
     - ca2ugitla008p-D3
   only:
@@ -101,10 +102,16 @@ build:
   tags:
     - pd-dev-windows-ml01q
   stage: build
+  variables:
+    REGISTRY_PYPI_URL: $REGISTRY_PYPI_URL
+    REGISTRY_PYPI_USER: $REGISTRY_PYPI_USER
+    REGISTRY_PYPI_PWD: $REGISTRY_PYPI_PWD
+    PACKAGE_VERSION: $CURRENT_VERSION
   before_script:
     - . $VE_PATH
   script:
     - python setup.py sdist
+    - twine upload --repository-url $REGISTRY_PYPI_URL --username ${REGISTRY_PYPI_USER} --password ${REGISTRY_PYPI_PWD}  -r nexus dist/*
   artifacts:
     paths:
       - dist/
@@ -113,7 +120,7 @@ build:
       - develop
       - merge_requests
       - /^pd-release/*/
-    variables: 
+    variables:
       - $ENVIRONMENT== "dev"
 
 deploy-dev:
@@ -133,6 +140,7 @@ deploy-dev:
     VM_UNIT_TEST_HEADERS: $DEV_VM_UNIT_TEST_HEADERS
     REGISTRY_PYPI_URL: $REGISTRY_PYPI_URL
     REGISTRY_SERVER: $REGISTRY_SERVER
+    PACKAGE_VERSION: $CURRENT_VERSION
     VERIFICATION_URL: "http://ca2spdml01q:9001/pd/api/health"
   before_script:
     - . $VE_PATH
@@ -143,10 +151,42 @@ deploy-dev:
   only:
     refs:
       - develop
+      - merge_requests
       - /^pd-release/*/
-    variables: 
+    variables:
       - $ENVIRONMENT== "dev"
-      
+
+DEV-Rollback:
+ stage: rollback
+ tags:
+   - pd-dev-windows-ml01q
+ variables:
+   VM_DEBUG: $DEV_VM_DEBUG
+   VM_MQUSER: $DEV_VM_MQUSER
+   VM_MQPASS: $DEV_VM_MQPASS
+   VM_MQHOST: $DEV_VM_MQHOST
+   VM_LOGSTASH_HOST: $DEV_VM_LOGSTASH_HOST
+   VM_DFS_UPLOAD_FOLDER: $DEV_VM_DFS_UPLOAD_FOLDER
+   VM_SQLALCHEMY_DATABASE_URI: $DEV_VM_SQLALCHEMY_DATABASE_URI
+   VM_PD_UI_LINK: $DEV_VM_PD_UI_LINK
+   VM_AUTH_DETAILS: $DEV_VM_AUTH_DETAILS
+   VM_UNIT_TEST_HEADERS: $DEV_VM_UNIT_TEST_HEADERS
+   REGISTRY_PYPI_URL: $REGISTRY_PYPI_URL
+   REGISTRY_SERVER: $REGISTRY_SERVER
+   PACKAGE_VERSION: $DEV_ROLLBACK_VERSION
+   VERIFICATION_URL: "http://ca2spdml01q:9001/pd/api/health"
+ before_script:
+   - . $VE_PATH
+ script:
+   - sh etmfa/ci_scripts/rollback.sh package
+ environment:
+   name: dev
+ needs:
+   - deploy-dev
+ rules:
+   - if: $ENVIRONMENT == "dev"
+     when: on_failure
+
 build-test:
   tags:
     - pd-test-windows-ml101q
@@ -155,17 +195,21 @@ build-test:
     GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
     REGISTRY_PYPI_URL: $REGISTRY_PYPI_URL
     REGISTRY_SERVER: $REGISTRY_SERVER
+    REGISTRY_PYPI_USER: $REGISTRY_PYPI_USER
+    REGISTRY_PYPI_PWD: $REGISTRY_PYPI_PWD
+    PACKAGE_VERSION: $CURRENT_VERSION
   script:
     - python setup.py sdist
+    - twine upload --repository-url $REGISTRY_PYPI_URL --username ${REGISTRY_PYPI_USER} --password ${REGISTRY_PYPI_PWD}  -r nexus dist/*
   artifacts:
     paths:
       - dist/
   only:
-    refs:
+   refs:
       - develop
       - /^pd-release/*/
       - merge_requests
-    variables: 
+   variables:
       - $ENVIRONMENT== "test"
 
 deploy-test:
@@ -185,6 +229,7 @@ deploy-test:
     VM_UNIT_TEST_HEADERS: $TEST_VM_UNIT_TEST_HEADERS
     REGISTRY_PYPI_URL: $REGISTRY_PYPI_URL
     REGISTRY_SERVER: $REGISTRY_SERVER
+    PACKAGE_VERSION: $CURRENT_VERSION
     VERIFICATION_URL: "http://ca2spdml101q:9001/pd/api/health"
   before_script:
     - . $VE_PATH
@@ -199,6 +244,37 @@ deploy-test:
     variables:
       - $ENVIRONMENT== "test"
 
+TEST-Rollback:
+ stage: rollback
+ tags:
+   - pd-test-windows-ml101q
+ variables:
+  VM_DEBUG: $TEST_VM_DEBUG
+  VM_MQUSER: $TEST_VM_MQUSER
+  VM_MQPASS: $TEST_VM_MQPASS
+  VM_MQHOST: $TEST_VM_MQHOST
+  VM_LOGSTASH_HOST: $TEST_VM_LOGSTASH_HOST
+  VM_DFS_UPLOAD_FOLDER: $TEST_VM_DFS_UPLOAD_FOLDER
+  VM_SQLALCHEMY_DATABASE_URI: $TEST_VM_SQLALCHEMY_DATABASE_URI
+  VM_PD_UI_LINK: $TEST_VM_PD_UI_LINK
+  VM_AUTH_DETAILS: $TEST_VM_AUTH_DETAILS
+  VM_UNIT_TEST_HEADERS: $TEST_VM_UNIT_TEST_HEADERS
+  REGISTRY_PYPI_URL: $REGISTRY_PYPI_URL
+  REGISTRY_SERVER: $REGISTRY_SERVER
+  PACKAGE_VERSION: $TEST_ROLLBACK_VERSION
+  VERIFICATION_URL: "http://ca2spdml101q:9001/pd/api/health"
+ before_script:
+   - . $VE_PATH
+ script:
+   - sh etmfa/ci_scripts/rollback.sh package
+ environment:
+   name: test
+ needs:
+   - deploy-test
+ rules:
+   - if: $ENVIRONMENT == "test"
+     when: on_failure
+
 build-svt:
   tags:
     - ca2spdml15q
@@ -207,15 +283,19 @@ build-svt:
     GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
     REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
     REGISTRY_SERVER: $TEST_REGISTRY_SERVER
+    REGISTRY_PYPI_USER: $TEST_REGISTRY_PYPI_USER
+    REGISTRY_PYPI_PWD: $TEST_REGISTRY_PYPI_PWD
+    PACKAGE_VERSION: $CURRENT_VERSION
   script:
     - python setup.py sdist
+    - twine upload --repository-url $REGISTRY_PYPI_URL --username ${REGISTRY_PYPI_USER} --password ${REGISTRY_PYPI_PWD}  -r nexus dist/*
   artifacts:
     paths:
       - dist/
   only:
     refs:
       - /^pd-release/*/
-    variables: 
+    variables:
       - $ENVIRONMENT== "svt"
 
 deploy-svt:
@@ -235,6 +315,7 @@ deploy-svt:
     VM_UNIT_TEST_HEADERS: $SVT_VM_UNIT_TEST_HEADERS
     REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
     REGISTRY_SERVER: $TEST_REGISTRY_SERVER
+    PACKAGE_VERSION: $CURRENT_VERSION
     VERIFICATION_URL: "http://ca2spdml15q:9001/pd/api/health"
   before_script:
     - . $VE_PATH
@@ -245,8 +326,39 @@ deploy-svt:
   only:
     refs:
       - /^pd-release/*/
-    variables: 
+    variables:
       - $ENVIRONMENT== "svt"
+
+SVT-Rollback:
+ stage: rollback
+ tags:
+   - ca2spdml15q
+ variables:
+   VM_DEBUG: $SVT_VM_DEBUG
+   VM_MQUSER: $SVT_VM_MQUSER
+   VM_MQPASS: $SVT_VM_MQPASS
+   VM_MQHOST: $SVT_VM_MQHOST
+   VM_LOGSTASH_HOST: $SVT_VM_LOGSTASH_HOST
+   VM_DFS_UPLOAD_FOLDER: $SVT_VM_DFS_UPLOAD_FOLDER
+   VM_SQLALCHEMY_DATABASE_URI: $SVT_VM_SQLALCHEMY_DATABASE_URI
+   VM_PD_UI_LINK: $SVT_VM_PD_UI_LINK
+   VM_AUTH_DETAILS: $SVT_VM_AUTH_DETAILS
+   VM_UNIT_TEST_HEADERS: $SVT_VM_UNIT_TEST_HEADERS
+   REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
+   REGISTRY_SERVER: $TEST_REGISTRY_SERVER
+   PACKAGE_VERSION: $SVT_ROLLBACK_VERSION
+   VERIFICATION_URL: "http://ca2spdml15q:9001/pd/api/health"
+ before_script:
+   - . $VE_PATH
+ script:
+   - sh etmfa/ci_scripts/rollback.sh package
+ environment:
+   name: svt
+ needs:
+   - deploy-svt
+ rules:
+   - if: $ENVIRONMENT == "svt"
+     when: on_failure
 
 build-uat:
   tags:
@@ -256,15 +368,19 @@ build-uat:
     GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
     REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
     REGISTRY_SERVER: $TEST_REGISTRY_SERVER
+    REGISTRY_PYPI_USER: $TEST_REGISTRY_PYPI_USER
+    REGISTRY_PYPI_PWD: $TEST_REGISTRY_PYPI_PWD
+    PACKAGE_VERSION: $CURRENT_VERSION
   script:
     - python setup.py sdist
+    - twine upload --repository-url $REGISTRY_PYPI_URL --username ${REGISTRY_PYPI_USER} --password ${REGISTRY_PYPI_PWD}  -r nexus dist/*
   artifacts:
     paths:
       - dist/
   only:
     refs:
       - /^pd-release/*/
-    variables: 
+    variables:
       - $ENVIRONMENT== "uat"
 
 deploy-uat:
@@ -284,6 +400,7 @@ deploy-uat:
     VM_UNIT_TEST_HEADERS: $UAT_VM_UNIT_TEST_HEADERS
     REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
     REGISTRY_SERVER: $TEST_REGISTRY_SERVER
+    PACKAGE_VERSION: $CURRENT_VERSION
     VERIFICATION_URL: "http://ca2spdml05c:9001/pd/api/health"
   before_script:
     - . $VE_PATH
@@ -297,6 +414,37 @@ deploy-uat:
     variables: 
       - $ENVIRONMENT== "uat"
 
+UAT-Rollback:
+ stage: rollback
+ tags:
+   - ca2spdml05c
+ variables:
+   VM_DEBUG: $UAT_VM_DEBUG
+   VM_MQUSER: $UAT_VM_MQUSER
+   VM_MQPASS: $UAT_VM_MQPASS
+   VM_MQHOST: $UAT_VM_MQHOST
+   VM_LOGSTASH_HOST: $UAT_VM_LOGSTASH_HOST
+   VM_DFS_UPLOAD_FOLDER: $UAT_VM_DFS_UPLOAD_FOLDER
+   VM_SQLALCHEMY_DATABASE_URI: $UAT_VM_SQLALCHEMY_DATABASE_URI
+   VM_PD_UI_LINK: $UAT_VM_PD_UI_LINK
+   VM_AUTH_DETAILS: $UAT_VM_AUTH_DETAILS
+   VM_UNIT_TEST_HEADERS: $UAT_VM_UNIT_TEST_HEADERS
+   REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
+   REGISTRY_SERVER: $TEST_REGISTRY_SERVER
+   PACKAGE_VERSION: $UAT_ROLLBACK_VERSION
+   VERIFICATION_URL: "http://ca2spdml05c:9001/pd/api/health"
+ before_script:
+   - . $VE_PATH
+ script:
+   - sh etmfa/ci_scripts/rollback.sh package
+ environment:
+   name: uat
+ needs:
+   - deploy-uat
+ rules:
+   - if: $ENVIRONMENT == "uat"
+     when: on_failure
+
 build-uat1:
   tags:
     - ca2spdml101d
@@ -305,8 +453,12 @@ build-uat1:
     GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
     REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
     REGISTRY_SERVER: $TEST_REGISTRY_SERVER
+    REGISTRY_PYPI_USER: $TEST_REGISTRY_PYPI_USER
+    REGISTRY_PYPI_PWD: $TEST_REGISTRY_PYPI_PWD
+    PACKAGE_VERSION: $CURRENT_VERSION
   script:
     - python setup.py sdist
+    - twine upload --repository-url $REGISTRY_PYPI_URL --username ${REGISTRY_PYPI_USER} --password ${REGISTRY_PYPI_PWD}  -r nexus dist/*
   artifacts:
     paths:
       - dist/
@@ -334,6 +486,7 @@ deploy-uat1:
     VM_UNIT_TEST_HEADERS: $UAT1_VM_UNIT_TEST_HEADERS
     REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
     REGISTRY_SERVER: $TEST_REGISTRY_SERVER
+    PACKAGE_VERSION: $CURRENT_VERSION
     VERIFICATION_URL: "http://ca2spdml101d:9001/pd/api/health"
   before_script:
     - . $VE_PATH
@@ -348,6 +501,37 @@ deploy-uat1:
     variables:
       - $ENVIRONMENT== "uat1"
 
+UAT1-Rollback:
+ stage: rollback
+ tags:
+   - ca2spdml101d
+ variables:
+   VM_DEBUG: $UAT1_VM_DEBUG
+   VM_MQUSER: $UAT1_VM_MQUSER
+   VM_MQPASS: $UAT1_VM_MQPASS
+   VM_MQHOST: $UAT1_VM_MQHOST
+   VM_LOGSTASH_HOST: $UAT1_VM_LOGSTASH_HOST
+   VM_DFS_UPLOAD_FOLDER: $UAT1_VM_DFS_UPLOAD_FOLDER
+   VM_SQLALCHEMY_DATABASE_URI: $UAT1_VM_SQLALCHEMY_DATABASE_URI
+   VM_PD_UI_LINK: $UAT1_VM_PD_UI_LINK
+   VM_AUTH_DETAILS: $UAT1_VM_AUTH_DETAILS
+   VM_UNIT_TEST_HEADERS: $UAT1_VM_UNIT_TEST_HEADERS
+   REGISTRY_PYPI_URL: $TEST_REGISTRY_PYPI_URL
+   REGISTRY_SERVER: $TEST_REGISTRY_SERVER
+   PACKAGE_VERSION: $UAT1_ROLLBACK_VERSION
+   VERIFICATION_URL: "http://ca2spdml101d:9001/pd/api/health"
+ before_script:
+   - . $VE_PATH
+ script:
+   - sh etmfa/ci_scripts/rollback.sh package
+ environment:
+   name: uat1
+ needs:
+   - deploy-uat1
+ rules:
+   - if: $ENVIRONMENT == "uat1"
+     when: on_failure
+
 build-prod:
   tags:
     - ca2spdml05p
@@ -356,15 +540,19 @@ build-prod:
     GIT_CLONE_PATH: "${CI_BUILDS_DIR}/${PACKAGE}"
     REGISTRY_PYPI_URL: $PROD_REGISTRY_PYPI_URL
     REGISTRY_SERVER: $PROD_REGISTRY_SERVER
+    REGISTRY_PYPI_USER: $PROD_REGISTRY_PYPI_USER
+    REGISTRY_PYPI_PWD: $PROD_REGISTRY_PYPI_PWD
+    PACKAGE_VERSION: $CURRENT_VERSION
   script:
     - python setup.py sdist
+    - twine upload --repository-url $REGISTRY_PYPI_URL --username ${REGISTRY_PYPI_USER} --password ${REGISTRY_PYPI_PWD}  -r nexus dist/*
   artifacts:
     paths:
       - dist/
   only:
     refs:
       - /^pd-release/*/
-    variables: 
+    variables:
       - $ENVIRONMENT== "prod"
 
 deploy-prod:
@@ -384,6 +572,7 @@ deploy-prod:
     VM_UNIT_TEST_HEADERS: $PROD_VM_UNIT_TEST_HEADERS
     REGISTRY_PYPI_URL: $PROD_REGISTRY_PYPI_URL
     REGISTRY_SERVER: $PROD_REGISTRY_SERVER
+    PACKAGE_VERSION: $CURRENT_VERSION
     VERIFICATION_URL: "http://ca2spdml05p:9001/pd/api/health"
   before_script:
     - . $VE_PATH
@@ -394,5 +583,36 @@ deploy-prod:
   only:
     refs:
       - /^pd-release/*/
-    variables: 
+    variables:
       - $ENVIRONMENT== "prod"
+
+PROD-Rollback:
+ stage: rollback
+ tags:
+   - ca2spdml05p
+ variables:
+   VM_DEBUG: $PROD_VM_DEBUG
+   VM_MQUSER: $PROD_VM_MQUSER
+   VM_MQPASS: $PROD_VM_MQPASS
+   VM_MQHOST: $PROD_VM_MQHOST
+   VM_LOGSTASH_HOST: $PROD_VM_LOGSTASH_HOST
+   VM_DFS_UPLOAD_FOLDER: $PROD_VM_DFS_UPLOAD_FOLDER
+   VM_SQLALCHEMY_DATABASE_URI: $PROD_VM_SQLALCHEMY_DATABASE_URI
+   VM_PD_UI_LINK: $PROD_VM_PD_UI_LINK
+   VM_AUTH_DETAILS: $PROD_VM_AUTH_DETAILS
+   VM_UNIT_TEST_HEADERS: $PROD_VM_UNIT_TEST_HEADERS
+   REGISTRY_PYPI_URL: $PROD_REGISTRY_PYPI_URL
+   REGISTRY_SERVER: $PROD_REGISTRY_SERVER
+   PACKAGE_VERSION: $PROD_ROLLBACK_VERSION
+   VERIFICATION_URL: "http://ca2spdml05p:9001/pd/api/health"
+ before_script:
+   - . $VE_PATH
+ script:
+   - sh etmfa/ci_scripts/rollback.sh package
+ environment:
+   name: prod
+ needs:
+   - deploy-prod
+ rules:
+   - if: $ENVIRONMENT == "prod"
+     when: on_failure

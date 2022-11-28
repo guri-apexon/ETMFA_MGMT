@@ -23,6 +23,9 @@ def update_protocol_metadata(id, FeedbackRunId, finalattributes):
         protocolmetadata.shortTitle = finalattributes['ShortTitle']
         protocolmetadata.phase = finalattributes['phase']
         protocolmetadata.approvalDate = (None if finalattributes['approval_date'] == '' else finalattributes['approval_date'])
+        version_number = finalattributes.get('VersionNumber', '').strip()
+        if version_number:
+            protocolmetadata.versionNumber = version_number    
     protocolmetadata.runId = FeedbackRunId  # Only need to update this field during rerun in metadatatable
 
 def upsert_protocol_data(FeedbackRunId, finalattributes):

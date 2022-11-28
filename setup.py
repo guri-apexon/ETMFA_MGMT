@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import os
 
-version = "1.0"
+version = os.getenv('PACKAGE_VERSION')
 
 def get_requirements():
     lines = []

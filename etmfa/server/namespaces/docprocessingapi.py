@@ -287,6 +287,15 @@ class DocumentprocessingAPI(Resource):
                 qc_status=qc_status, is_top_1_only=False)
             aligned_resources = utils.post_process_resource(resources, multiple_records=True)
 
+            if aligned_resources:
+                if isinstance(aligned_resources, list):
+                    for resource in aligned_resources:
+                        resource.documentStatus = resource.documentStatus.capitalize()
+                if isinstance(aligned_resources, dict):
+                    aligned_resources['documentStatus'] = aligned_resources.get('documentStatus', '').capitalize()
+                    for ver in aligned_resources.get('allVersions', []):
+                        ver['documentStatus'] = ver.get('documentStatus', '').capitalize()
+
             if aligned_resources is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(args))
             else:
