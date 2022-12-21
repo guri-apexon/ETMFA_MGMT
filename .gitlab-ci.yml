@@ -155,6 +155,7 @@ deploy-dev:
       - /^pd-release/*/
     variables:
       - $ENVIRONMENT== "dev"
+  when: manual
 
 DEV-Rollback:
  stage: rollback

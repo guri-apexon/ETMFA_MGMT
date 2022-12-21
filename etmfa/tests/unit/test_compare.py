@@ -14,7 +14,8 @@ from sqlalchemy import or_
 
 @pytest.mark.parametrize("aidocid, protocol_number, document_path, insert_flag",
                         [
-                           ('9f1f6bd8-3899-48b3-9629-69bdb5f83263', 'Redaction-SDS-PROT', r'./etmfa/tests/data/9f1f6bd8-3899-48b3-9629-69bdb5f83263', 1),
+                           # ('9f1f6bd8-3899-48b3-9629-69bdb5f83263', 'Redaction-SDS-PROT', r'./etmfa/tests/data/9f1f6bd8-3899-48b3-9629-69bdb5f83263', 1),
+                           ('62166a73-bb80-441e-8ef7-4c09cce5a5d9', 'ANB020-002', r'./etmfa/tests/data/62166a73-bb80-441e-8ef7-4c09cce5a5d9', 1),
                            ('9f1f6bd8-3899-48b3-9629-69bdb5f83263', '', r'./etmfa/tests/data/9f1f6bd8-3899-48b3-9629-69bdb5f83263', 0),
                            ('9f1f6bd8-3899-48b3-9629-69bdb5f83263', 'Redaction-SDS-PROT', '', 0),
                         ])
