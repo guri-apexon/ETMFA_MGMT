@@ -1,4 +1,4 @@
-from flasgger import Swagger
+from flasgger  import Swagger
 
 def configure_swagger(app):
     """

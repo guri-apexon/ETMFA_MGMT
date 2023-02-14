@@ -1,5 +1,5 @@
 import datetime
-from etmfa.db import db_context
+from etmfa.db.db import db_context
 
 
 class User(db_context.Model):
@@ -12,10 +12,13 @@ class User(db_context.Model):
     country = db_context.Column(db_context.String(100))
     email = db_context.Column(db_context.String(100))
     username = db_context.Column(db_context.String(100), unique=True)
-    date_of_registration = db_context.Column(db_context.DateTime(timezone=True), nullable=False)
-    login_id = db_context.Column(db_context.Integer(), db_context.ForeignKey("login.id"))
+    date_of_registration = db_context.Column(
+        db_context.DateTime(timezone=True), nullable=False)
+    login_id = db_context.Column(
+        db_context.Integer(), db_context.ForeignKey("login.id"))
     user_type = db_context.Column(db_context.String(100))
-    lastUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
+    lastUpdated = db_context.Column(db_context.DateTime(
+        timezone=True), default=datetime.datetime.utcnow)
     login = db_context.relationship("Login", back_populates="user")
 
     def as_dict(self):

@@ -1,5 +1,4 @@
-from etmfa.db import db_context
-
+from etmfa.db.db import db_context
 
 class PwdTracker(db_context.Model):
     __tablename__ = "pwdtracker"

@@ -1,7 +1,5 @@
 import datetime
-
 from etmfa.db import db_context
-
 
 class amp_server_run_info(db_context.Model):
     __tablename__ = "amp_server_run_info"

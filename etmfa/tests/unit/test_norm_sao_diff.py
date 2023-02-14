@@ -10,7 +10,7 @@ from etmfa.server.config import Config
 logger = logging.getLogger(consts.LOGGING_NAME)
 
 @pytest.mark.parametrize("protocol_number, aidoc_id, compare_doc_id, source_system, expected_status_cd, comments",
-                         [("test_AKB-6548-CI-0014", "0a1a6d7d-81c5-4da5-8625-0972aa1dbcae", "06c65de2-e9df-442c-a7c0-399675640475", "unit_test", HTTPStatus.OK, "Normal"),
+                         [("u33_prot_1", "a81dca57-c2e1-42f2-8ecd-61787d8f9d01", "a713c98c-421c-4d31-ab03-d739276872ee", "unit_test", HTTPStatus.OK, "Normal"),
                           ("", "0a1a6d7d-81c5-4da5-8625-0972aa1dbcae", "06c65de2-e9df-442c-a7c0-399675640475", "unit_test", HTTPStatus.NOT_FOUND, "Missing protocol"),
                           ("test_AKB-6548-CI-0014", "", "06c65de2-e9df-442c-a7c0-399675640475", "unit_test", HTTPStatus.NOT_FOUND, "Missing aidoc_id"),
                           ("test_AKB-6548-CI-0014", "0a1a6d7d-81c5-4da5-8625-0972aa1dbcae", "","unit_test", HTTPStatus.NOT_FOUND, "Missing compare_doc_id"),

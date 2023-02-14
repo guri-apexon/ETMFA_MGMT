@@ -16,6 +16,9 @@ VALID_QC_STATUS = ('qc_only', 'all')
 DEFAULT_QC_STATUS = 'qc_only'
 
 DEFAULT_DATE_VALUE = '19000101'
+DEFAULT_START_DATE = '19000101'
+DEFAULT_END_DATE = '20230101'
+
 
 email_settings = {
     "EMAILS_ENABLED":True,

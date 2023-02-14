@@ -1,12 +1,11 @@
 import yaml
 import logging
-from etmfa.consts import Consts as consts
+import os
 
-logger = logging.getLogger(consts.LOGGING_NAME)
 
 class Config(object):
     """Parent configuration class."""
-
+    ZMQ_PORT=5556
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     PRESERVE_CONTEXT_ON_EXCEPTION = False
     PROPAGATE_EXCEPTIONS = False
@@ -14,8 +13,10 @@ class Config(object):
         "pool_pre_ping": True,
         "pool_recycle": 900,
     }
+    
     try:
-        with open("server_config.yaml", 'r') as ymlfile:
+        file_path="server_config.yaml"
+        with open(file_path, 'r') as ymlfile:
             cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
             DFS_UPLOAD_FOLDER = cfg["DFS_UPLOAD_FOLDER"]
             DEBUG = cfg["DEBUG"]
@@ -32,9 +33,10 @@ class Config(object):
             PD_UI_LINK = cfg["PD_UI_LINK"]
             AUTH_DETAILS = cfg["AUTH_DETAILS"]
             UNIT_TEST_HEADERS = cfg["UNIT_TEST_HEADERS"]
+            WORK_FLOW_RUNNER=cfg['ENABLE_WORK_FLOW_RUNNER']
 
     except Exception as exp:
-        logger.error("Loading Defaults due to exception when reading yaml from server_config {0}", exp)
+        logging.error("Loading Defaults due to exception when reading yaml from server_config {0}", exp)
 
 
 class TestConfig(Config):
@@ -65,3 +67,4 @@ app_config = {
     'uat': UATConfig,
     'production': ProductionConfig,
 }
+

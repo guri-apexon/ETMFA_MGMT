@@ -119,5 +119,5 @@ cnn_mapping/
 *.jar
 *.log
 *.db
-etmfa/server/config.py
 **/fiu_temp*.py
+

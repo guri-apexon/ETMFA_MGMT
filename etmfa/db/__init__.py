@@ -1,31 +1,38 @@
 import ast
 import datetime
+import json
 import logging
 import os
-import json
 import uuid
-
 from datetime import datetime
-
 from etmfa.db.db import db_context
 from etmfa.db import utils, generate_email, config
 from etmfa.consts import Consts as consts
 from etmfa.db.models.documentcompare import Documentcompare
+from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_protocol_data import Protocoldata
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
-from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
-from etmfa.db.models.pd_protocol_summary_entities import ProtocolSummaryEntities
 from etmfa.error import ErrorCodes, ManagementException
-from etmfa.messaging.models.processing_status import (FeedbackStatus,
-                                                      ProcessingStatus, QcStatus)
+from etmfa.workflow.messaging.models.processing_status import (FeedbackStatus,
+                                                               ProcessingStatus, QcStatus)
+from etmfa.db.models.work_flow_status import WorkFlowStatus, WorkFlowState
 from pathlib import Path
 from flask import g, abort
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func,or_
 from sqlalchemy.sql import text
-from etmfa.messaging.models.queue_names import EtmfaQueues
+from typing import List, Dict
+from etmfa.workflow.messaging.models.queue_names import EtmfaQueues
+from etmfa.workflow.default_workflows import DWorkFLows
+from psycopg2.errors import UniqueViolation
+from sqlalchemy.exc import IntegrityError
+
+# added for pd 2.0
+from etmfa.db.models.pd_iqvassessmentvisitrecord_db import IqvassessmentvisitrecordDb, IqvassessmentvisitrecordDbMapper
+from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata, MetaDataTableHelper
+
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
@@ -43,37 +50,38 @@ def init_db(app):
 
     # create schema
     with app.app_context():
+
         # Create schema if not already created
         db_context.create_all()
 
 
-def update_doc_processing_status(id: str, process_status: ProcessingStatus, qc_status: QcStatus = None):
-    """ Receives id for the document being processed along with percent_complete and present status of document
-        If the document id being processed is present in DB, this function will update the percent_complete and
-        status of document.
-        If document id is not present in the DB, it will return a message saying document id not available"""
+# def update_doc_processing_status(id: str, service_name, process_status, qc_status: QcStatus = None):
+#     """ Receives id for the document being processed along with percent_complete and present status of document
+#         If the document id being processed is present in DB, this function will update the percent_complete and
+#         status of document.
+#         If document id is not present in the DB, it will return a message saying document id not available"""
 
-    resource = get_doc_resource_by_id(id)
-    if resource is not None:
-        resource.percentComplete = process_status.value
-        resource.status = process_status.name
+#     resource = get_doc_resource_by_id(id)
+#     if resource is not None:
+#         resource.percentComplete = process_status
+#         resource.status = service_name
 
-        if qc_status is not None:
-            resource.qcStatus = qc_status.value
+#         if qc_status is not None:
+#             resource.qcStatus = qc_status.value
 
-        resource.lastUpdated = datetime.utcnow()
+#         resource.lastUpdated = datetime.utcnow()
 
-        try:
-            db_context.session.commit()
-            return True
-        except Exception as ex:
-            db_context.session.rollback()
+#         try:
+#             db_context.session.commit()
+#             return True
+#         except Exception as ex:
+#             db_context.session.rollback()
+#             exception = ManagementException(
+#                 id, ErrorCodes.ERROR_PROCESSING_STATUS)
+#             received_documentprocessing_error_event(exception.__dict__)
+#             logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
 
-            exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS)
-            received_documentprocessing_error_event(exception.__dict__)
-            logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
-
-    return False
+#     return False
 
 
 def update_doc_resource_by_id(aidoc_id, resource):
@@ -86,12 +94,62 @@ def update_doc_resource_by_id(aidoc_id, resource):
         db_context.session.commit()
     except Exception as ex:
         db_context.session.rollback()
-        exception = ManagementException(aidoc_id, ErrorCodes.ERROR_PROCESSING_STATUS)
+        exception = ManagementException(
+            aidoc_id, ErrorCodes.ERROR_PROCESSING_STATUS)
         received_documentprocessing_error_event(exception.__dict__)
         logger.error(ERROR_PROCESSING_STATUS.format(aidoc_id, ex))
 
     return resource
 
+
+def create_doc_Processing_status(work_flow_id, doc_uid, work_flow_name, doc_file_path, protocol_name):
+    session = db_context.session
+    status = WorkFlowStatus(
+        work_flow_id=work_flow_id, protocol_name=protocol_name, doc_uid=doc_uid, work_flow_name=work_flow_name, documentFilePath=doc_file_path)
+    try:
+        session.add(status)
+        session.commit()
+    except Exception as e:
+        if not isinstance(e.orig, UniqueViolation):
+            raise e
+        return False
+    return True
+
+
+def get_work_flow_status_by_id(_id):
+    obj = {}
+    session = db_context.session
+    obj = session.query(WorkFlowStatus).get(_id)
+    if obj is not None:
+        return schema_to_dict(obj)
+    else:
+        return None
+
+
+def get_details_by_elm(table_name, elm_name, elm_val):
+    obj = {}
+    session = db_context.session
+    obj = session.query(table_name).filter(elm_name == elm_val).first()
+    return schema_to_dict(obj)
+
+
+def check_if_document_processed(doc_uid):
+    """
+    """
+    session = db_context.session
+    obj_list = session.query(WorkFlowStatus).filter(and_(WorkFlowStatus.doc_uid == doc_uid,
+                                                         or_(WorkFlowStatus.work_flow_name == DWorkFLows.FULL_FLOW.value,
+                                                             WorkFlowStatus.work_flow_name == DWorkFLows.DIGITIZATION.value),
+                                                         WorkFlowStatus.status == WorkFlowState.COMPLETED.value)).all()
+    if obj_list:
+        return True
+    return False
+
+def schema_to_dict(row):
+    data = {}
+    for column in row.__table__.columns:
+        data[column.name] = (getattr(row, column.name))
+    return data
 
 # def update_run_id(aidoc_id: str):
 #     """
@@ -139,13 +197,13 @@ def update_doc_resource_by_id(aidoc_id, resource):
 #     return False
 
 
-def add_compare_event(compare_protocol_list, id_):
+def add_compare_event(session, compare_protocol_list, id_):
     try:
         if compare_protocol_list:
             compare_db_data = list()
             for row in compare_protocol_list:
                 compare = Documentcompare()
-                compare.compareId = row['compareId']
+                compare.compareId = row['compare_id']
                 compare.id1 = row['id1']
                 compare.id2 = row['id2']
                 compare.protocolNumber = row['protocolNumber']
@@ -157,95 +215,168 @@ def add_compare_event(compare_protocol_list, id_):
                 compare.updatedDate = datetime.utcnow()
                 compare_db_data.append(compare)
 
-            db_context.session.add_all(compare_db_data)
-            db_context.session.commit()
+            session.add_all(compare_db_data)
+            session.commit()
             return True
     except Exception as ex:
-        logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(id_, ex))
-        db_context.session.rollback()
+        logger.error(
+            "Error while writing record to PD_document_compare file in DB for ID: {},{}".format(id_, ex))
+        session.rollback()
         exception = ManagementException(id_, ErrorCodes.ERROR_PROTOCOL_DATA)
-        received_documentprocessing_error_event(exception.__dict__)
+        received_documentprocessing_error_event(exception.__dict__, session)
         return False
 
 
-def received_comparecomplete_event(compare_dict, message_publisher):
-    resource = Documentcompare.query.filter(Documentcompare.compareId == compare_dict.get('compare_id', '')).first()
+def received_comparecomplete_event(session, compare_dict):
+    if not compare_dict.get('compare_id',None):
+        return
+    resource = session.query(Documentcompare).filter(
+        Documentcompare.compareId == compare_dict.get('compare_id', '')).first()
     try:
+        flow_id = compare_dict['flow_id']
         resource.compareId = compare_dict.get('compare_id', '')
         resource.compareIqvXmlPath = compare_dict.get('IQVXMLPath', '')
         resource.compareCSVPath = compare_dict.get('CSVPath', '')
         resource.compareJSONPath = compare_dict.get('JSONPath', '')
-        resource.numChangesTotal = int(compare_dict.get('NumChangesTotal', '')) if compare_dict.get('NumChangesTotal',
-                                                                                                    '').isdigit() else 0
+        resource.numChangesTotal = int(compare_dict.get('NumChangesTotal', ''))
         resource.compareCSVPathNormSOA = compare_dict.get('CSVPathNormSOA', '')
-        resource.compareJSONPathNormSOA = compare_dict.get('JSONPathNormSOA', '')
-        resource.compareExcelPathNormSOA = compare_dict.get('ExcelPathNormSOA', '')
-        resource.compareHTMLPathNormSOA = compare_dict.get('HTMLPathNormSOA', '')
+        resource.compareJSONPathNormSOA = compare_dict.get(
+            'JSONPathNormSOA', '')
+        resource.compareExcelPathNormSOA = compare_dict.get(
+            'ExcelPathNormSOA', '')
+        resource.compareHTMLPathNormSOA = compare_dict.get(
+            'HTMLPathNormSOA', '')
+        resource.compareJSONPathNormSOA = compare_dict.get(
+            'JSONPathNormSOA', '')
+        resource.compareExcelPathNormSOA = compare_dict.get(
+            'ExcelPathNormSOA', '')
+        resource.compareHTMLPathNormSOA = compare_dict.get(
+            'HTMLPathNormSOA', '')
         resource.updatedDate = datetime.utcnow()
-        db_context.session.add(resource)
-        db_context.session.commit()
+        session.add(resource)
+        session.commit()
 
         # update compare run no of a document
-        update_compare_run(compare_id=compare_dict.get('compare_id', ''))
+        update_compare_run(compare_dict['compare_id'], session)
         # update run no of each document in compare process
-        update_document_run_no(compare_id=compare_dict.get('compare_id', ''))
+        update_document_run_no(compare_dict['compare_id'], session)
     except Exception as ex:
-        db_context.session.rollback()
-        exception = ManagementException(compare_dict.get('compare_id', ''), ErrorCodes.ERROR_PROTOCOL_DATA)
-        received_documentprocessing_error_event(exception.__dict__)
+        session.rollback()
+        exception = ManagementException(
+            flow_id, ErrorCodes.ERROR_PROTOCOL_DATA)
+        received_documentprocessing_error_event(exception.__dict__, session)
         logger.error("Error while writing record to PD_document_compare file in DB for ID: {},{}".format(
             compare_dict['compare_id'], ex))
 
 
-def document_compare(aidocid, protocol_number, document_path):
+def document_compare_all_permutations(session, work_flow_id, flow_name):
+    """
+    ids_compare_protocol:
+    """
     from etmfa.db.feedback_utils import get_latest_file_path
     redact_profile_list = {"profile_0", "profile_1"}
-    if protocol_number:
-        ids_compare_protocol = db_context.session.query(PDProtocolMetadata.id,
-                                                        PDProtocolMetadata.protocol,
-                                                        PDProtocolMetadata.documentFilePath
-                                                        ).filter(and_(PDProtocolMetadata.protocol == protocol_number,
-                                                                      PDProtocolMetadata.id != aidocid,
-                                                                      PDProtocolMetadata.status == 'PROCESS_COMPLETED'
-                                                                      )).all()
+    obj = session.query(WorkFlowStatus).get(work_flow_id)
+    protocol_number = obj.protocol_name
+    document_path = obj.documentFilePath
+    document_path = document_path[:document_path.rfind('\\')]
+    if not protocol_number:
+        return []
+    # consider all workflows in which digitization runs.
+    ids_compare_protocol = session.query(WorkFlowStatus.work_flow_id,
+                                         WorkFlowStatus.protocol_name,
+                                         WorkFlowStatus.documentFilePath
+                                         ).filter(and_(WorkFlowStatus.protocol_name == protocol_number,
+                                                       WorkFlowStatus.work_flow_id != work_flow_id,
+                                                       WorkFlowStatus.work_flow_name == DWorkFLows.FULL_FLOW.value,
+                                                       WorkFlowStatus.status == WorkFlowState.COMPLETED.value
+                                                       )).all()
+    IQVXMLPath1 = get_latest_file_path(
+        document_path, prefix="D2_", suffix="*.xml*")
+    ids_list = [row['work_flow_id'] for row in ids_compare_protocol]
+    ids_compare_protocol_list = list()
+    for row in ids_compare_protocol:
+        IQVXMLPath2_documentFilePath = row['documentFilePath'][:row.documentFilePath.rfind(
+            '\\')]
+        IQVXMLPath2 = get_latest_file_path(
+            IQVXMLPath2_documentFilePath, prefix='D2_', suffix="*.xml*")
+        # if digitization doesnt run for any of flow path will be null
+        if IQVXMLPath2:
+            for redact_profile in redact_profile_list:
+                ids_compare_protocol_list.extend([{'compare_id': str(uuid.uuid4()),
+                                                   'id1': work_flow_id,
+                                                   'flow_id': work_flow_id,
+                                                   'flow_name': flow_name,
+                                                   'IQVXMLPath1': IQVXMLPath1,
+                                                   'id2': row['work_flow_id'],
+                                                   'protocolNumber': protocol_number,
+                                                   'IQVXMLPath2': IQVXMLPath2,
+                                                   'redact_profile': redact_profile
+                                                   },
+                                                  {'compare_id': str(uuid.uuid4()),
+                                                 'id1': row['work_flow_id'],
+                                                   'flow_id':work_flow_id,
+                                                   'flow_name':flow_name,
+                                                   'IQVXMLPath1': IQVXMLPath2,
+                                                   'id2': work_flow_id,
+                                                   'protocolNumber': protocol_number,
+                                                   'IQVXMLPath2': IQVXMLPath1,
+                                                   'redact_profile': redact_profile
+                                                   }
+                                                  ])
+    ret_val = add_compare_event(
+        session, ids_compare_protocol_list, work_flow_id)
+    return ids_compare_protocol_list if ret_val else []
 
-        IQVXMLPath1 = get_latest_file_path(document_path, prefix="FIN_", suffix="*.xml*")
 
-        if IQVXMLPath1:
-            ids_compare_protocol_1 = list()
-            for row in ids_compare_protocol:
-                IQVXMLPath2_documentFilePath = row.documentFilePath[:row.documentFilePath.rfind('\\')]
-                IQVXMLPath2 = get_latest_file_path(IQVXMLPath2_documentFilePath, prefix='FIN_', suffix="*.xml*")
-                if IQVXMLPath2:
-                    for redact_profile in redact_profile_list:
-                        ids_compare_protocol_1.extend([{'compareId': str(uuid.uuid4()),
-                                                        'id1': aidocid,
-                                                        'IQVXMLPath1': IQVXMLPath1,
-                                                        'id2': row.id,
-                                                        'protocolNumber': protocol_number,
-                                                        'IQVXMLPath2': IQVXMLPath2,
-                                                        'redact_profile': redact_profile
-                                                        },
-                                                       {'compareId': str(uuid.uuid4()),
-                                                        'id1': row.id,
-                                                        'IQVXMLPath1': IQVXMLPath2,
-                                                        'id2': aidocid,
-                                                        'protocolNumber': protocol_number,
-                                                        'IQVXMLPath2': IQVXMLPath1,
-                                                        'redact_profile': redact_profile
-                                                        }
-                                                       ])
-            ids_compare_protocol = ids_compare_protocol_1
-            ret_val = add_compare_event(ids_compare_protocol, aidocid)
-            if ret_val:
-                return ids_compare_protocol
+def document_compare_tuple(session, work_flow_id, flow_name, id1, id2, document_path_1, document_path_2, protocol_number):
+    """
+    work_flow_id: document compare may run as a part of some workflow
+    id1:reference id1
+    id2: reference id2
+    """
+    from etmfa.db.feedback_utils import get_latest_file_path
+    redact_profile_list = {"profile_0", "profile_1"}
+    document_path_1 = document_path_1[:document_path_1.rfind('\\')]
+    IQVXMLPath1 = get_latest_file_path(
+        document_path_1, prefix="D2_", suffix="*.xml*")
+    ids_compare_protocol_list = []
+    document_path_2 = document_path_2[:document_path_2.rfind('\\')]
+    IQVXMLPath2 = get_latest_file_path(
+        document_path_2, prefix='D2_', suffix="*.xml*")
+
+    for redact_profile in redact_profile_list:
+        ids_compare_protocol_list.extend([{'compare_id': str(uuid.uuid4()),
+                                           'flow_id': work_flow_id,
+                                           'id1': id1,
+                                           'flow_name': flow_name,
+                                           'IQVXMLPath1': IQVXMLPath1,
+                                           'id2': id2,
+                                           'protocolNumber': protocol_number,
+                                           'IQVXMLPath2': IQVXMLPath2,
+                                           'redact_profile': redact_profile
+                                           },
+                                          {'compare_id': str(uuid.uuid4()),
+                                         'id1': id2,
+                                           'flow_name': flow_name,
+                                           'flow_id': work_flow_id,
+                                           'IQVXMLPath1': IQVXMLPath2,
+                                           'id2': id1,
+                                           'protocolNumber': protocol_number,
+                                           'IQVXMLPath2': IQVXMLPath1,
+                                           'redact_profile': redact_profile
+                                           }
+                                          ])
+    ret_val = add_compare_event(
+        session, ids_compare_protocol_list, work_flow_id)
+    return ids_compare_protocol_list if ret_val else []
 
 
 def insert_into_alert_table(finalattributes):
-    doc_status = PDProtocolMetadata.query.filter(PDProtocolMetadata.id == finalattributes['AiDocId']).first()
+    doc_status = PDProtocolMetadata.query.filter(
+        PDProtocolMetadata.id == finalattributes['AiDocId']).first()
     doc_status_flag = doc_status and doc_status.documentStatus in config.VALID_DOCUMENT_STATUS_FOR_ALERT
-    approval_date_flag = finalattributes['approval_date'] != '' and len(finalattributes['approval_date']) == 8 and \
-                         finalattributes['approval_date'].isdigit()
+    approval_date_flag = finalattributes['approval_date'] != '' and len(
+        finalattributes['approval_date']) == 8 and finalattributes['approval_date'].isdigit()
     if doc_status_flag and approval_date_flag and finalattributes['ProtocolNo']:
 
         # The query below is to check if the approval date for protocol which alert needs to be generated
@@ -260,7 +391,10 @@ def insert_into_alert_table(finalattributes):
                  PDProtocolQCSummaryData.aidocId != finalattributes['AiDocId'])).all()
 
         if resources is not None and type(resources) == list and len(resources) > 0:
-            resources = [resource for resource in resources if resource.rank == 1]
+            resources = [
+                resource for resource in resources if resource.rank == 1]
+            resources = [
+                resource for resource in resources if resource.rank == 1]
             alert_res = all(
                 [datetime.strptime(finalattributes['approval_date'], '%Y%m%d').date() > resource.approvalDate for
                  resource in resources])
@@ -295,57 +429,78 @@ def insert_into_alert_table(finalattributes):
             finalattributes['AiDocId'], finalattributes['approval_date'], finalattributes['ProtocolNo']))
 
 
-def received_finalizationcomplete_event(id, finalattributes, message_publisher):
-    try:
-        from etmfa.db import table_update_utils
-        FeedbackRunId = finalattributes.get('FeedbackRunId', 0)
-        finalattributes = finalattributes['db_data']
+# def received_finalizationcomplete_event(id, finalattributes, message_publisher):
+#     try:
+#         from etmfa.db import table_update_utils
+#         FeedbackRunId = finalattributes.get('FeedbackRunId', 0)
+#         finalattributes = finalattributes['db_data']
 
-        resource = get_doc_resource_by_id(id)
-        resource.isProcessing = False
-        resource.isActive = True
+#         resource = get_doc_resource_by_id(id)
+#         resource.isProcessing = False
+#         resource.isActive = True
 
-        table_update_utils.update_protocol_metadata(id, FeedbackRunId, finalattributes)
-        protocoldata = table_update_utils.upsert_protocol_data(FeedbackRunId, finalattributes)
-        protocolqcdata = table_update_utils.upsert_protocol_qcdata(FeedbackRunId, finalattributes)
-        protocol_summary_entities = table_update_utils.upsert_summary_entities(FeedbackRunId, finalattributes)
+#         table_update_utils.update_protocol_metadata(
+#             id, FeedbackRunId, finalattributes)
+#         protocoldata = table_update_utils.upsert_protocol_data(
+#             FeedbackRunId, finalattributes)
+#         protocolqcdata = table_update_utils.upsert_protocol_qcdata(
+#             FeedbackRunId, finalattributes)
+#         protocol_summary_entities = table_update_utils.upsert_summary_entities(
+#             FeedbackRunId, finalattributes)
+#         table_update_utils.update_protocol_metadata(
+#             id, FeedbackRunId, finalattributes)
+#         protocoldata = table_update_utils.upsert_protocol_data(
+#             FeedbackRunId, finalattributes)
+#         protocolqcdata = table_update_utils.upsert_protocol_qcdata(
+#             FeedbackRunId, finalattributes)
+#         protocol_summary_entities = table_update_utils.upsert_summary_entities(
+#             FeedbackRunId, finalattributes)
 
-        # Entry in summary table
-        summary_json_dict = ast.literal_eval(finalattributes['summary'])
-        summary_dict = {k: v for k, v, _ in summary_json_dict['data']}
+#         # Entry in summary table
+#         summary_json_dict = ast.literal_eval(finalattributes['summary'])
+#         summary_dict = {k: v for k, v, _ in summary_json_dict['data']}
 
-        source = config.SRC_EXTRACT if FeedbackRunId == 0 else config.SRC_FEEDBACK_RUN
-        summary_record = utils.get_updated_qc_summary_record(doc_id=id, source=source, summary_dict=summary_dict,
-                                                             is_active_flg=True, FeedbackRunId=FeedbackRunId)
+#         source = config.SRC_EXTRACT if FeedbackRunId == 0 else config.SRC_FEEDBACK_RUN
+#         summary_record = utils.get_updated_qc_summary_record(doc_id=id, source=source, summary_dict=summary_dict,
+#                                                              is_active_flg=True, FeedbackRunId=FeedbackRunId)
 
-        db_context.session.merge(protocoldata)
-        db_context.session.merge(protocolqcdata)
-        db_context.session.merge(summary_record)
+#         db_context.session.merge(protocoldata)
+#         db_context.session.merge(protocolqcdata)
+#         db_context.session.merge(summary_record)
 
-        if finalattributes.get('summary_entities', {}):
-            db_context.session.merge(protocol_summary_entities)
+#         if finalattributes.get('summary_entities', {}):
+#             db_context.session.merge(protocol_summary_entities)
 
-        db_context.session.commit()
+#         db_context.session.commit()
 
-        # No documents sent for QC by default
-        qc_status = None if FeedbackRunId == 0 else QcStatus.COMPLETED
-        update_doc_processing_status(id=id, process_status=ProcessingStatus.PROCESS_COMPLETED, qc_status=qc_status)
+#         # No documents sent for QC by default
+#         qc_status = None if FeedbackRunId == 0 else QcStatus.COMPLETED
+#         update_doc_processing_status(
+#             id=id, process_status=ProcessingStatus.PROCESS_COMPLETED, qc_status=qc_status)
+#         update_doc_processing_status(
+#             id=id, process_status=ProcessingStatus.PROCESS_COMPLETED, qc_status=qc_status)
 
-        compare_request_list = document_compare(finalattributes['AiDocId'], finalattributes['ProtocolNo'],
-                                                finalattributes['documentPath'])
+#         compare_request_list = document_compare(finalattributes['AiDocId'], finalattributes['ProtocolNo'],
+#                                                 finalattributes['documentPath'])
 
-        if FeedbackRunId == 0:
-            insert_into_alert_table(finalattributes)
-            generate_email.SendEmail.send_status_email(finalattributes['AiDocId'])
+#         if FeedbackRunId == 0:
+#             insert_into_alert_table(finalattributes)
+#             generate_email.SendEmail.send_status_email(
+#                 finalattributes['AiDocId'])
+#             generate_email.SendEmail.send_status_email(
+#                 finalattributes['AiDocId'])
 
-        return compare_request_list
+#         return compare_request_list
 
-    except Exception as ex:
-        logger.error(f"Exception in received_finalizationcomplete_event() for ID[{id}] : {str(ex)}")
-        db_context.session.rollback()
-        exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
-        send_to_error_queue(exception.__dict__, message_publisher)
-        return
+#     except Exception as ex:
+#         logger.error(
+#             f"Exception in received_finalizationcomplete_event() for ID[{id}] : {str(ex)}")
+#         logger.error(
+#             f"Exception in received_finalizationcomplete_event() for ID[{id}] : {str(ex)}")
+#         db_context.session.rollback()
+#         exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
+#         send_to_error_queue(exception.__dict__, message_publisher)
+#         return
 
 
 def send_to_error_queue(error_dict, message_publisher):
@@ -354,31 +509,33 @@ def send_to_error_queue(error_dict, message_publisher):
     """
     try:
         error_queue_name = EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value
-        logger.warning(f"Sending error_dict{error_dict} to error queue: {error_queue_name}")
+        logger.warning(
+            f"Sending error_dict{error_dict} to error queue: {error_queue_name}")
         message_publisher.send_dict(error_dict, error_queue_name)
     except Exception as exc:
         logger.error(
             f"Received exception while sending {error_dict} to error processing queue {error_queue_name}: {str(exc)}")
 
 
-def received_documentprocessing_error_event(error_dict):
+def received_documentprocessing_error_event(error_dict, session=None):
     doc_id = error_dict.get('id')
-    resource = get_doc_resource_by_id(doc_id)
+    resource = get_work_flow_resource_by_id(doc_id, session)
+    session = db_context.session if not session else session
     if resource is not None:
         # Update error status for the document
         resource.errorCode = error_dict.get('error_code', '')
-        resource.errorReason = error_dict.get('service_name', '') + error_dict.get('error_message', '')
+        resource.errorReason = error_dict.get(
+            'service_name', '') + error_dict.get('error_message', '')
         resource.status = "ERROR"
-
         resource.isProcessing = False
         resource.lastUpdated = datetime.utcnow()
 
         try:
-            db_context.session.commit()
+            session.commit()
             logger.warning(
                 f"Updated error status to pd_protocol_metadata table. Error details: {error_dict}")
         except Exception as ex:
-            db_context.session.rollback()
+            session.rollback()
             logger.error(
                 f"Error while storing error message to pd_protocol_metadata DB table for ID[{doc_id}]: {str(ex)}")
     else:
@@ -388,9 +545,11 @@ def received_documentprocessing_error_event(error_dict):
 def pd_fetch_summary_data(aidocid, userid, source=config.SRC_QC):
     try:
         if source == config.SRC_QC:
-            resource = Protocolqcdata.query.filter(Protocolqcdata.id == aidocid).first()
+            resource = Protocolqcdata.query.filter(
+                Protocolqcdata.id == aidocid).first()
         else:
-            resource = Protocoldata.query.filter(Protocoldata.id == aidocid).first()
+            resource = Protocoldata.query.filter(
+                Protocoldata.id == aidocid).first()
 
         if resource:
             summary = ast.literal_eval(json.loads(resource.iqvdataSummary))
@@ -406,13 +565,13 @@ def pd_fetch_summary_data(aidocid, userid, source=config.SRC_QC):
     except Exception as ex:
         logger.error(ERROR_PROCESSING_STATUS.format(aidocid, str(ex)))
         db_context.session.rollback()
-        exception = ManagementException(aidocid, ErrorCodes.ERROR_QC_SUMMARY_DATA)
+        exception = ManagementException(
+            aidocid, ErrorCodes.ERROR_QC_SUMMARY_DATA)
         received_documentprocessing_error_event(exception.__dict__)
 
 
 def save_doc_processing(request, _id, doc_path):
-    resource = PDProtocolMetadata.from_post_request(request, _id, doc_path)
-
+    resource = PDProtocolMetadata.from_post_request(request, _id)
     resource.documentFilePath = doc_path
     resource.userId = request['userId']
     resource.fileName = request['sourceFileName']
@@ -427,8 +586,8 @@ def save_doc_processing(request, _id, doc_path):
     resource.environment = request['environment']
     resource.indication = request['indication']
     resource.moleculeDevice = request['moleculeDevice']
-    resource.percentComplete = ProcessingStatus.TRIAGE_STARTED.value
-    resource.status = ProcessingStatus.TRIAGE_STARTED.name
+    resource.percentComplete = ProcessingStatus.PROCESS_STARTED.value
+    resource.status = EtmfaQueues.TRIAGE.value
     resource.qcStatus = QcStatus.NOT_STARTED.value
     resource.runId = 0
 
@@ -442,21 +601,20 @@ def save_doc_processing(request, _id, doc_path):
         logger.error(ERROR_PROCESSING_STATUS.format(_id, ex))
 
 
-def get_doc_processing_by_id(id, full_mapping=False):
-    resource_dict = get_doc_resource_by_id(id).as_dict()
-
-    return resource_dict
+# def get_doc_processing_by_id(id, full_mapping=False):
+#     resource_dict = get_doc_resource_by_id(id)
+#     return resource_dict
 
 
 # def get_doc_processed_by_id(id, full_mapping=True):
 #     resource_dict = get_doc_attributes_by_id(id)
-#
+
 #     return resource_dict
 
 
 # def get_doc_proc_metrics_by_id(id, full_mapping=True):
 #     resource_dict = get_doc_metrics_by_id(id)
-#
+
 #     return resource_dict
 
 
@@ -467,7 +625,8 @@ def get_file_contents_by_id(protocol_number: str, aidoc_id: str, protocol_number
     If protocol_number and aidoc_id are already verified, then extract contents directly from data.
         If not verified by joining with metadata table before extracting contents
     """
-    cleaned_inputs = utils.clean_inputs(protocol_number=protocol_number, aidoc_id=aidoc_id)
+    cleaned_inputs = utils.clean_inputs(
+        protocol_number=protocol_number, aidoc_id=aidoc_id)
     protocol_number = cleaned_inputs.get('protocol_number', '')
     aidoc_id = cleaned_inputs.get('aidoc_id', '')
 
@@ -521,8 +680,8 @@ def get_file_contents_by_id(protocol_number: str, aidoc_id: str, protocol_number
 #     return resource
 
 
-def get_doc_status_processing_by_id(id, full_mapping=True):
-    resource_dict = get_doc_resource_by_id(id)
+def get_doc_status_processing_by_id(id, full_mapping=True, session=None):
+    resource_dict = get_doc_resource_by_id(id, session)
 
     return resource_dict
 
@@ -536,15 +695,35 @@ def get_doc_status_processing_by_id(id, full_mapping=True):
 #     return resource
 
 
-def get_doc_resource_by_id(id):
-    g.aidocid = id
-    resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.id.like(str(id))).first()
-
+def get_doc_resource_by_id(_id, session=None):
+    """
+    session: None if function used in flask context
+    """
+    if not session:
+        g.aidocid = _id
+    # resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.id.like(str(id))).first()
+    session = session if session else db_context.session
+    resource = session.query(PDProtocolMetadata).filter(
+        PDProtocolMetadata.id == _id).first()
     if resource is None:
-        logger.error(NO_RESOURCE_FOUND.format(id))
+        logger.error(NO_RESOURCE_FOUND.format(_id))
 
     return resource
 
+
+def get_work_flow_resource_by_id(_id, session=None):
+    """
+    session: None if function used in flask context
+    """
+    if not session:
+        g.aidocid = _id
+    # resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.id.like(str(id))).first()
+    session = session if session else db_context.session
+    resource = session.query(WorkFlowStatus).get(_id)
+    if resource is None:
+        logger.error(NO_RESOURCE_FOUND.format(_id))
+
+    return resource
 
 # def get_user_protocol_by_id(id):
 #     g.aidocid = id
@@ -594,7 +773,7 @@ def safe_unicode(obj, *args):
 
 
 def get_latest_record(sponsor, protocol_number, version_number):
-    # to get the latest record based on sponsor, protocol_number, version_number
+    """ to get the latest record based on sponsor, protocol_number, version_number"""
     resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.sponsor == sponsor,
                                                PDProtocolMetadata.protocol == protocol_number,
                                                PDProtocolMetadata.versionNumber == version_number).order_by(
@@ -662,7 +841,8 @@ def get_latest_protocol(protocol_number, version_number="", approval_date="", ai
                                                        ).filter(text(all_filter)
                                                                 ).order_by(text(order_condition)).all()
 
-            resource = utils.filter_qc_status(resources=resource, qc_status=qc_status)
+            resource = utils.filter_qc_status(
+                resources=resource, qc_status=qc_status)
     except Exception as e:
         logger.error(
             f"No document resource was found in DB [Protocol: {protocol_number}; Version: {version_number}; approval_date: {approval_date}; \
@@ -673,7 +853,9 @@ def get_latest_protocol(protocol_number, version_number="", approval_date="", ai
 
 
 def get_record_by_userid_protocol(user_id, protocol_number):
-    # get record from user_protocol table on userid and protocol fields
+    """
+    get record from user_protocol table on userid and protocol fields
+    """
     resource = PDUserProtocols.query.filter(PDUserProtocols.userId == user_id).filter(
         PDUserProtocols.protocol == protocol_number).all()
 
@@ -681,7 +863,9 @@ def get_record_by_userid_protocol(user_id, protocol_number):
 
 
 def get_record_by_userid_projectid(user_id, project_id):
-    # get record from user_protocol table on userid and projectid fields
+    """
+    get record from user_protocol table on userid and projectid fields
+    """
     resource = PDUserProtocols.query.filter(PDUserProtocols.userId == user_id,
                                             PDUserProtocols.projectId == project_id).all()
 
@@ -704,7 +888,8 @@ def update_user_protocols(user_id, project_id, protocol_number):
         userprotocols.projectId = project_id
         userprotocols.protocol = protocol_number
         userprotocols.userRole = config.UPLOADED_USERROLE
-        userprotocols.redactProfile = config.USERROLE_REDACTPROFILE_MAP.get(config.UPLOADED_USERROLE)
+        userprotocols.redactProfile = config.USERROLE_REDACTPROFILE_MAP.get(
+            config.UPLOADED_USERROLE)
         try:
             db_context.session.add(userprotocols)
             db_context.session.commit()
@@ -717,7 +902,8 @@ def update_user_protocols(user_id, project_id, protocol_number):
             record.isActive = True
             record.follow = True
             record.userRole = config.UPLOADED_USERROLE
-            record.redactProfile = config.USERROLE_REDACTPROFILE_MAP.get(config.UPLOADED_USERROLE)
+            record.redactProfile = config.USERROLE_REDACTPROFILE_MAP.get(
+                config.UPLOADED_USERROLE)
             record.lastUpdated = datetime.utcnow()
             try:
                 db_context.session.merge(record)
@@ -745,20 +931,24 @@ def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
             return resource_dict
 
     except Exception as e:
-        logger.error(f"No active document found in DB [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]")
+        logger.error(
+            f"No active document found in DB [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]")
         logger.error(f"Exception message:\n{e}")
 
     try:
-        resource = Protocoldata.query.filter(Protocoldata.id == aidoc_id).first()
+        resource = Protocoldata.query.filter(
+            Protocoldata.id == aidoc_id).first()
         if resource is not None:
             if resource.iqvdataSummary is not None:
-                protocol_attributes_raw_dict = json.loads(json.loads(resource.iqvdataSummary))
+                protocol_attributes_raw_dict = json.loads(
+                    json.loads(resource.iqvdataSummary))
                 protocol_attributes = {key: value for key, value in protocol_attributes_raw_dict.items() if
                                        key in ['columns', 'data']}
             if resource.iqvdataSoaStd is not None:
                 norm_soa = json.loads(json.loads(resource.iqvdataSoaStd))
 
-            resource_dict = {'id': resource.id, 'protocolAttributes': protocol_attributes, 'normalizedSOA': norm_soa}
+            resource_dict = {
+                'id': resource.id, 'protocolADocumentcomparettributes': protocol_attributes, 'normalizedSOA': norm_soa}
     except Exception as exc:
         logger.exception(
             f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
@@ -800,45 +990,232 @@ def get_attr_soa_compare(protocol_number, aidoc_id, compare_doc_id) -> dict:
     return resource_dict
 
 
-def update_compare_run(compare_id):
+def update_compare_run(compare_id, session):
     """
         update the compareRun i.e, how many times compare process runs for particular combination.
     """
     try:
-        resource = Documentcompare.query.filter(Documentcompare.compareId == compare_id).first()
-        document_compare_list = Documentcompare.query.filter(and_(Documentcompare.id1 == resource.id1,
-                                                                  Documentcompare.id2 == resource.id2,
-                                                                  Documentcompare.redactProfile == resource.redactProfile)).all()
+        resource = session.query(Documentcompare).filter(
+            Documentcompare.compareId == compare_id).first()
+        document_compare_list = session.query(Documentcompare).filter(and_(Documentcompare.id1 == resource.id1,
+                                                                           Documentcompare.id2 == resource.id2,
+                                                                           Documentcompare.redactProfile == resource.redactProfile)).all()
         if len(document_compare_list) == 1:
             compare_run_count = 0
         else:
-            compare_record = max(document_compare_list, key=lambda record: record.compareRun)
+            compare_record = max(document_compare_list,
+                                 key=lambda record: record.compareRun)
             compare_run_count = compare_record.compareRun
             compare_run_count += 1
         resource.compareRun = compare_run_count
-        db_context.session.add(resource)
-        db_context.session.commit()
+        session.add(resource)
+        session.commit()
     except Exception as exc:
         logger.exception(
             f"No Document found for [aidoc_id: {resource.id1}; compare_base_id: {resource.id2}; redact_profile: {resource.redactProfile}]. Exception: {str(exc)}")
 
 
-def update_document_run_no(compare_id):
+def update_document_run_no(compare_id, session):
     """
         update the document run no of id1 and id2 for which comparison occurred.
     """
     try:
-        resource = Documentcompare.query.filter(Documentcompare.compareId == compare_id).first()
-        metadata_resource = get_doc_resource_by_id(resource.id1)
+        resource = session.query(Documentcompare).filter(
+            Documentcompare.compareId == compare_id).first()
+        metadata_resource = get_doc_resource_by_id(resource.id1, session)
         doc1_run_no = metadata_resource.runId
         resource.doc1runId = doc1_run_no
 
-        metadata_resource = get_doc_resource_by_id(resource.id2)
+        metadata_resource = get_doc_resource_by_id(resource.id2, session)
         doc2_run_no = metadata_resource.runId
         resource.doc2runId = doc2_run_no
 
-        db_context.session.add(resource)
-        db_context.session.commit()
+        session.add(resource)
+        session.commit()
     except Exception as exc:
         logger.exception(
             f"No Document found for [compare_id: {compare_id}].Exception: {str(exc)}")
+
+
+# added for pd 2.0
+def get_normalized_soa_details(protocol_number, aidoc_id) -> dict:
+    """
+    Get protocol Normalized SOA
+    """
+    visitrecord_mapper = None
+    resource_dict = dict()
+    norm_dict = dict()
+
+    footnotes = ["footnote_0", "footnote_1", "footnote_2", "footnote_3", "footnote_4",
+                 "footnote_5", "footnote_6", "footnote_7", "footnote_8", "footnote_9"]
+    norm_soa = []
+    try:
+        session = db_context.session()
+
+        visitrecord_mapper = session.query(IqvassessmentvisitrecordDbMapper).filter(
+            IqvassessmentvisitrecordDbMapper.doc_id == aidoc_id).all()
+
+        if visitrecord_mapper is not None:
+            for record in visitrecord_mapper:
+                resource_dict = {key: value for key,
+                                 value in record.__dict__.items()}
+                resource_dict.pop("_sa_instance_state")
+                footnote_list = []
+
+                for note in footnotes:
+                    if note in resource_dict:
+                        if len(resource_dict.get(note)) != 0:
+                            footnote_list.append(resource_dict.get(note))
+                        resource_dict.pop(note)
+                    continue
+
+                resource_dict.update({"footnotes": footnote_list})
+                norm_soa.append(resource_dict)
+                norm_soa_str = json.loads(json.dumps(norm_soa))
+
+            norm_dict = {'id': aidoc_id, 'normalizedSOA': norm_soa_str}
+
+    except Exception as exc:
+        logger.exception(
+            f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
+
+    return norm_dict
+
+
+
+def get_metadata_summary(op, aidocId, fieldName=None) -> dict:
+    """
+    Get metadata summary fields 
+    """
+    response_dict = {}
+    try:
+        helper_obj = MetaDataTableHelper()
+        if op == 'metadata':
+            metadata = helper_obj.get_data(aidocId, fieldName)
+        elif op == 'metaparam':
+            metadata = helper_obj.getMetaParam(aidocId)
+        else:
+            raise Exception("invalid op value.")
+        
+        response_dict_str = json.loads(json.dumps(metadata, default=str))
+        response_dict["data"] = response_dict_str
+        
+    except Exception as exc:
+        logger.exception(
+            f"Exception received while formatting the data [aidoc_id: {aidocId}]. Exception: {str(exc)}")
+    return response_dict
+
+
+def add_metadata_summary(op, **data):
+    """
+    Add metadata summary fields 
+    """
+    metadata_response = {}
+    try:
+        helper_obj = MetaDataTableHelper()
+        if op == 'addField':
+            metadata_response = helper_obj.add_field(data.get("id"), data.get("fieldName"))
+        elif op == 'addAttributes':
+            metadata_response = helper_obj.add_field_data(data.get("id"), data.get("fieldName"), data.get("attributes"))
+        else:
+            raise Exception("invalid op value.")
+    except Exception as exc:
+        logger.exception(
+            f"Exception received while formatting the data [op: {op}]. Exception: {str(exc)}")
+    return metadata_response
+
+
+def update_metadata_summary(field_name, **data):
+    """
+    Update metadata summary fields 
+    """
+    metadata_response = {}
+    try:
+        helper_obj = MetaDataTableHelper()   
+        if field_name:     
+            metadata_response = helper_obj.add_update_attribute(data.get("id"), data.get("fieldName"), data.get("attributes"))  
+        else:
+            metadata_response = helper_obj.update_primary_attributes(data.get("id"), data.get("attributes"))  
+            
+    except Exception as exc:
+        logger.exception(
+            f"Exception received while formatting the data [id: {id}]. Exception: {str(exc)}")
+    return metadata_response
+
+
+def delete_metadata_summary(op, **data):
+    """
+    Delete metadata summary fields 
+    """
+    metadata_response = {}
+    try:
+        helper_obj = MetaDataTableHelper()
+        if op == 'deleteAttribute':
+            metadata_response = helper_obj.delete_attribute(data.get("id"), data.get("fieldName"), data.get("attributes"))
+        elif op == 'deleteField':
+             metadata_response = helper_obj.delete_field(data.get("id"), data.get("fieldName"))
+        else:
+            raise Exception("unknown operation received.")
+    except Exception as exc:
+        logger.exception(
+            f"Exception received while formatting the data [id: {id}]. Exception: {str(exc)}")
+    return metadata_response
+
+
+
+def get_protocols_by_date_time_range(version_date="", approval_date="", start_date="", end_date="",
+                                     document_status="", upload_date="", qc_status=""):
+    """
+    Get top-1 or all the protocol based on input arguments
+    """
+    resource = None
+
+    # #Get dynamic conditions
+    all_filter = utils.all_filters(
+        version_date, approval_date, start_date, end_date, document_status, upload_date, qc_status)
+
+    try:
+        if qc_status is not '':
+            resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata,
+                                                PDProtocolMetadata.draftVersion,
+                                                PDProtocolMetadata.protocol, PDProtocolMetadata.documentFilePath,
+                                                PDProtocolMetadata.projectId, PDProtocolMetadata.uploadDate,
+                                                PDProtocolMetadata.sponsor, PDProtocolMetadata.protocolTitle,
+                                                PDProtocolMetadata.versionNumber, PDProtocolMetadata.documentStatus,
+                                                PDProtocolMetadata.protocol, PDProtocolMetadata.amendment,
+                                                PDProtocolMetadata.qcStatus,
+                                                PDProtocolQCSummaryData.approvalDate, PDProtocolQCSummaryData.source,
+                                                PDProtocolQCSummaryData.isAmendment,
+                                                PDProtocolQCSummaryData.protocolShortTitle,
+                                                PDProtocolQCSummaryData.versionDate,
+                                                PDProtocolQCSummaryData.amendmentNumber
+                                                ).join(PDProtocolMetadata,
+                                                       (PDProtocolQCSummaryData.aidocId ==
+                                                        PDProtocolMetadata.id)
+                                                       ).filter(text(all_filter)).all()
+        else:
+            resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata,
+                                                PDProtocolMetadata.draftVersion,
+                                                PDProtocolMetadata.protocol, PDProtocolMetadata.documentFilePath,
+                                                PDProtocolMetadata.projectId, PDProtocolMetadata.uploadDate,
+                                                PDProtocolMetadata.sponsor, PDProtocolMetadata.protocolTitle,
+                                                PDProtocolMetadata.versionNumber, PDProtocolMetadata.documentStatus,
+                                                PDProtocolMetadata.protocol, PDProtocolMetadata.amendment,
+                                                PDProtocolMetadata.qcStatus,
+                                                PDProtocolQCSummaryData.approvalDate, PDProtocolQCSummaryData.source,
+                                                PDProtocolQCSummaryData.isAmendment,
+                                                PDProtocolQCSummaryData.protocolShortTitle,
+                                                PDProtocolQCSummaryData.versionDate,
+                                                PDProtocolQCSummaryData.amendmentNumber
+                                                ).join(PDProtocolMetadata,
+                                                       and_(PDProtocolQCSummaryData.aidocId == PDProtocolMetadata.id,
+                                                            PDProtocolQCSummaryData.source == 'QC',
+                                                            PDProtocolMetadata.qcStatus == 'QC_COMPLETED')
+                                                       ).filter(text(all_filter)).all()
+
+        resource = utils.filter_qc_status(
+            resources=resource, qc_status=qc_status)
+    except Exception as e:
+        logger.error(f"Exception message:\n{e}")
+
+    return resource

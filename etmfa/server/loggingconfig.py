@@ -60,15 +60,15 @@ class ContextFilter(logging.Filter):
         return True
 
 
-def initialize_logger(app, debug=True, module_name=Consts.LOGGING_NAME):
+def initialize_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=Consts.LOGGING_NAME,add_filter=True):
     if not os.path.exists(DB_DIR):
         os.makedirs(DB_DIR)
 
     logger = logging.getLogger(module_name)
     logger.setLevel(logging.DEBUG)
 
-    elkHandler = AsynchronousLogstashHandler(app.config['LOGSTASH_HOST'],
-                                             app.config['LOGSTASH_PORT'],
+    elkHandler = AsynchronousLogstashHandler(LOGSTASH_HOST,
+                                             LOGSTASH_PORT,
                                              database_path=DB_FILE)
     elkHandler.setLevel(logging.INFO)
     logger.addHandler(elkHandler)
@@ -79,5 +79,5 @@ def initialize_logger(app, debug=True, module_name=Consts.LOGGING_NAME):
         consoleFormatter = logging.Formatter('%(asctime)s %(levelname)s [%(name)s] [%(aidocid)s] %(message)s')
         consoleHandler.setFormatter(consoleFormatter)
         logger.addHandler(consoleHandler)
-
-    logger.addFilter(ContextFilter())
+    if add_filter:
+        logger.addFilter(ContextFilter())

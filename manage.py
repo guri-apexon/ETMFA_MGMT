@@ -1,11 +1,10 @@
-import os, argparse
+import os
 
 from flask_migrate import Migrate, MigrateCommand
 from flask_script import Manager
 
 from etmfa.db.db import db_context
 from etmfa.server import app, load_app_config
-from etmfa.server.config import app_config
 
 
 MIGRATION_DIR = os.path.join('etmfa', 'db', 'migrations')

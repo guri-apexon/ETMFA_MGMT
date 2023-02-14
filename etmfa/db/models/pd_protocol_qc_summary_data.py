@@ -1,7 +1,6 @@
 import datetime
 
-from etmfa.db import db_context
-
+from etmfa.db.db import db_context
 
 class PDProtocolQCSummaryData(db_context.Model):
     __tablename__ = "pd_protocol_qc_summary_data"

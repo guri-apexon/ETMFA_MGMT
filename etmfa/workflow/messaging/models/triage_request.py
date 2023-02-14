@@ -19,3 +19,4 @@ class TriageRequest:
     molecule_device: str
     user_id: str
     FeedbackRunId: int
+

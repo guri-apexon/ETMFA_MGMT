@@ -1,12 +1,15 @@
 import logging
 import os
 from datetime import datetime
+from typing import Tuple
 
 import pandas as pd
+
 from etmfa.consts import Consts as consts
 from etmfa.db import config
 from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 from etmfa.server.namespaces.serializers import latest_protocol_contract_fields
+from typing import Tuple
 # from etmfa.error import ManagementException
 # from etmfa.error import ErrorCodes
 
@@ -44,7 +47,8 @@ def fix_data(value, json_col, max_len, data_type, data_format):
             datetime.strptime(value, data_format)
         except ValueError as exc:
             logging.warning(
-                f"{json_col} received data [{value}] not matching the expected format[{data_format}], default value used.\nException: {str(exc)}")
+                f"{json_col} received data [{value}] not matching the expected format[{data_format}],"
+                f" default value used.\nException: {str(exc)}")
             return ''
     return value
 
@@ -72,13 +76,13 @@ def get_updated_qc_summary_record(doc_id, source, summary_dict, is_active_flg=Tr
 
     _ = [setattr(qc_summ_record, tab_col,
                  fix_data(summary_dict.get(json_col, config.JSON_DEFAULT_MISSING_VALUE), json_col, max_len, data_type,
-                          data_format)) \
+                          data_format))
          for tab_col, (json_col, max_len, data_type, data_format) in config.summary_table_json_mapper.items()]
     return qc_summ_record
 
 
 def clean_inputs(protocol_number="", version_number="", approval_date="", aidoc_id="", document_status="", qc_status="",
-                 compare_doc_id="") -> dict:
+                 compare_doc_id="", upload_date="", start_date="", end_date="", version_date="") -> dict:
     """
     Clean the input arguments
     """
@@ -92,6 +96,11 @@ def clean_inputs(protocol_number="", version_number="", approval_date="", aidoc_
     cleaned_inputs['document_status'] = document_status.strip().lower() if document_status is not None else ''
     cleaned_inputs['qc_status'] = qc_status.strip().lower() if qc_status is not None else ''
     cleaned_inputs['compare_doc_id'] = compare_doc_id.strip() if compare_doc_id is not None else ''
+    cleaned_inputs['version_date'] = version_date.strip() if version_date is not None else ''
+    cleaned_inputs['upload_date'] = upload_date.strip() if upload_date is not None else ''
+    cleaned_inputs['start_date'] = start_date.strip() if start_date is not None else ''
+    cleaned_inputs['end_date'] = end_date.strip() if end_date is not None else ''
+
     return cleaned_inputs
 
 
@@ -108,8 +117,7 @@ def validate_inputs(protocol_number="") -> bool:
         return False
 
 
-def get_filter_conditions(protocol_number, version_number="", approval_date="", aidoc_id="", document_status="") -> (
-str, str):
+def get_filter_conditions(protocol_number, version_number="", approval_date="", aidoc_id="", document_status="") -> Tuple[(str, str)]:
     """
     Build dynamic filter condition based on input arguments
     """
@@ -125,16 +133,17 @@ str, str):
     additional_filter = None
     all_filter = None
     order_condition = None
-
+    
     # Default filter
-    default_filter = f"pd_protocol_qc_summary_data.isActive = 1 AND pd_protocol_metadata.protocol = '{protocol_number}'"
+    default_filter = f"pd_protocol_qc_summary_data.\"isActive\" = True AND pd_protocol_metadata.\"protocol\" = '{protocol_number}'"
 
     # Build filter based on document Status
     if document_status == 'all':
         all_filter = default_filter
     else:
-        document_status = document_status if document_status in config.VALID_DOCUMENT_STATUS else config.DEFAULT_DOCUMENT_STATUS
-        document_status_filter = f"pd_protocol_metadata.documentStatus = '{document_status}'"
+        document_status = document_status if document_status in config.VALID_DOCUMENT_STATUS else \
+            config.DEFAULT_DOCUMENT_STATUS
+        document_status_filter = f"pd_protocol_metadata.\"documentStatus\" = '{document_status}'"
         all_filter = default_filter + ' AND ' + document_status_filter
 
     logger.debug(f"Initial all_filter: {all_filter}\n")
@@ -142,28 +151,26 @@ str, str):
     # Build filter based on other input arguments
     if aidoc_id:
         logger.debug("In aidoc_id type ...")
-        additional_filter = f"pd_protocol_metadata.id = '{aidoc_id}'"
+        additional_filter = f"pd_protocol_metadata.id = '{aidoc_id}'"       
     elif version_number and approval_date:
         logger.debug("In version_number and approval_date type ...")
-        additional_filter = f"pd_protocol_qc_summary_data.versionNumber = '{version_number}' AND CONVERT(VARCHAR(8), pd_protocol_qc_summary_data.approvalDate, 112) = '{approval_date}'"
+        additional_filter = f"pd_protocol_qc_summary_data.\"versionNumber\" = '{version_number}' AND CONVERT(VARCHAR(8), pd_protocol_qc_summary_data.\"approvalDate\", 112) ='{approval_date}'"
     elif version_number:
         logger.debug("In version_number type ...")
-        additional_filter = f"pd_protocol_qc_summary_data.versionNumber = '{version_number}'"
+        additional_filter = f"pd_protocol_qc_summary_data.\"versionNumber\" = '{version_number}'"
     elif approval_date:
         logger.debug("In approval_date type ...")
-        additional_filter = f"CONVERT(VARCHAR(8), pd_protocol_qc_summary_data.approvalDate, 112) = '{approval_date}'"
+        additional_filter = f"CONVERT(VARCHAR(8), pd_protocol_qc_summary_data.\"approvalDate\", 112) = '{approval_date}'"
     else:
-        logger.debug("In [only protocol_number] type ...")
+        logger.debug("In only protocol_number type ...")
 
     if additional_filter:
         all_filter = all_filter + ' AND ' + additional_filter
 
     # order condition
-    order_condition = f"pd_protocol_qc_summary_data.approvalDate desc, pd_protocol_metadata.uploadDate desc"
+    order_condition = f"pd_protocol_qc_summary_data.\"approvalDate\" desc, pd_protocol_metadata.\"uploadDate\" desc"
 
-    logger.debug(
-        f"Input arguments: protocol={protocol_number}; version_number={version_number}; approval_date={approval_date}; aidoc_id={aidoc_id}; document_status={document_status} \
-                  \nDynamic conditions: {all_filter}\n order by {order_condition}")
+    logger.debug(f"Input arguments: protocol={protocol_number}; version_number={version_number}; approval_date={approval_date}; aidoc_id={aidoc_id}; document_status={document_status}; Dynamic conditions: {all_filter}\n order by {order_condition}")
     return all_filter, order_condition
 
 
@@ -191,16 +198,18 @@ def apply_contract_rules(top_resource: dict, metadata_fields: list, ignore_filep
     metadata_dict = get_metadata_dict(metadata_fields)
     top_resource.update(metadata_dict)
     top_resource['amendmentFlag'] = metadata_dict['amendmentFlag'] if pd.isnull(top_resource['isAmendment']) else \
-    top_resource['isAmendment']
+        top_resource['isAmendment']
 
     approval_date = approval_date if pd.isnull(top_resource['approvalDate']) else top_resource['approvalDate'].strftime(
         '%Y%m%d')
     top_resource['approvalDate'] = '' if approval_date == config.DEFAULT_DATE_VALUE else approval_date
 
-    _ = indications if pd.isnull(top_resource['indications']) else indications.append(top_resource['indications'])
+    _ = indications if pd.isnull(top_resource['indications']) else indications.append(
+        top_resource['indications'])
     top_resource['indications'] = str(indications)
 
-    top_resource['uploadDate'] = '' if pd.isnull(top_resource['uploadDate']) else top_resource['uploadDate'].isoformat()
+    top_resource['uploadDate'] = '' if pd.isnull(
+        top_resource['uploadDate']) else top_resource['uploadDate'].isoformat()
     restricted_top_resource = {key: ('' if value is None else value) for key, value in top_resource.items() if
                                key in latest_protocol_contract_fields}
 
@@ -254,8 +263,52 @@ def filter_qc_status(resources, qc_status):
 
     if resources is not None and type(resources) == list and len(resources) > 0:
         if qc_status == config.DEFAULT_QC_STATUS:
-            resources = [resource for resource in resources if resource.source == 'QC']
+            resources = [
+                resource for resource in resources if resource.source == 'QC']
         else:
-            resources = [resource for resource in resources if resource.rank == 1]
+            resources = [
+                resource for resource in resources if resource.rank == 1]
 
     return resources
+
+
+def all_filters(version_date="", approval_date="", start_date="", end_date="", document_status="", upload_date="",
+                qc_status="") -> tuple:
+    """
+    Build dynamic filter condition based on input arguments
+    """
+    cleaned_inputs = clean_inputs(upload_date=upload_date, version_date=version_date, approval_date=approval_date,
+                                  start_date=start_date, end_date=end_date, document_status=document_status,
+                                  qc_status=qc_status)
+    start_date = cleaned_inputs.get('start_date', '')
+    end_date = cleaned_inputs.get('end_date', '')
+    approval_date = cleaned_inputs.get('approval_date', '')
+    upload_date = cleaned_inputs.get('upload_date', '')
+    version_date = cleaned_inputs.get('version_date', '')
+    document_status = cleaned_inputs.get('document_status', '')
+    qc_status = cleaned_inputs.get('qc_status', '')
+
+    all_filters = "pd_protocol_qc_summary_data.\"isActive\" = True"
+
+    if document_status:
+        logger.debug("Documents status ...")
+        all_filters += f" AND pd_protocol_metadata.\"documentStatus\" = '{document_status}'"
+    if version_date:
+        logger.debug("In version_date type ...")
+        all_filters += f" AND pd_protocol_qc_summary_data.\"versionDate\" = '{version_date}'"
+    if approval_date:
+        logger.debug("In approval_date type ...")
+        all_filters += f" AND pd_protocol_qc_summary_data.\"approvalDate\" = '{approval_date}'"
+    if upload_date is not '':
+        logger.debug("In upload_date type ...")
+        all_filters += f" AND pd_protocol_metadata.\"uploadDate\"::date = '{upload_date}'"
+    if start_date and end_date:
+        logger.debug("In start_date and end_date type ...")
+        all_filters += f" AND pd_protocol_qc_summary_data.\"timeCreated\" BETWEEN '{start_date}' and '{end_date}' "
+    if qc_status:
+        logger.debug("In qc_status type ...")
+        all_filters += f" AND pd_protocol_metadata.\"qcStatus\" = '{qc_status}'"
+        
+    logger.debug(f"top_resource:\n{all_filters}")
+
+    return all_filters
