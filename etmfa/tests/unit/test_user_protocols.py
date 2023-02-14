@@ -18,7 +18,7 @@ logger = logging.getLogger(consts.LOGGING_NAME)
 def test_follow_protocol_as_primary(new_app_context, insert_flg, user_id, protocol,expected_user_role, expected_redact_profile, comments):
     _, _app_context = new_app_context
     with _app_context:
-        current_utctime = datetime.datetime.utcnow()
+        current_utctime = datetime.datetime.now(datetime.timezone.utc)
 
         if insert_flg:
             test_user_protocol = PDUserProtocols.query.filter(PDUserProtocols.userId == user_id, PDUserProtocols.protocol == protocol).delete()

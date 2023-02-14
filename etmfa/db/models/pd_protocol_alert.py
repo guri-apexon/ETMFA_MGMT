@@ -1,5 +1,7 @@
 import datetime
+
 from etmfa.db import db_context
+
 
 class Protocolalert(db_context.Model):
     __tablename__ = "pd_protocol_alert"
@@ -15,10 +17,10 @@ class Protocolalert(db_context.Model):
     alertGeneratedTime = db_context.Column(db_context.DateTime(timezone=True))
     approvalDate = db_context.Column(db_context.Date())
     isActive = db_context.Column(db_context.Boolean(), default=True)
-    timeCreated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
-    timeUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
-
-
+    timeCreated = db_context.Column(db_context.DateTime(
+        timezone=True), default=datetime.datetime.utcnow)
+    timeUpdated = db_context.Column(db_context.DateTime(
+        timezone=True), default=datetime.datetime.utcnow)
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}

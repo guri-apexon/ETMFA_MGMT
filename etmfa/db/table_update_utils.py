@@ -1,9 +1,7 @@
-import ast
 import datetime
 import logging
 import os
 import json
-
 
 from etmfa.db.db import db_context
 from etmfa.consts import Consts as consts
@@ -11,7 +9,6 @@ from etmfa.db.models.pd_protocol_data import Protocoldata
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 from etmfa.db.models.pd_protocol_summary_entities import ProtocolSummaryEntities
-from etmfa.messaging.models.processing_status import QcStatus
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
@@ -47,7 +44,6 @@ def upsert_protocol_data(FeedbackRunId, finalattributes):
     if FeedbackRunId == 0:
         protocoldata.timeCreated = current_time
 
-
     return protocoldata
 
 
@@ -70,7 +66,6 @@ def upsert_protocol_qcdata(FeedbackRunId, finalattributes):
     if FeedbackRunId == 0:
         protocolqcdata.timeCreated = current_time
 
-
     return protocolqcdata
 
 def upsert_summary_entities(FeedbackRunId, finalattributes):
@@ -83,6 +78,5 @@ def upsert_summary_entities(FeedbackRunId, finalattributes):
     protocol_summary_entities.timeUpdated = current_time
     if FeedbackRunId > 0:
         protocol_summary_entities.timeCreated = current_time
-
 
     return protocol_summary_entities

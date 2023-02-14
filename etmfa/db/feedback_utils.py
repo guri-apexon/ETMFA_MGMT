@@ -4,9 +4,9 @@ import os
 from dataclasses import asdict
 
 from etmfa.consts import Consts as consts
-from etmfa.messaging.messagepublisher import MessagePublisher
-from etmfa.messaging.models.generic_request import FeedbackRun
-from etmfa.messaging.models.queue_names import EtmfaQueues
+from etmfa.workflow.messaging.messagepublisher import MessagePublisher
+from etmfa.workflow.messaging.models.generic_request import FeedbackRun
+from etmfa.workflow.messaging.models.queue_names import EtmfaQueues
 from flask import current_app
 
 logger = logging.getLogger(consts.LOGGING_NAME)

@@ -1,6 +1,5 @@
 import datetime
-from etmfa.db import db_context
-
+from etmfa.db.db import db_context
 
 class Login(db_context.Model):
     __tablename__ = "login"

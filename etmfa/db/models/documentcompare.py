@@ -21,9 +21,11 @@ class Documentcompare(db_context.Model):
     compareRun = db_context.Column(db_context.Integer())
     doc1runId = db_context.Column(db_context.Integer())
     doc2runId = db_context.Column(db_context.Integer())
-    swap = db_context.Column(db_context.Boolean(), default = False)
-    createdDate = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
-    updatedDate = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
+    swap = db_context.Column(db_context.Boolean(), default=False)
+    createdDate = db_context.Column(db_context.DateTime(
+        timezone=True), default=datetime.datetime.utcnow)
+    updatedDate = db_context.Column(db_context.DateTime(
+        timezone=True), default=datetime.datetime.utcnow)
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}

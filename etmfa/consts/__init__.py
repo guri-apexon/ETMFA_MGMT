@@ -7,6 +7,7 @@ from pkg_resources import get_distribution, DistributionNotFound
 
 class Consts():
     LOGGING_NAME = 'mgmt'
+    LOGGING_WF= 'work_flow_manager'
 
 
 class Globals:

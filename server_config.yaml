@@ -1,13 +1,18 @@
 DEBUG: True
 mquser: 'guest'
 mqpswd: 'guest'
-mqhost: 'ca2spdml01q'
+mqhost: 'ca2spdml101q'
 mqport: 5672
 MESSAGE_BROKER_EXCHANGE: 'PD'
-LOGSTASH_HOST: 'ca2spdml01q'
+LOGSTASH_HOST: 'ca2spdml106q'
 LOGSTASH_PORT: 5959
+ENABLE_WORK_FLOW_RUNNER: False
 DFS_UPLOAD_FOLDER: '//quintiles.net/enterprise/Services/protdigtest/pilot_iqvxml'
-SQLALCHEMY_DATABASE_URI: 'mssql+pyodbc://pd_dev_dbo:$1457abxd@CA2SPDSQL01Q\PDSSQL001D/PD_Dev?driver=ODBC+Driver+17+for+SQL+Server'
+# DFS_UPLOAD_FOLDER: 'C:\Users\u1149600\Documents\DFS_Final'
+SQLALCHEMY_DATABASE_URI: 'postgresql+psycopg2://app_pd_dev_dbo:pdi8ujnydev45678dbo@10.3.67.93:5432/pd_dev'
+# SQLALCHEMY_DATABASE_URI: 'postgresql+psycopg2://postgres:postgres@localhost/postgres'
+#SQLALCHEMY_DATABASE_URI: 'postgresql+psycopg2://app_pd_test:cpa2dupidti27test@10.3.64.46:5432/pd_test'
+
 
 PD_UI_LINK: 'https://protocoldigitalization-ui.work.iqvia.com/dashboard'
 
@@ -16,4 +21,3 @@ AUTH_DETAILS: {'ypd_api_dev': '$pbkdf2-sha256$8000$yfn/n3Oudc75Pw$A7BQFNmip/A/Vq
                 'ypd_unit_test': '$pbkdf2-sha256$8000$MqZ0jnGO8d77fw$7tT5b7tJbmV0ofz97G75mAUPeDrf5O8ythuRfO6vrWo'}
 
 UNIT_TEST_HEADERS: {"X-API-KEY": "ypd_unit_test:!53*URTa$k1j4t^h2~uSseatnai@nr"}
-

@@ -12,7 +12,6 @@ from etmfa.db import config
 from etmfa.db.__init__ import received_documentprocessing_error_event
 from etmfa.error import ErrorCodes, ManagementException
 from etmfa.server.config import Config
-
 logger = logging.getLogger(consts.LOGGING_NAME)
 
 
