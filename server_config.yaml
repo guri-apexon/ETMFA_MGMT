@@ -1,10 +1,10 @@
 DEBUG: True
 mquser: 'guest'
 mqpswd: 'guest'
-mqhost: 'ca2spdml101q'
+mqhost: 'ca2spdml01q'
 mqport: 5672
 MESSAGE_BROKER_EXCHANGE: 'PD'
-LOGSTASH_HOST: 'ca2spdml106q'
+LOGSTASH_HOST: 'ca2spdml01q'
 LOGSTASH_PORT: 5959
 ENABLE_WORK_FLOW_RUNNER: False
 DFS_UPLOAD_FOLDER: '//quintiles.net/enterprise/Services/protdigtest/pilot_iqvxml'
