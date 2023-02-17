@@ -41,7 +41,6 @@ from etmfa.server.namespaces.serializers import (
     PD_qc_get,
     eTMFA_object_post,
     wf_object_post,
-    wf_object_get,
     latest_protocol_input,
     latest_protocol_input_by_date_range,
     latest_protocol_get,
@@ -64,7 +63,7 @@ from etmfa.server.namespaces.serializers import (
     metadata_detele_summary,
     metadata_summary_delete
 )
-from etmfa.workflow.default_workflows import DWorkFLows,DEFAULT_WORKFLOWS
+from etmfa.workflow.default_workflows import DWorkFLows, DEFAULT_WORKFLOWS
 from etmfa.workflow import WorkFlowClient
 from etmfa.workflow.messaging.models.generic_request import DocumentRequest, CompareRequest
 from etmfa.db.models.work_flow_status import WorkFlowStatus
@@ -75,7 +74,7 @@ logger = logging.getLogger(consts.LOGGING_NAME)
 INVALID_USER_INPUT = 'Invalid user input(s) received: {}'
 DOCUMENT_NOT_FOUND = 'Document resource is not found for the requested input(s): {}'
 DUPLICATE_DOCUMENT_REQUEST = 'Duplicate document request '
-DOCUMENT_MISSING_FROM_METADATA_TABLE='Document missing from protocol metadata table'
+DOCUMENT_MISSING_FROM_METADATA_TABLE = 'Document missing from protocol metadata table'
 SERVER_ERROR = 'Server error: {}'
 DOCUMENT_COMPARISON_ALREADY_PRESENT = 'Comparison already present for given protocols'
 
@@ -95,7 +94,7 @@ def generate_doc_meta_hash(file_path):
 class DocumentprocessingAPI(Resource):
     @ns.expect(eTMFA_object_post, validate=True)
     @ns.expect(wf_object_post, validate=True)
-    @ns.marshal_with(wf_object_get)
+    @ns.marshal_with(eTMFA_object_get)
     @ns.response(400, 'Invalid Request.')
     @ns.response(200, 'Success')
     @api.doc(security='apikey')
@@ -112,18 +111,17 @@ class DocumentprocessingAPI(Resource):
             request.remote_addr))
         doc_id = args['docId']
         work_flow_name = args['workFlowName']
-        doc_uid, doc_file_path,protocol = None, None,''
+        doc_uid, doc_file_path, protocol = None, None, ''
         try:
             fields = get_details_by_elm(
-                WorkFlowStatus,WorkFlowStatus.work_flow_id, doc_id)
+                WorkFlowStatus, WorkFlowStatus.work_flow_id, doc_id)
             # version_number = fields.get('versionNumber')
             doc_file_path = fields['documentFilePath']
-            doc_uid=fields['doc_uid']
-            protocol=fields['protocol_name']
-   
+            protocol = fields['protocol_name']
+
         except Exception as e:
             logger.error(
-                'requested document is not in workflow status table'+str(doc_id))    
+                'requested document is not in workflow status table'+str(doc_id))
             abort(404, DOCUMENT_MISSING_FROM_METADATA_TABLE)
         work_flow_graph = DEFAULT_WORKFLOWS.get(work_flow_name, None)
         if not work_flow_graph or len(work_flow_graph) < 1:
@@ -131,23 +129,25 @@ class DocumentprocessingAPI(Resource):
 
         start_service_name = work_flow_graph[0].get('service_name', None)
         if not start_service_name:
-           abort(404,str(WorkFlowParamMissing(work_flow_name)))
+           abort(404, str(WorkFlowParamMissing(work_flow_name)))
         create_doc_Processing_status(
             _id, doc_uid, work_flow_name, doc_file_path, protocol)
         doc_request = None
         if work_flow_name == DWorkFLows.DOCUMENT_COMPARE.value:
             doc_id1 = args.get('docIdToCompare', None)
             if not doc_id1:
-                abort(404,str(Exception("missing compare id in arguments")))
+                abort(404, str(Exception("missing compare id in arguments")))
             doc_request = CompareRequest(_id, doc_id, doc_id1)
         else:
             doc_request = DocumentRequest(_id, doc_id)
         if Config.WORK_FLOW_RUNNER:
             wf_client = WorkFlowClient()
-            wf_client.send_msg(work_flow_name, _id, doc_id, asdict(doc_request))
+            wf_client.send_msg(work_flow_name, _id,
+                               doc_id, asdict(doc_request))
         response = get_work_flow_status_by_id(_id)
         response['id'] = response['work_flow_id']
         response['percentComplete'] = response['percent_complete']
+        response['workFlowName'] = response['work_flow_name']
         return response
 
 
@@ -209,11 +209,12 @@ class DocumentprocessingAPI(Resource):
         if duplicate_check:
             doc_uid = generate_doc_meta_hash(filepath)
             if check_if_document_processed(doc_uid):
-                return abort(409,DUPLICATE_DOCUMENT_REQUEST)
+                return abort(409, DUPLICATE_DOCUMENT_REQUEST)
         else:
             doc_uid = _id
 
-        create_doc_Processing_status(_id, doc_uid, workflow_name, filepath, protocol)
+        create_doc_Processing_status(
+            _id, doc_uid, workflow_name, filepath, protocol)
         # # Mark the user primary for the protocol
         update_user_protocols(
             user_id=user_id, project_id=project_id, protocol_number=protocol)
@@ -223,11 +224,13 @@ class DocumentprocessingAPI(Resource):
                                      indication, molecule_device, user_id, feedback_run_id)
         if Config.WORK_FLOW_RUNNER:
             wf_client = WorkFlowClient()
-            wf_client.send_msg(workflow_name, _id, doc_uid, asdict(post_req_msg))
+            wf_client.send_msg(workflow_name, _id, doc_uid,
+                               asdict(post_req_msg))
         save_doc_processing(args, _id, filepath)
         response = get_work_flow_status_by_id(_id)
         response['id'] = response['work_flow_id']
         response['percentComplete'] = response['percent_complete']
+        response['workFlowName'] = response['work_flow_name']
         return response
 
 
@@ -245,10 +248,10 @@ class DocumentprocessingAPI(Resource):
             g.aidocid = id
             resource = get_work_flow_status_by_id(id)
             if not resource:
-                return abort(404,DOCUMENT_NOT_FOUND)
+                return abort(404, DOCUMENT_NOT_FOUND)
             resource['id'] = resource['work_flow_id']
             resource['percentComplete'] = resource['percent_complete']
-            logger.info("Document processing status: {}".format(resource))
+            resource['workFlowName'] = resource['work_flow_name']
             if resource is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(id))
             else:
@@ -546,18 +549,18 @@ class DocumentprocessingAPI(Resource):
     @ns.response(HTTPStatus.OK, 'Success.')
     @ns.response(HTTPStatus.NOT_FOUND, 'Document Processing resource not found.')
     @api.doc(security='apikey')
-    @authenticate    
+    @authenticate
     def get(self):
         """Get metadata attributes"""
         args = metadata_summary_input.parse_args()
         try:
             op = args.get('op', '').strip()
             aidoc_id = args.get('aidocId', '').strip()
-            field_name = args.get('fieldName',None)
-            if isinstance(field_name,str):
+            field_name = args.get('fieldName', None)
+            if isinstance(field_name, str):
                 field_name = field_name.strip()
-            
-            if op=='metadata' or op=='metaparam':
+
+            if op == 'metadata' or op == 'metaparam':
                 if aidoc_id:
                     resource = get_metadata_summary(op, aidoc_id, field_name)
                     if len(resource) == 0:
@@ -569,13 +572,11 @@ class DocumentprocessingAPI(Resource):
                     return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
             else:
                 logger.error(f"Invalid operation inputs received: {args}")
-                return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))  
-            
+                return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
+
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
-        
-        
 
 
 @ns.route('/add_meta_data')
@@ -586,42 +587,42 @@ class DocumentprocessingAPI(Resource):
     @ns.response(HTTPStatus.OK, 'Success.')
     @ns.response(HTTPStatus.NOT_FOUND, 'Document Processing resource not found.')
     @api.doc(security='apikey')
-    @authenticate    
+    @authenticate
     def put(self):
         """Add metadata attributes"""
         args = metadata_summary_create.parse_args()
         try:
             op = args.get('op', '').strip()
             aidoc_id = args.get('aidocId', '').strip()
-            field_name = args.get('fieldName','').strip()
-            attributes=args['attributes']
+            field_name = args.get('fieldName', '').strip()
+            attributes = args['attributes']
             data = {}
             attr_list = []
-            
+
             if op and aidoc_id:
                 data['id'] = aidoc_id
                 data['fieldName'] = field_name
                 if attributes is not None:
                     for attrs in attributes:
-                        attribute_name = attrs.get('attr_name','').strip()
-                        attribute_type = attrs.get('attr_type','').strip()
-                        attribute_value = attrs.get('attr_value',None)
-                        if isinstance(attribute_value,str):
-                            attribute_value=attribute_value.strip()
-                        note_value = attrs.get('note',None)
-                        if isinstance(note_value,str):
-                            note_value=note_value.strip()
-                        confidence_value = attrs.get('confidence',None)
-                        if isinstance(confidence_value,str):
-                            confidence_value=confidence_value.strip()
-                        attr_list.append({"attributeName":attribute_name,
-                                            "attributeType":attribute_type,
-                                            "attributeValue":attribute_value,
-                                            "note":note_value,
-                                            "confidence":confidence_value})
+                        attribute_name = attrs.get('attr_name', '').strip()
+                        attribute_type = attrs.get('attr_type', '').strip()
+                        attribute_value = attrs.get('attr_value', None)
+                        if isinstance(attribute_value, str):
+                            attribute_value = attribute_value.strip()
+                        note_value = attrs.get('note', None)
+                        if isinstance(note_value, str):
+                            note_value = note_value.strip()
+                        confidence_value = attrs.get('confidence', None)
+                        if isinstance(confidence_value, str):
+                            confidence_value = confidence_value.strip()
+                        attr_list.append({"attributeName": attribute_name,
+                                          "attributeType": attribute_type,
+                                          "attributeValue": attribute_value,
+                                          "note": note_value,
+                                          "confidence": confidence_value})
                 data['attributes'] = attr_list
                 resource = add_metadata_summary(op, **data)
-        
+
                 if len(resource) == 0:
                     return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
                 else:
@@ -629,12 +630,12 @@ class DocumentprocessingAPI(Resource):
             else:
                 logger.error(f"Invalid op or aidocId received: {args}")
                 return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
-            
+
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
-        
-        
+
+
 @ns.route('/add_update_meta_data')
 @ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
 class DocumentprocessingAPI(Resource):
@@ -643,13 +644,13 @@ class DocumentprocessingAPI(Resource):
     @ns.response(HTTPStatus.OK, 'Success.')
     @ns.response(HTTPStatus.NOT_FOUND, 'Document Processing resource not found.')
     @api.doc(security='apikey')
-    @authenticate 
+    @authenticate
     def post(self):
         """Update metadata attributes"""
         args = metadata_summary.parse_args()
         try:
             aidoc_id = args.get('aidocId', '').strip()
-            field_name = args.get('fieldName','').strip()
+            field_name = args.get('fieldName', '').strip()
             attributes = args['attributes']
             data = {}
             attr_list = []
@@ -658,17 +659,25 @@ class DocumentprocessingAPI(Resource):
                 data['fieldName'] = field_name
                 if attributes is not None:
                     for attrs in attributes:
-                        attribute_name = attrs.get('attr_name','').strip()
-                        attribute_type = attrs.get('attr_type','').strip()
-                        attribute_value = attrs.get('attr_value',None)
-                        if isinstance(attribute_value,str):
-                            attribute_value=attribute_value.strip()
-                        attr_list.append({"attributeName":attribute_name,
-                                            "attributeType":attribute_type,
-                                            "attributeValue":attribute_value})
+                        attribute_name = attrs.get('attr_name', '').strip()
+                        attribute_type = attrs.get('attr_type', '').strip()
+                        attribute_value = attrs.get('attr_value', None)
+                        if isinstance(attribute_value, str):
+                            attribute_value = attribute_value.strip()
+                        note_value = attrs.get('note', None)
+                        if isinstance(note_value, str):
+                            note_value = note_value.strip()
+                        confidence_value = attrs.get('confidence', None)
+                        if isinstance(confidence_value, str):
+                            confidence_value = confidence_value.strip()
+                        attr_list.append({"attributeName": attribute_name,
+                                          "attributeType": attribute_type,
+                                          "attributeValue": attribute_value,
+                                          "note": note_value,
+                                          "confidence": confidence_value})
                 data['attributes'] = attr_list
-                resource = update_metadata_summary(field_name, **data)  
-                
+                resource = update_metadata_summary(field_name, **data)
+
                 if len(resource) == 0:
                     return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
                 else:
@@ -679,8 +688,8 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
-        
-        
+
+
 @ns.route('/delete_meta_data')
 @ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
 class DocumentprocessingAPI(Resource):
@@ -689,14 +698,14 @@ class DocumentprocessingAPI(Resource):
     @ns.response(HTTPStatus.OK, 'Success.')
     @ns.response(HTTPStatus.NOT_FOUND, 'Document Processing resource not found.')
     @api.doc(security='apikey')
-    @authenticate 
+    @authenticate
     def delete(self):
         """Delete metadata attributes"""
         args = metadata_detele_summary.parse_args()
         try:
             op = args.get('op', '').strip()
             aidoc_id = args.get('aidocId', '').strip()
-            field_name = args.get('fieldName','').strip()
+            field_name = args.get('fieldName', '').strip()
             attributes = args.get('attributeNames')
             data = {}
             attr_list = []
@@ -705,21 +714,21 @@ class DocumentprocessingAPI(Resource):
                 data['fieldName'] = field_name
                 if attributes is not None:
                     for attrs in attributes:
-                        attr_list.append({'attributeName':attrs})
+                        attr_list.append({'attributeName': attrs})
                 data['attributes'] = attr_list
-                resource = delete_metadata_summary(op,**data)
+                resource = delete_metadata_summary(op, **data)
                 if len(resource) == 0:
                     return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
                 else:
                     return resource
             else:
-                logger.error(f"Invalid operation or aidocId or fieldName received: {args}")
+                logger.error(
+                    f"Invalid operation or aidocId or fieldName received: {args}")
                 return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
-            
+
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
-
 
 
 @ns.route('/protocol_versions')

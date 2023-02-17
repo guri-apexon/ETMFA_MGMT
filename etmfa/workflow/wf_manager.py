@@ -18,12 +18,13 @@ from .messaging.models import EtmfaQueues, TERMINATE_NODE
 from .db.db_utils import (create_doc_processing_status,
                           update_doc_finished_status,
                           update_doc_running_status,
-                          get_pending_running_work_flows
+                          get_pending_running_work_flows,
+                          check_stale_work_flows_and_remove
                           )
 from ..server.loggingconfig import initialize_logger
 
 
-WF_RUN_WAIT_TIME = 2  # 2 sec
+WF_RUN_WAIT_TIME = 3  # 3 sec
 
 
 class ServiceParam(BaseModel):
@@ -54,13 +55,16 @@ def get_db_and_broker(message_broker_exchange, message_broker_address):
 
 class WorkFlowManager():
 
-    def __init__(self, message_broker_exchange, message_broker_address, dfs_path, logger, initialize_listener=True):
+    def __init__(self, message_broker_exchange, message_broker_address, dfs_path, logger, initialize_listener=True,extra_config={}):
         """
         initialize_listener: for registeration only this should be False
         """
         self.logger = logger
         self.dfs_path = dfs_path
         self.dfs_path = dfs_path
+        self.extra_config=extra_config
+        self.max_service_execution_wait_time=extra_config['MAX_EXECUTION_WAIT_TIME_HRS']
+
         self.store, self.broker = get_db_and_broker(
             message_broker_exchange, message_broker_address)
         self.service_message_handler = ServiceMessageHandler(
@@ -121,9 +125,9 @@ class WorkFlowManager():
         self._register_default_workflows()
         services_info = self.get_all_registered_services()
         self.broker.add_listener(self.on_msg)
-        self.work_flows = self.get_all_workflows()
+        self.work_flows = self.get_all_workflows()     
         running_work_flows = get_pending_running_work_flows()
-        for wf_name, flow_id in running_work_flows.items():
+        for flow_id,wf_name in running_work_flows.items():
             if wf_name not in self.work_flows:
                 continue
             self.work_flows[wf_name].create_channel(flow_id)
@@ -194,7 +198,7 @@ class WorkFlowManager():
         message from broker comes here ,as we listening for output queues this is output queue
         get workflow to which it belongs
         """
-        self.logger.info("message received is "+str(msg_obj))
+        self.logger.debug(f"message received is: {msg_obj}")
         self._process_msg(out_queue_name, msg_obj)
 
     def register_work_flow(self, work_flow_name, depend_graph):
@@ -230,6 +234,13 @@ class WorkFlowManager():
     @ property
     def is_ready(self):
         return self.broker.is_ready
+    
+    def delete_channel_ids(self,wf_channel_ids):
+        for wf_name,channel_id in wf_channel_ids:
+            work_flow = self.work_flows[wf_name]
+            work_flow.delete_channel(channel_id)
+            self.logger.info('channel deleted for '+str(channel_id))
+        
 
     def run_work_flow(self, wf_name, flow_id, param):
         """
@@ -294,12 +305,13 @@ class WorkFlowController(Thread):
     work flow controller manages a queue
     """
 
-    def __init__(self, message_broker_exchange, message_broker_address, dfs_path, logger):
+    def __init__(self, message_broker_exchange, message_broker_address, dfs_path, logger,extra_config):
         self.msg_queue = []
         self.logger = logger
         self.logger.info("Controller process is "+str(os.getpid()))
         self.wfm = WorkFlowManager(
-            message_broker_exchange, message_broker_address, dfs_path, logger, True)
+            message_broker_exchange, message_broker_address, dfs_path, logger, True,extra_config)
+        self.remove_time_for_stale_workflows=extra_config['MAX_EXECUTION_WAIT_TIME_HRS']
         Thread.__init__(self)
         self.lock = Lock()
         self.daemon = True
@@ -326,9 +338,7 @@ class WorkFlowController(Thread):
             wf_msg = self.get_msg()
             if not wf_msg:
                 break
-            self.logger.debug('processing msg')
             param = wf_msg.param
-            self.logger.debug('running workflow')
             self.wfm.run_work_flow(
                 wf_msg.work_flow_name, wf_msg.work_flow_id, param)
 
@@ -348,12 +358,25 @@ class WorkFlowController(Thread):
                 f"{type} is not a valid type request on controller ")
         return {}
 
+
     def run(self):
         self.wfm.wait_until_listener_ready()
+        last_pending_services_check_time=time.time()
+        stale_work_flow_check_time_sec= max(1,self.remove_time_for_stale_workflows/12)*3600
         while (True):
             try:
+                start_time=time.time()
                 self._process_msg()
-                time.sleep(WF_RUN_WAIT_TIME)
+                curr_time=time.time()
+                diff=curr_time-last_pending_services_check_time
+                if diff>stale_work_flow_check_time_sec:
+                    self.logger.info('checking stale workflows')
+                    stale_ids=check_stale_work_flows_and_remove(self.remove_time_for_stale_workflows,self.logger)
+                    if stale_ids:
+                        self.wfm.delete_channel_ids(stale_ids)
+                    last_pending_services_check_time=curr_time  
+                wait_time= 0.1 if curr_time-start_time>WF_RUN_WAIT_TIME  else WF_RUN_WAIT_TIME         
+                time.sleep(wait_time)
             except Exception as e:
                 self.logger.error(str(e))
 
@@ -371,6 +394,7 @@ class WorkFlowRunner(Process):
         self.message_broker_address=config['MESSAGE_BROKER_ADDR']
         self.dfs_path = config['DFS_UPLOAD_FOLDER']
         self.debug = config["DEBUG"]
+        self.extra_config={'MAX_EXECUTION_WAIT_TIME_HRS':config.get('MAX_EXECUTION_WAIT_TIME_HRS',24)}
         self.logger = None
         Process.__init__(self)
         self.daemon = True
@@ -384,7 +408,7 @@ class WorkFlowRunner(Process):
         initialize_logger(self.log_stash_host, self.log_stash_port)
         self.logger.info("Running workflow Runner")
         wfc = WorkFlowController(
-            self.message_broker_exchange, self.message_broker_address, self.dfs_path, self.logger)
+            self.message_broker_exchange, self.message_broker_address, self.dfs_path, self.logger,self.extra_config)
 
         mqr = MqReceiver(self.port, wfc.on_msg)
         mqr.run()

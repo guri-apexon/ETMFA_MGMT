@@ -48,33 +48,6 @@ eTMFA_object_get = api.model('Document Processing Status Model',
                              }
                              )
 
-wf_object_get = api.model('Document Processing Status Model',
-                             {
-                                 'id': fields.String(readOnly=True,
-                                                     description='The unique identifier (UUID) of eTMFA document.'),
-                                 'isProcessing': fields.Boolean(readOnly=True,
-                                                                description='The document is being processed. Final attributes of documents may not exist.'),
-                                 'percentComplete': fields.String(readOnly=True,
-                                                                  description='The percentage of document is being processed. Final attributes of documents will be ready when percentage is 100.'),
-                                 'fileName': fields.String(readOnly=True,
-                                                           description='The name of the original eTMF file to automate'),
-                                 'documentFilePath': fields.String(readOnly=True,
-                                                                   description='The name of the original eTMF file location shared in DFS'),
-                                 'errorCode': fields.String(readOnly=True,
-                                                            description='Error code corresponding to any process error during TMF document automation.' +
-                                                                        ' Empty error codes corrspond to no errors.'),
-                                 'errorReason': fields.String(readOnly=True,
-                                                              description='If an error code is present, an attempt will be made to supply a user-friendly error reason.'),
-                                 'timeCreated': fields.DateTime,
-                                 'lastUpdated': fields.DateTime,
-                                 'status': fields.String(readOnly=True,
-                                                         description='Document processing stage (triage/dig1/dig2/omop/extractor/finalizer'),
-                                 'qcStatus': fields.String(readOnly=True,
-                                                           description='QC status (NOT started/QC1/QC2/Feedback run/completed)'),
-                                 'runId': fields.Integer(readOnly=True, description='Feedback Run ID')
-                             }
-                             )
-
 
 PD_qc_get = api.model('Document Processing Status Model',
                       {
@@ -430,25 +403,13 @@ wf_object_post.add_argument('docId',
                                help='flow id')
 wf_object_post.add_argument('workFlowName',
                                type=str,
-                               required=False,
+                               required=True,
                                help='Workflow name')
 wf_object_post.add_argument('docIdToCompare',
                                type=str,
                                required=False,
-                               help='dod id to compare')
+                               help='doc id to compare')
                                
-wf_object_post.add_argument('userId',
-                               type=str,
-                               required=False,
-                               help='userId')
-wf_object_post.add_argument('versionNumber',
-                               type=str,
-                               required=False,
-                               help='Version Number')
-wf_object_post.add_argument('protocolNumber',
-                               type=str,
-                               required=False,
-                               help='Protocol number')
 
 document_processing_object_put = api.model('Document feedback definition',
                                            {

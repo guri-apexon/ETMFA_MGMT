@@ -26,6 +26,8 @@ class WorkFlowState(Enum):
    PAUSE="PAUSE"
    COMPLETED="COMPLETED"
    ERROR="ERROR"
+   ERROR_TIMEOUT="ERROR_TIMEOUT"
+
 
 class WorkFlowStatus(SchemaBase):
    __tablename__ = 'work_flow_status'

@@ -348,6 +348,7 @@ class MetaDataTableHelper():
             meta_data_level = self.get_session().query(
                 PDProtocolMetaDataLevel).get(lvl_id)
             if not meta_data_level:
+                status=False
                 error= str(f"Field {field_name} does not exist")
                 data_list=[]
             for data in data_list:
@@ -382,7 +383,7 @@ class MetaDataTableHelper():
         """
         nested_obj = NestedDict(self.max_level)
         is_deleted,error = True,''
-        nested_fields, _ = self._get_level(field_name)
+        nested_fields, field_level = self._get_level(field_name)
         try:
             data = self.get_session().query(PDProtocolMetadata).get(id)
             if data == None:
@@ -394,7 +395,7 @@ class MetaDataTableHelper():
                     _, field_list = nested_obj.add_level(lvl_data)
                     if set(nested_fields).difference(set(field_list)):
                         continue
-                    lvl_id = self._get_level_id(id,nested_fields[0], len(field_list), nested_fields[-1])
+                    lvl_id = self._get_level_id(id,field_list[0],len(field_list), field_list[-1])
                     obj=self.get_session().query(PDProtocolMetaDataLevel).get(lvl_id)
                     self.get_session().delete(obj)
         except Exception as e:
@@ -422,10 +423,12 @@ class MetaDataTableHelper():
                     obj.parent_id = parent_id
                     for col in attr.__table__.columns:
                         col_name=col.name
-                        if not col_name.startswith('attribute_value'):
-                            continue
-                        val = getattr(attr, col.name)
-                        setattr(obj, col.name, val)
+                        if ((col_name.startswith('attribute_value')) or \
+                            (col_name.startswith('confidence')) or \
+                                (col_name.startswith('note'))):
+                            val = getattr(attr, col.name)
+                            if val:
+                                setattr(obj, col.name, val)
                 self.get_session().commit()
 
             except IntegrityError as e:

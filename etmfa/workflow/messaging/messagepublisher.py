@@ -24,7 +24,6 @@ class MessagePublisher:
             self.initial_msg = False
 
     def _publish_msg(self, conn, exchange, channel, queue_name, msg_dict):
-        self._purge_on_start(channel, queue_name)
         msg_str = json.dumps(msg_dict)
         logger.debug(f'message sent on {queue_name} is {msg_str}')
         queue = Queue(name=queue_name, exchange=exchange,
@@ -65,7 +64,6 @@ class MessagePublisher:
 
         with Connection(self.connection_str) as conn:
             with conn.channel() as channel:
-                self._purge_on_start(channel, queue_name)
                 producer = conn.Producer(
                     exchange=exchange, channel=channel, routing_key=queue_name)
                 producer.publish(
@@ -81,7 +79,6 @@ class MessagePublisher:
                         'max_retries': 300,  # give up after 300 tries.
                     })
 
-        logger.debug("Sent message on queue: {}".format(queue_name))
 
     def send_msg(self, msg_dict, queue_name):
         try:
