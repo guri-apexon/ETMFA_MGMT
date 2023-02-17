@@ -9,7 +9,7 @@ from . import SessionLocal
 from sqlalchemy import or_,and_,delete
 from typing import List
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
-from etmfa.workflow.messaging.models import ProcessingStatus
+from etmfa.workflow.messaging.models import ProcessingStatus,LEGACY_QUEUE_NAMES
 
 
 class DbMixin:
@@ -145,7 +145,9 @@ def update_doc_processing_status(id: str, service_name, service_added,work_flow_
         #older flow compatibility
         if work_flow_name==DWorkFLows.FULL_FLOW.value:
             data = session.query(PDProtocolMetadata).get(id)
-            data.status = ",".join(set(running_services))
+            if service_name in LEGACY_QUEUE_NAMES: 
+                post_fix='STARTED' if service_added else  "COMPLETED"            
+                data.status = service_name.upper()+'_'+post_fix
             data.percentComplete=str(percentage)
         session.commit()
 
@@ -159,7 +161,7 @@ def update_doc_finished_status(id,work_flow_name):
         if work_flow_name==DWorkFLows.FULL_FLOW.value:
             data = session.query(PDProtocolMetadata).get(id)
             data.percentComplete =str(ProcessingStatus.PROCESS_COMPLETED.value)
-            data.status = WorkFlowState.COMPLETED.value
+            data.status = ProcessingStatus.COMPLETED.value
             data.isProcessing=False
         session.commit()
     

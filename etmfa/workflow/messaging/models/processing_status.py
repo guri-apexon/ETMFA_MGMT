@@ -8,6 +8,8 @@ class ProcessingStatus(Enum):
     PROCESS_STARTED = 0
     PROCESS_COMPLETED = 100
 
+LEGACY_QUEUE_NAMES=['triage','digitizer1','digitizer2','i2e_omop_update','digitizer2_omopupdate','extraction']
+
 @unique
 class QcStatus(Enum):
     """PD Quality Check status"""
