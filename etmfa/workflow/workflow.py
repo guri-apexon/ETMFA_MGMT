@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from threading import Lock
 from typing import List, Dict, List, Set,Optional
 from pydantic import BaseModel, ValidationError
 from .db.schemas import ServiceWorkflows
@@ -166,13 +167,15 @@ class WorkFlow():
         self.node_graph = self._parse_dependancy_graph(work_flow_info.graph)
         self._services_list = list(self.node_graph.keys())
         self.channels: Dict[str, Channel] = {}
+        self.lock = Lock()
 
     @property
     def services_list(self):
         return self._services_list
 
     def get_channel(self,flow_id):
-        return self.channels[flow_id]
+        with self.lock:
+            return self.channels[flow_id]
 
     def _parse_dependancy_graph(self, dep_graph):
         dp = DagParser()
@@ -181,18 +184,20 @@ class WorkFlow():
         return graph
 
     def create_channel(self, flow_id):
-        if flow_id in self.channels:
-            raise Exception(f'id {flow_id} already being processed  ')
-        self.channels[flow_id] = Channel(
-            self.work_flow_name, flow_id, self.node_graph)
-        self.logger.info(f'{flow_id} is added to channel')
+        with self.lock:
+            if flow_id in self.channels:
+                raise Exception(f'id {flow_id} already being processed  ')
+            self.channels[flow_id] = Channel(
+                self.work_flow_name, flow_id, self.node_graph)
+            self.logger.info(f'{flow_id} is added to channel')
 
     def delete_channel(self, flow_id):
         """"
         if all nodes in workflow executed delete the channel..
         """
-        if flow_id in self.channels:
-            del self.channels[flow_id]
+        with self.lock:
+            if flow_id in self.channels:
+                del self.channels[flow_id]
 
     def is_work_flow_finished(self, flow_id):
        return True if flow_id not in self.channels else False

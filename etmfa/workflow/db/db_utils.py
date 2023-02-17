@@ -1,11 +1,12 @@
 from abc import abstractmethod, ABC
+from datetime import datetime
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from .schemas import SchemaBase,WorkFlowStatus, WorkFlowState
 from ..default_workflows import DWorkFLows
 from . import SessionLocal
-from sqlalchemy import or_,and_
+from sqlalchemy import or_,and_,delete
 from typing import List
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 from etmfa.workflow.messaging.models import ProcessingStatus
@@ -44,17 +45,36 @@ class DbMixin:
         return elm_list
 
 
-
-
 def get_pending_running_work_flows():
     work_flows_info = {}
     with SessionLocal() as session:
         data_list = session.query(WorkFlowStatus).filter(or_(WorkFlowStatus.status == WorkFlowState.PENDING.value,
                                                              WorkFlowStatus.status == WorkFlowState.RUNNING.value))
         for data in data_list:
-            work_flows_info[data.work_flow_name] = data.work_flow_id
+            work_flows_info[data.work_flow_id] = data.work_flow_name
         session.commit()
     return work_flows_info
+
+
+def check_stale_work_flows_and_remove(max_service_execution_wait_time,logger):
+    stale_ids =[]
+    with SessionLocal() as session:
+        data_list = session.query(WorkFlowStatus).filter(or_(WorkFlowStatus.status == WorkFlowState.PENDING.value,
+                                                             WorkFlowStatus.status == WorkFlowState.RUNNING.value)).all()
+        curr_time=datetime.utcnow()     
+        for data in data_list:
+            last_time=data.lastUpdated.replace(tzinfo=None)
+            diff=curr_time-last_time
+            hours=round((diff.seconds)/3600,2)
+            if hours>max_service_execution_wait_time:
+                data.status=WorkFlowState.ERROR_TIMEOUT.value
+                logger.info(f"tiemout on workflow  {data.work_flow_name} and id is {data.work_flow_id}")
+                stale_ids.append((data.work_flow_name,data.work_flow_id))
+            warning_time=max(1,int(max_service_execution_wait_time/3))
+            if hours>warning_time:
+                logger.warning(f"work flow {data.work_flow_id} not updated since {hours} hours")
+        session.commit()
+    return stale_ids
 
 
 def create_doc_processing_status(work_flow_id, doc_uid, work_flow_name, doc_file_path):

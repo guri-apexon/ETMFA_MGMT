@@ -17,6 +17,8 @@ class CompareRequest:
 @dataclass
 class I2eOmapRequest:
     id: str
+    flow_id:str
+    flow_name:str
     OMOPPath: str
     IQVXMLPath: str
     FeedbackRunId: int

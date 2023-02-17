@@ -176,6 +176,8 @@ class Digitizer2OmopUpdateHandler(DigitizationGenericMessageHandler):
         message to be sent to I2eOmopService
         """
         service_param = self._get_msg_obj(msg)
+        flow_id=service_param['flow_id']
+        flow_name=service_param['flow_name']
         _id, updated_omop_xml_path = service_param['id'], service_param['updated_omop_xml_path']
         feedback_run_id = service_param['FeedbackRunId']
         file = None
@@ -193,7 +195,7 @@ class Digitizer2OmopUpdateHandler(DigitizationGenericMessageHandler):
         else:
             output_file_prefix = "R" + str(feedback_run_id).zfill(2)
         out_queue_name = EtmfaQueues.DIGITIZER2_OMOPUPDATE.request
-        request = I2eOmapRequest(_id, updated_omop_xml_path, file,
+        request = I2eOmapRequest(_id,flow_id,flow_name, updated_omop_xml_path, file,
                                  feedback_run_id, output_file_prefix, out_queue_name)
         update_doc_processing_status(_id, service_name,True,msg.flow_name)
         return request.__dict__

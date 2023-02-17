@@ -120,4 +120,6 @@ cnn_mapping/
 *.log
 *.db
 **/fiu_temp*.py
+server_config.yaml
+
 
