@@ -587,7 +587,7 @@ def save_doc_processing(request, _id, doc_path):
     resource.indication = request['indication']
     resource.moleculeDevice = request['moleculeDevice']
     resource.percentComplete = ProcessingStatus.PROCESS_STARTED.value
-    resource.status = EtmfaQueues.TRIAGE.value
+    resource.status = 'TRIAGE_STARTED' #hardcoded for compatiblity will be rmeoved w.r.t workflows
     resource.qcStatus = QcStatus.NOT_STARTED.value
     resource.runId = 0
 
