@@ -202,7 +202,7 @@ class DocumentprocessingAPI(Resource):
         molecule_device = args['moleculeDevice'] if args['moleculeDevice'] is not None else ' '
         user_id = args['userId'] if args['userId'] is not None else ' '
         workflow_name = args['workFlowName'] if args['workFlowName'] is not None else DWorkFLows.FULL_FLOW.value
-        duplicate_check = args.get('duplicateCheck', True)
+        duplicate_check = args.get('duplicateCheck', False)
         feedback_run_id = 0
 
         filepath = str(filepath)
