@@ -161,7 +161,7 @@ def update_doc_finished_status(id,work_flow_name):
         if work_flow_name==DWorkFLows.FULL_FLOW.value:
             data = session.query(PDProtocolMetadata).get(id)
             data.percentComplete =str(ProcessingStatus.PROCESS_COMPLETED.value)
-            data.status = ProcessingStatus.PROCESS_COMPLETED.value
+            data.status = ProcessingStatus.PROCESS_COMPLETED.name
             data.isProcessing=False
         session.commit()
     
