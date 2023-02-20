@@ -15,6 +15,7 @@ class DWorkFLows(Enum):
     NORM_SOA_FLOW = 'norm_soa'
     OMOP_GENERATE_FLOW = 'omop_generate'
     LM_FLOW = 'lm_flow'
+    PB_FLOW = 'pb_flow'
 
 
 DIG_DGRAPH = [{'service_name': EtmfaQueues.TRIAGE.value, 'depends': []},
@@ -45,14 +46,18 @@ FULL_GRAPH = [{'service_name': EtmfaQueues.TRIAGE.value, 'depends': []},
                   'depends': [EtmfaQueues.DIGITIZER2_OMOPUPDATE.value]},
               {'service_name': EtmfaQueues.META_EXTRACTION.value,
                   'depends': [EtmfaQueues.META_TAGGING.value]},
-              {'service_name': TERMINATE_NODE, 'depends': [
-                  EtmfaQueues.DIGITIZER2_OMOPUPDATE.value, EtmfaQueues.COMPARE.value]}
+              {'service_name': EtmfaQueues.PB_ANALYZER.value,
+                  'depends': [EtmfaQueues.DIGITIZER2_OMOPUPDATE.value]},
+              {'service_name': TERMINATE_NODE,'depends': [
+                  EtmfaQueues.PB_ANALYZER.value,EtmfaQueues.META_EXTRACTION.value,EtmfaQueues.COMPARE.value]}
               ]
 
 META_GRPAH = [{'service_name': EtmfaQueues.META_TAGGING.value, 'depends': []},
               {'service_name': EtmfaQueues.META_EXTRACTION.value,
                   'depends': [EtmfaQueues.META_TAGGING.value]}
               ]
+
+PB_GRAPH=[{'service_name': EtmfaQueues.PB_ANALYZER.value, 'depends': []}]
 
 DOCUMENT_COMPARE_GRAPH = [
     {'service_name': EtmfaQueues.COMPARE.value, 'depends': []},
@@ -82,7 +87,8 @@ DEFAULT_WORKFLOWS = {
     DWorkFLows.DOCUMENT_COMPARE.value: DOCUMENT_COMPARE_GRAPH,
     DWorkFLows.NORM_SOA_FLOW.value: NORM_SOA_GRAPH,
     DWorkFLows.OMOP_GENERATE_FLOW.value: OMOP_GENERATE_GRAPH,
-    DWorkFLows.LM_FLOW.value: LM_GRPAH
+    DWorkFLows.LM_FLOW.value: LM_GRPAH,
+    DWorkFLows.PB_FLOW.value: PB_GRAPH
 }
 
 

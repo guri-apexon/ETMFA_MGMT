@@ -5,8 +5,9 @@ from .message_handler_interface import MessageHandler
 
 
 class ServiceMessageHandler():
-    def __init__(self,service_handeler_callback):
+    def __init__(self,service_handeler_callback,logger):
         self.get_service_handler=service_handeler_callback
+        self.logger=logger
 
     def create_start_message(self, service_name, queue_name, flow_name, flow_id,service_param):
         service_msg = ServiceMessage(flow_name=flow_name, flow_id=flow_id, params=service_param)
@@ -29,7 +30,7 @@ class ServiceMessageHandler():
 
         """
         handler = self.get_service_handler(service_name)
-        out_obj = handler.on_msg(service_name,msg_obj,meta_info)
+        out_obj = handler.on_msg(service_name,msg_obj)
         return out_obj
 
     def on_output_message_adapter(self,next_services_with_msg_obj: Dict[str, CompositeServiceMessage]):

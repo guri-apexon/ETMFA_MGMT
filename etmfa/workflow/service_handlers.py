@@ -3,7 +3,7 @@
 from .default_workflows import GENERIC_SERVICE_HANDLER, ERR_IN_SERVICE, GENERIC_DIG_SERVICE_HANDLER
 from .messaging.message_handlers import GenericMessageHandler, ErrorMessageHandler, Digitizer2OmopUpdateHandler,\
     TriageMessageHandler, DigitizationGenericMessageHandler, Digitizer1MessageHandler, I2eOmopMessageHandler,\
-    Digitizer2CompareHandler, Digitizer2NormSOAHandler,Digitizer2OmopGenerateHandler
+    Digitizer2CompareHandler, Digitizer2NormSOAHandler,Digitizer2OmopGenerateHandler,AnalyzerMessageHandler
 from .messaging.models import EtmfaQueues, LegacyQueues
 
 
@@ -16,6 +16,7 @@ SERVICE_HANDLERS = {
     EtmfaQueues.I2E_OMOP_UPDATE.value: I2eOmopMessageHandler(),
     EtmfaQueues.DIGITIZER2_OMOPUPDATE.value: Digitizer2OmopUpdateHandler(),
     EtmfaQueues.DIGITIZER2_OMOP_GENERATE.value:Digitizer2OmopGenerateHandler(),
+    EtmfaQueues.PB_ANALYZER.value:AnalyzerMessageHandler(),
     EtmfaQueues.COMPARE.value: Digitizer2CompareHandler(),
     EtmfaQueues.NORM_SOA.value:Digitizer2NormSOAHandler()
     }
