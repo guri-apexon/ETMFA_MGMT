@@ -1,5 +1,5 @@
 from .service_message_handler import ServiceMessageHandler
 from .default_message_handlers import GenericMessageHandler, ErrorMessageHandler
 from .digitization_message_handlers import DigitizationGenericMessageHandler, Digitizer2OmopUpdateHandler,Digitizer2OmopGenerateHandler,\
-    TriageMessageHandler, Digitizer1MessageHandler, I2eOmopMessageHandler, Digitizer2CompareHandler,Digitizer2NormSOAHandler
+    TriageMessageHandler, Digitizer1MessageHandler, I2eOmopMessageHandler, Digitizer2CompareHandler,Digitizer2NormSOAHandler,AnalyzerMessageHandler
 from etmfa import db

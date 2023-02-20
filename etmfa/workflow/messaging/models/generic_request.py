@@ -59,3 +59,12 @@ class Dig2XMLPathRequest:
    flow_id: str
    IQVXMLPath:str
    OutputFilePrefix:str
+
+@dataclass
+class AnalyzerRequest:
+    flow_id:str
+    flow_name:str
+    id:str
+    doc_id:str
+    variable_list:list
+

@@ -301,6 +301,7 @@ build-svt:
   only:
     refs:
       - /^pd-release/*/
+      - develop
     variables:
       - $ENVIRONMENT== "svt"
 
@@ -333,6 +334,7 @@ deploy-svt:
   only:
     refs:
       - /^pd-release/*/
+      - develop
     variables:
       - $ENVIRONMENT== "svt"
 
@@ -388,6 +390,7 @@ build-uat:
   only:
     refs:
       - /^pd-release/*/
+      - develop
     variables:
       - $ENVIRONMENT== "uat"
 
@@ -420,6 +423,7 @@ deploy-uat:
   only:
     refs:
       - /^pd-release/*/
+      - develop
     variables: 
       - $ENVIRONMENT== "uat"
 
@@ -476,6 +480,7 @@ build-uat1:
     refs:
       - feature/ci-cd-uat1
       - /^pd-release/*/
+      - develop
     variables:
       - $ENVIRONMENT== "uat1"
 
@@ -509,6 +514,7 @@ deploy-uat1:
     refs:
       - feature/ci-cd-uat1
       - /^pd-release/*/
+      - develop
     variables:
       - $ENVIRONMENT== "uat1"
 
@@ -564,6 +570,7 @@ build-prod:
   only:
     refs:
       - /^pd-release/*/
+      - develop
     variables:
       - $ENVIRONMENT== "prod"
 
@@ -596,6 +603,7 @@ deploy-prod:
   only:
     refs:
       - /^pd-release/*/
+      - develop
     variables:
       - $ENVIRONMENT== "prod"
 

@@ -18,6 +18,7 @@ class EtmfaQueues(Enum):
     DOCUMENT_PROCESSING_ERROR = "documentprocessing_error"
     META_TAGGING = "meta_tagging"
     META_EXTRACTION = "meta_extraction"
+    PB_ANALYZER = "analyzer"
 
     def __init__(self, queue_prefix):
         """Construct queue name enum."""
@@ -53,6 +54,7 @@ class LegacyQueues(Enum):
     COMPARE = "digitizer2_compare"
     NORM_SOA= "digitizer2_normsoa"
     DIGITIZER2_OMOP_GENERATE='digitizer2_omopgenerate'
+    PB_ANALYZER = "analyzer"
 
 
 

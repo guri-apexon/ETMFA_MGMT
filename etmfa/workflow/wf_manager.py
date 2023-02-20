@@ -68,7 +68,7 @@ class WorkFlowManager():
         self.store, self.broker = get_db_and_broker(
             message_broker_exchange, message_broker_address)
         self.service_message_handler = ServiceMessageHandler(
-            GetServiceHandler(self.dfs_path).get_handler)
+            GetServiceHandler(self.dfs_path).get_handler,self.logger)
 
         self.work_flows: Dict[str, WorkFlow] = {}
         if initialize_listener:
@@ -198,7 +198,7 @@ class WorkFlowManager():
         message from broker comes here ,as we listening for output queues this is output queue
         get workflow to which it belongs
         """
-        self.logger.debug(f"message received is: {msg_obj}")
+        self.logger.info(f"message received on {out_queue_name} is: {msg_obj}")
         self._process_msg(out_queue_name, msg_obj)
 
     def register_work_flow(self, work_flow_name, depend_graph):

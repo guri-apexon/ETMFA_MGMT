@@ -17,8 +17,12 @@ class GenericMessageHandler(MessageHandler):
         return in_service_message
 
     def on_output_message_adapter(self, service_name: str, message: CompositeServiceMessage):
+        for sr_param in message.services_param:
+            msg_params = sr_param.params
+            if not msg_params.get('docId', None):
+                msg_params['docId'] = message.flow_id
         update_doc_processing_status(
-            message.flow_id, service_name,True,message.flow_name)
+            message.flow_id, service_name, True, message.flow_name)
         return message.dict()
 
 

@@ -4,7 +4,7 @@ import os
 from enum import Enum
 from .message_handler_interface import MessageHandler
 from ..models import ServiceMessage, CompositeServiceMessage, TriageRequest, GenericRequest, Dig2XMLPathRequest
-from ..models.generic_request import I2eOmapRequest, DIG2OMAPRequest
+from ..models.generic_request import I2eOmapRequest, DIG2OMAPRequest,AnalyzerRequest
 from ...default_workflows import DEFAULT_SERVICE_FLOW_MAP
 from ..models.queue_names import EtmfaQueues
 from ..models.processing_status import ProcessingStatus
@@ -19,7 +19,7 @@ class DigitizationGenericMessageHandler(MessageHandler):
     def update_dfs_path(self, dfs_path):
         self.dfs_path = dfs_path
 
-    def on_msg(self, service_name: str, message: ServiceMessage, meta_info: Dict) -> ServiceMessage:
+    def on_msg(self, service_name: str, message: ServiceMessage) -> ServiceMessage:
         """
         Status update and db handling to be done here,on end of service
         """
@@ -203,7 +203,7 @@ class Digitizer2OmopUpdateHandler(DigitizationGenericMessageHandler):
 
 class Digitizer2CompareHandler(DigitizationGenericMessageHandler):
 
-    def on_msg(self, service_name: str, message: ServiceMessage, meta_info: Dict) -> ServiceMessage:
+    def on_msg(self, service_name: str, message: ServiceMessage) -> ServiceMessage:
         """
         Status update and db handling to be done here,on end of service
         """
@@ -272,3 +272,21 @@ class Digitizer2NormSOAHandler(DigitizationGenericMessageHandler):
             IQVXMLPath, prefix="D2_", suffix="*.xml*")
 
         return Dig2XMLPathRequest(_id, doc_id, FeedbackRunId, flow_name, flow_id, dig_file_path, '').__dict__
+
+class AnalyzerMessageHandler(DigitizationGenericMessageHandler):
+
+    def on_output_message_adapter(self, service_name, msg: CompositeServiceMessage) -> Dict:
+        """
+        message to be sent to document compare
+        """
+        service_param = self._get_msg_obj(msg)
+        if not service_param.get('doc_id',None):        
+            _id = service_param['id']
+            doc_id=_id
+        else:
+            doc_id = service_param['doc_id']
+            _id=msg.flow_id
+        flow_name = msg.flow_name
+        flow_id = msg.flow_id
+        variable_list=["total_num_site_visit","total_num_months","num_visits_per_month","median_visit_len","inpatient"]
+        return AnalyzerRequest(flow_id,flow_name,_id,doc_id,variable_list).__dict__
