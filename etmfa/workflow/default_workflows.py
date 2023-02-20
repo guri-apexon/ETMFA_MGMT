@@ -41,6 +41,10 @@ FULL_GRAPH = [{'service_name': EtmfaQueues.TRIAGE.value, 'depends': []},
                   'depends': [EtmfaQueues.I2E_OMOP_UPDATE.value]},
               {'service_name': EtmfaQueues.COMPARE.value,
                   'depends': [EtmfaQueues.EXTRACTION.value]},
+              {'service_name': EtmfaQueues.META_TAGGING.value,
+                  'depends': [EtmfaQueues.DIGITIZER2_OMOPUPDATE.value]},
+              {'service_name': EtmfaQueues.META_EXTRACTION.value,
+                  'depends': [EtmfaQueues.META_TAGGING.value]},
               {'service_name': TERMINATE_NODE, 'depends': [
                   EtmfaQueues.DIGITIZER2_OMOPUPDATE.value, EtmfaQueues.COMPARE.value]}
               ]
