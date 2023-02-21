@@ -19,6 +19,7 @@ from flask import Flask
 from flask_cors import CORS
 from flask_restplus import Api
 from werkzeug.contrib.fixers import ProxyFix
+from etmfa_core.postgres_db_schema import create_schemas
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -45,6 +46,7 @@ def start_workflow_runner(logger):
 
 def create_app(config_name, ssl_enabled=False):
     # Override 'Development' config when invoking server
+    create_schemas(app.config['SQLALCHEMY_DATABASE_URI'])
     load_app_config(config_name)
     logger = logging.getLogger(Consts.LOGGING_NAME)
     if app.config['WORK_FLOW_RUNNER']:
