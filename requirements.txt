@@ -1,3 +1,4 @@
+etmfa-core
 amqp==2.6.1
 aniso8601==9.0.1
 atomicwrites==1.4.1
@@ -73,3 +74,4 @@ zope.event==4.6
 zope.interface==5.5.2
 pyzmq==24.0.1
 zmq==0.0.0
+
