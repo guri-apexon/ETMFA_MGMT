@@ -74,4 +74,5 @@ zope.event==4.6
 zope.interface==5.5.2
 pyzmq==24.0.1
 zmq==0.0.0
+pydantic==1.10.4
 
