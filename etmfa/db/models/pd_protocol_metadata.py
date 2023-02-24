@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from dataclasses import dataclass
 import hashlib
 
+
 class PDProtocolMetadata(db_context.Model):
     __tablename__ = "pd_protocol_metadata"
 
@@ -201,6 +202,8 @@ SUMMARY_MAPPED_FIELDS = {'Protocol Name': 'fileName',
 
 
 class MetaDataTableHelper():
+    SUMMARY_EXTENDED = 'summary_extended'
+
     def __init__(self, max_level=6):
         self.max_level = max_level
         self.valid_level_range = list(range(1, max_level+1))
@@ -336,11 +339,9 @@ class MetaDataTableHelper():
         Add metadata field attributes
         """
         status, duplicate, error = True, False, False
-        if not field_name:
-            if not self.check_field_exist(id, 'summary_extended'):
-                self.add_field(id, 'summary_extended')
-                
-            field_name = 'summary_extended'
+        if field_name == MetaDataTableHelper.SUMMARY_EXTENDED:
+            if not self.check_field_exist(id, MetaDataTableHelper.SUMMARY_EXTENDED):
+                self.add_field(id, MetaDataTableHelper.SUMMARY_EXTENDED)
         nested_fields, level = self._get_level(field_name)
         try:
             start_field, end_field = nested_fields[0],nested_fields[-1]
@@ -383,7 +384,7 @@ class MetaDataTableHelper():
         """
         nested_obj = NestedDict(self.max_level)
         is_deleted,error = True,''
-        nested_fields, field_level = self._get_level(field_name)
+        nested_fields, _ = self._get_level(field_name)
         try:
             data = self.get_session().query(PDProtocolMetadata).get(id)
             if data == None:
@@ -409,6 +410,9 @@ class MetaDataTableHelper():
         Update attributes
         """
         status, duplicate, error = True, False, False
+        if field_name == MetaDataTableHelper.SUMMARY_EXTENDED:
+            if not self.check_field_exist(id, MetaDataTableHelper.SUMMARY_EXTENDED):
+                self.add_field(id, MetaDataTableHelper.SUMMARY_EXTENDED)
         nested_fields, level = self._get_level(field_name)
         start_field, end_field = nested_fields[0], nested_fields[-1]
         parent_id = self._get_elements_hash([id, start_field, level, end_field])
