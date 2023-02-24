@@ -18,6 +18,8 @@ Test cases for add data
 @pytest.mark.order(1)
 @pytest.mark.parametrize("op, aidocId, fieldName, attributeNames, expected_status_cd, comments",
                          [("deleteField", "0be44992-9573-4010-962c-de1a1b18b08d", "test_info",
+                           [],  HTTPStatus.OK, "delete record if there only for consistency"),
+                         ("deleteField", "0be44992-9573-4010-962c-de1a1b18b08d", "summary_extended",
                            [],  HTTPStatus.OK, "delete record if there only for consistency")]
                          )
 def test_delete_metadata_start(new_app_context, op, aidocId, fieldName, attributeNames, expected_status_cd, comments):
@@ -146,32 +148,35 @@ Test cases for update metadata
 
 @pytest.mark.order(5)
 @pytest.mark.parametrize("aidocId, fieldName, attributes, expected_status_cd, comments",
-                         [("0be44992-9573-4010-962c-de1a1b18b08d", "test_info.aa.bb.cc.dd.ee", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"},
-                                                                                                {"attr_name": "isHealthy", "attr_type": "boolean", "attr_value": True},
-                                                                                                {"attr_name": "no_of_years", "attr_type": "integer", "attr_value": 28},
-                                                                                                {"attr_name": "treatment_timeperiod",
-                                                                                                 "attr_type": "date", "attr_value": "21Mar1999"},
-                                                                                                {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "Normal"),
-                          ("0be44992-9573-4010-962c-de1a1b18b08d", "", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"},
-                                                                        {"attr_name": "isHealthy", "attr_type": "boolean", "attr_value": True},
-                                                                        {"attr_name": "no_of_years", "attr_type": "integer", "attr_value": 28},
-                                                                        {"attr_name": "treatment_timeperiod",
+                         [
+                             ("0be44992-9573-4010-962c-de1a1b18b08d", "summary_extended", [{"attr_name": "specimen", "attr_type": "string", "attr_value": "blood"},
+                                                                                                   {"attr_name": "valid", "attr_type": "boolean", "attr_value": True}], HTTPStatus.OK, "Normal"),
+                             ("0be44992-9573-4010-962c-de1a1b18b08d", "test_info.aa.bb.cc.dd.ee", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"},
+                                                                                                   {"attr_name": "isHealthy", "attr_type": "boolean", "attr_value": True},
+                                                                                                   {"attr_name": "no_of_years", "attr_type": "integer", "attr_value": 28},
+                                                                                                   {"attr_name": "treatment_timeperiod",
+                                                                                                    "attr_type": "date", "attr_value": "21Mar1999"},
+                                                                                                   {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "Normal"),
+                             ("0be44992-9573-4010-962c-de1a1b18b08d", "", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"},
+                                                                           {"attr_name": "isHealthy", "attr_type": "boolean", "attr_value": True},
+                                                                           {"attr_name": "no_of_years", "attr_type": "integer", "attr_value": 28},
+                                                                           {"attr_name": "treatment_timeperiod",
                                                                             "attr_type": "date", "attr_value": "21Mar1999"},
-                                                                        {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "without field name"),
-                          ("0be44992-9573-4010-962c-de1a1b18b08d", "test_info.aa.bb.cc.dd.ee", [
-                           {"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"}], HTTPStatus.OK, "Normal"),
-                          ("", "test_info.aa.bb.cc.dd.ee", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"},
-                                                            {"attr_name": "isHealthy",
-                                                             "attr_type": "boolean", "attr_value": True},
-                                                            {"attr_name": "no_of_years",
-                                                             "attr_type": "integer", "attr_value": 28},
-                                                            {"attr_name": "treatment_timeperiod",
-                                                             "attr_type": "date", "attr_value": "21Mar1999"},
-                                                            {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.NOT_FOUND, "Missing aidocId"),
-                          ("", "", "", HTTPStatus.NOT_FOUND, "All missing"),
-                          ("0be44992-9573-4010-962c-de1a1b18b08d",
-                           "test_info.aa.bb.cc.dd.ee", "", HTTPStatus.NOT_FOUND, "Normal")
-                          ])
+                                                                           {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "without field name"),
+                             ("0be44992-9573-4010-962c-de1a1b18b08d", "test_info.aa.bb.cc.dd.ee", [
+                                 {"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"}], HTTPStatus.OK, "Normal"),
+                             ("", "test_info.aa.bb.cc.dd.ee", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"},
+                                                               {"attr_name": "isHealthy",
+                                                                "attr_type": "boolean", "attr_value": True},
+                                                               {"attr_name": "no_of_years",
+                                                                "attr_type": "integer", "attr_value": 28},
+                                                               {"attr_name": "treatment_timeperiod",
+                                                                "attr_type": "date", "attr_value": "21Mar1999"},
+                                                               {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.NOT_FOUND, "Missing aidocId"),
+                             ("", "", "", HTTPStatus.NOT_FOUND, "All missing"),
+                             ("0be44992-9573-4010-962c-de1a1b18b08d",
+                                 "test_info.aa.bb.cc.dd.ee", "", HTTPStatus.NOT_FOUND, "Normal")
+                         ])
 def test_update_meta_data(new_app_context, aidocId, fieldName, attributes, expected_status_cd, comments):
     new_app, _ = new_app_context
     client = new_app.test_client()
@@ -196,7 +201,6 @@ def test_update_meta_data(new_app_context, aidocId, fieldName, attributes, expec
         if response.status_code == HTTPStatus.UNAUTHORIZED:
             assert json.loads(response.data)[
                 'message'] == "Credential validation: Authentication failed for given username and password"
-
 
 """
 Get meta data
@@ -302,7 +306,10 @@ def test_delete_metadata(new_app_context, op, aidocId, fieldName, attributeNames
 @pytest.mark.order(8)
 @pytest.mark.parametrize("op, aidocId, fieldName, attributeNames, expected_status_cd, comments",
                          [("deleteField", "0be44992-9573-4010-962c-de1a1b18b08d",
-                           "test_info", [],  HTTPStatus.OK, "delete record if there")]
+                           "test_info", [],  HTTPStatus.OK, "delete record if there"),
+                           ("deleteField", "0be44992-9573-4010-962c-de1a1b18b08d",
+                           "summary_extended", [],  HTTPStatus.OK, "delete record if there")
+                           ]
                          )
 def test_delete_metadata_end(new_app_context, op, aidocId, fieldName, attributeNames, expected_status_cd, comments):
     new_app, _ = new_app_context
