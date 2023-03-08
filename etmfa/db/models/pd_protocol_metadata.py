@@ -61,7 +61,9 @@ class PDProtocolMetadata(db_context.Model):
     lastUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
     userCreated = db_context.Column(db_context.String(200))
     userUpdated = db_context.Column(db_context.String(200))
-
+    amendmentNumber = db_context.Column(db_context.String(64))
+    versionDate = db_context.Column(db_context.Date)
+    source = db_context.Column(db_context.String(32))
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}
