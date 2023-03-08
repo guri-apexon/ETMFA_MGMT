@@ -813,34 +813,28 @@ def get_latest_protocol(protocol_number, version_number="", approval_date="", ai
     # Get dynamic conditions
     all_filter, order_condition = utils.get_filter_conditions(protocol_number, version_number, approval_date, aidoc_id,
                                                               document_status)
-
     try:
         if is_top_1_only:
-            resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata.draftVersion,
+            resource = db_context.session.query(PDProtocolMetadata, PDProtocolMetadata.draftVersion,
                                                 PDProtocolMetadata.amendment, PDProtocolMetadata.uploadDate,
-                                                PDProtocolMetadata.documentFilePath,
+                                                PDProtocolMetadata.documentFilePath, PDProtocolMetadata.id,
                                                 PDProtocolMetadata.projectId, PDProtocolMetadata.documentStatus,
-                                                PDProtocolMetadata.protocol
-                                                ).join(PDProtocolMetadata,
-                                                       and_(PDProtocolQCSummaryData.aidocId == PDProtocolMetadata.id,
-                                                            PDProtocolQCSummaryData.source == 'QC',
-                                                            PDProtocolMetadata.qcStatus == 'QC_COMPLETED')
-                                                       ).filter(text(all_filter)
+                                                PDProtocolMetadata.protocol, PDProtocolMetadata.indication,
+                                                PDProtocolMetadata.shortTitle
+                                                ).filter(text(all_filter)
                                                                 ).order_by(text(order_condition)).first()
         else:
-            resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata.draftVersion,
+            resource = db_context.session.query(PDProtocolMetadata, PDProtocolMetadata.draftVersion,
                                                 PDProtocolMetadata.amendment, PDProtocolMetadata.uploadDate,
                                                 PDProtocolMetadata.documentFilePath, PDProtocolMetadata.projectId,
                                                 PDProtocolMetadata.documentStatus, PDProtocolMetadata.protocol,
-                                                PDProtocolQCSummaryData.source,
-                                                func.rank().over(partition_by=PDProtocolQCSummaryData.aidocId,
-                                                                 order_by=PDProtocolQCSummaryData.source.desc()).label(
+                                                PDProtocolMetadata.source, PDProtocolMetadata.indication,
+                                                PDProtocolMetadata.id, PDProtocolMetadata.shortTitle,
+                                                func.rank().over(partition_by=PDProtocolMetadata.id,
+                                                                 order_by=PDProtocolMetadata.source.desc()).label(
                                                     'rank')
-                                                ).join(PDProtocolMetadata,
-                                                       PDProtocolQCSummaryData.aidocId == PDProtocolMetadata.id
-                                                       ).filter(text(all_filter)
+                                                ).filter(text(all_filter)
                                                                 ).order_by(text(order_condition)).all()
-
             resource = utils.filter_qc_status(
                 resources=resource, qc_status=qc_status)
     except Exception as e:
@@ -895,8 +889,7 @@ def update_user_protocols(user_id, project_id, protocol_number):
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
-            logger.error("Error while writing record to PD_user_protocol file in DB for user id: {},{}".format(
-                user_id, ex))
+            logger.error("Error while writing record to PD_user_protocol file in DB for user id: {},{}".format(user_id, ex))
     else:
         for record in records:
             record.isActive = True
@@ -910,19 +903,18 @@ def update_user_protocols(user_id, project_id, protocol_number):
                 db_context.session.commit()
             except Exception as ex:
                 db_context.session.rollback()
-                logger.error(
-                    "Error while updating record to PD_user_protocol file in DB for user id: {},{}".format(user_id, ex))
-
+                logger.error("Error while updating record to PD_user_protocol file in DB for user id: {},{}".format(user_id, ex))
 
 def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
     """
     Get protocol attributes and Normalized SOA
     """
-    resource = None
+    norm_soa = []
+    visitrecord_mapper = None
     resource_dict = dict()
-    protocol_attributes = ""
-    norm_soa = ""
-
+    norm_dict = dict()
+    footnotes = ["footnote_0", "footnote_1", "footnote_2", "footnote_3", "footnote_4",
+                 "footnote_5", "footnote_6", "footnote_7", "footnote_8", "footnote_9"]
     try:
         active_protocol = PDProtocolMetadata.query.filter(
             and_(PDProtocolMetadata.id == aidoc_id, PDProtocolMetadata.protocol == protocol_number,
@@ -934,27 +926,40 @@ def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
         logger.error(
             f"No active document found in DB [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]")
         logger.error(f"Exception message:\n{e}")
-
+    
     try:
-        resource = Protocoldata.query.filter(
-            Protocoldata.id == aidoc_id).first()
-        if resource is not None:
-            if resource.iqvdataSummary is not None:
-                protocol_attributes_raw_dict = json.loads(
-                    json.loads(resource.iqvdataSummary))
-                protocol_attributes = {key: value for key, value in protocol_attributes_raw_dict.items() if
-                                       key in ['columns', 'data']}
-            if resource.iqvdataSoaStd is not None:
-                norm_soa = json.loads(json.loads(resource.iqvdataSoaStd))
+        session = db_context.session()
 
-            resource_dict = {
-                'id': resource.id, 'protocolADocumentcomparettributes': protocol_attributes, 'normalizedSOA': norm_soa}
+        helper_obj = MetaDataTableHelper()  
+        protocol_attributes_str = helper_obj.get_data(aidoc_id)
+
+        visitrecord_mapper = session.query(IqvassessmentvisitrecordDbMapper).filter(
+            IqvassessmentvisitrecordDbMapper.doc_id == aidoc_id).all()   
+        
+        if visitrecord_mapper is not None:
+            for record in visitrecord_mapper:
+                resource_dict = {key: value for key,
+                                 value in record.__dict__.items()}
+                resource_dict.pop("_sa_instance_state")
+                footnote_list = []
+                for note in footnotes:
+                    if note in resource_dict:
+                        if len(resource_dict.get(note)) != 0:
+                            footnote_list.append(resource_dict.get(note))
+                        resource_dict.pop(note)
+                    continue
+
+                resource_dict.update({"footnotes": footnote_list})
+                norm_soa.append(resource_dict)
+            norm_soa_str = json.loads(json.dumps(norm_soa))
+        
+        norm_dict = {
+            'id': aidoc_id, 'protocolAttributes': protocol_attributes_str, 'normalizedSOA': norm_soa_str}
     except Exception as exc:
         logger.exception(
             f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
 
-    return resource_dict
-
+    return norm_dict
 
 def get_attr_soa_compare(protocol_number, aidoc_id, compare_doc_id) -> dict:
     """
@@ -1045,7 +1050,8 @@ def get_normalized_soa_details(protocol_number, aidoc_id) -> dict:
     visitrecord_mapper = None
     resource_dict = dict()
     norm_dict = dict()
-
+    norm_soa_str= dict()
+    
     footnotes = ["footnote_0", "footnote_1", "footnote_2", "footnote_3", "footnote_4",
                  "footnote_5", "footnote_6", "footnote_7", "footnote_8", "footnote_9"]
     norm_soa = []
@@ -1176,42 +1182,35 @@ def get_protocols_by_date_time_range(version_date="", approval_date="", start_da
 
     try:
         if qc_status is not '':
-            resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata,
-                                                PDProtocolMetadata.draftVersion,
+            resource = db_context.session.query( PDProtocolMetadata,
+                                                PDProtocolMetadata.draftVersion, PDProtocolMetadata.id,
                                                 PDProtocolMetadata.protocol, PDProtocolMetadata.documentFilePath,
                                                 PDProtocolMetadata.projectId, PDProtocolMetadata.uploadDate,
                                                 PDProtocolMetadata.sponsor, PDProtocolMetadata.protocolTitle,
                                                 PDProtocolMetadata.versionNumber, PDProtocolMetadata.documentStatus,
                                                 PDProtocolMetadata.protocol, PDProtocolMetadata.amendment,
-                                                PDProtocolMetadata.qcStatus,
-                                                PDProtocolQCSummaryData.approvalDate, PDProtocolQCSummaryData.source,
-                                                PDProtocolQCSummaryData.isAmendment,
-                                                PDProtocolQCSummaryData.protocolShortTitle,
-                                                PDProtocolQCSummaryData.versionDate,
-                                                PDProtocolQCSummaryData.amendmentNumber
-                                                ).join(PDProtocolMetadata,
-                                                       (PDProtocolQCSummaryData.aidocId ==
-                                                        PDProtocolMetadata.id)
-                                                       ).filter(text(all_filter)).all()
+                                                PDProtocolMetadata.qcStatus, PDProtocolMetadata.indication,
+                                                PDProtocolMetadata.approvalDate, PDProtocolMetadata.source,
+                                                PDProtocolMetadata.amendment,
+                                                PDProtocolMetadata.shortTitle,
+                                                PDProtocolMetadata.versionDate,
+                                                PDProtocolMetadata.amendmentNumber
+                                                ).filter(text(all_filter)).all()
         else:
-            resource = db_context.session.query(PDProtocolQCSummaryData, PDProtocolMetadata,
+            resource = db_context.session.query(PDProtocolMetadata,PDProtocolMetadata.id,
                                                 PDProtocolMetadata.draftVersion,
                                                 PDProtocolMetadata.protocol, PDProtocolMetadata.documentFilePath,
                                                 PDProtocolMetadata.projectId, PDProtocolMetadata.uploadDate,
                                                 PDProtocolMetadata.sponsor, PDProtocolMetadata.protocolTitle,
                                                 PDProtocolMetadata.versionNumber, PDProtocolMetadata.documentStatus,
                                                 PDProtocolMetadata.protocol, PDProtocolMetadata.amendment,
-                                                PDProtocolMetadata.qcStatus,
-                                                PDProtocolQCSummaryData.approvalDate, PDProtocolQCSummaryData.source,
-                                                PDProtocolQCSummaryData.isAmendment,
-                                                PDProtocolQCSummaryData.protocolShortTitle,
-                                                PDProtocolQCSummaryData.versionDate,
-                                                PDProtocolQCSummaryData.amendmentNumber
-                                                ).join(PDProtocolMetadata,
-                                                       and_(PDProtocolQCSummaryData.aidocId == PDProtocolMetadata.id,
-                                                            PDProtocolQCSummaryData.source == 'QC',
-                                                            PDProtocolMetadata.qcStatus == 'QC_COMPLETED')
-                                                       ).filter(text(all_filter)).all()
+                                                PDProtocolMetadata.qcStatus, PDProtocolMetadata.indication,
+                                                PDProtocolMetadata.approvalDate, PDProtocolMetadata.source,
+                                                PDProtocolMetadata.amendment,
+                                                PDProtocolMetadata.shortTitle,
+                                                PDProtocolMetadata.versionDate,
+                                                PDProtocolMetadata.amendmentNumber
+                                                ).filter(text(all_filter)).all()
 
         resource = utils.filter_qc_status(
             resources=resource, qc_status=qc_status)

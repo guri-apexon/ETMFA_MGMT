@@ -731,7 +731,6 @@ class DocumentprocessingAPI(Resource):
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
 
 
-@ns.route('/protocol_versions')
 @ns.route('/get_protocols')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
