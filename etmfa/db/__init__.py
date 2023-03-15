@@ -108,15 +108,28 @@ def get_details_by_elm(table_name, elm_name, elm_val):
 
 def check_if_document_processed(doc_uid):
     """
+    doc_uid: hashed value of document
+    return: True/False and if duplicate. list of documents to which its duplicate 
+
     """
     session = db_context.session
-    obj_list = session.query(WorkFlowStatus).filter(and_(WorkFlowStatus.doc_uid == doc_uid,
-                                                         or_(WorkFlowStatus.work_flow_name == DWorkFLows.FULL_FLOW.value,
-                                                             WorkFlowStatus.work_flow_name == DWorkFLows.DIGITIZATION.value),
-                                                         WorkFlowStatus.status == WorkFlowState.COMPLETED.value)).all()
+    obj_list = session.query(WorkFlowStatus.work_flow_id, WorkFlowStatus.doc_uid).filter(and_(WorkFlowStatus.doc_uid == doc_uid,
+                                                                                              or_(WorkFlowStatus.work_flow_name == DWorkFLows.FULL_FLOW.value,
+                                                                                                  WorkFlowStatus.work_flow_name == DWorkFLows.DIGITIZATION.value),
+                                                                                              WorkFlowStatus.status == WorkFlowState.COMPLETED.value)).all()
+    duplicate_list = []
     if obj_list:
-        return True
-    return False
+        for obj in obj_list:
+            resource = session.query(PDProtocolMetadata.userId, PDProtocolMetadata.versionNumber, PDProtocolMetadata.protocol,
+                                     PDProtocolMetadata.lastUpdated, PDProtocolMetadata.uploadDate, PDProtocolMetadata.userCreated
+                                     ).filter(PDProtocolMetadata.id == obj.work_flow_id).first()
+            info = {'userId': resource.userId, 'versionNumber': resource.versionNumber,
+                    'userCreated': resource.userCreated, 'protocol': resource.protocol, 'id': obj.work_flow_id,
+                    'uploadDate': resource.uploadDate, 'lastUpdated': resource.lastUpdated, 'doc_uid': obj.doc_uid}
+            duplicate_list.append(info)
+
+        return True, duplicate_list
+    return False, duplicate_list
 
 def schema_to_dict(row):
     data = {}

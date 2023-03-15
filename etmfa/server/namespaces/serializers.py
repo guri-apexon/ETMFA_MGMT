@@ -353,7 +353,7 @@ eTMFA_object_post.add_argument('protocolNumber',
                                help=PROTOCOL_NUMBER)
 eTMFA_object_post.add_argument('sponsor',
                                type=str,
-                               required=True,
+                               required=False,
                                help='Sponsor')
 eTMFA_object_post.add_argument('sourceSystem',
                                type=str,
@@ -384,11 +384,11 @@ eTMFA_object_post.add_argument('environment',
                                help='Environment')
 eTMFA_object_post.add_argument('indication',
                                type=str,
-                               required=True,
+                               required=False,
                                help='Indication')
 eTMFA_object_post.add_argument('moleculeDevice',
                                type=str,
-                               required=True,
+                               required=False,
                                help='Molecule Device')
 eTMFA_object_post.add_argument('userId',
                                type=str,
