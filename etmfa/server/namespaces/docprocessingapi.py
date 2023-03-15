@@ -27,6 +27,7 @@ from etmfa.db import (
     get_attr_soa_details,
     get_attr_soa_compare,
     get_normalized_soa_details,
+    get_normalized_soa_table,
     get_protocols_by_date_time_range,
     get_metadata_summary,
     add_metadata_summary,
@@ -54,7 +55,6 @@ from etmfa.server.namespaces.serializers import (
     norm_soa_compare_input,
     norm_soa_compare_get,
     protocol_soa_input,
-    protocol_soa_get,
     metadata_summary_input,
     metadata_summary_create,
     metadata_summary_update,
@@ -507,12 +507,10 @@ class DocumentprocessingAPI(Resource):
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
 
 
-# added for pd 2.0
 @ns.route('/protocol_normalized_soa')
 @ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
 class DocumentprocessingAPI(Resource):
     @ns.expect(protocol_soa_input)
-    @ns.marshal_with(protocol_soa_get)
     @ns.response(HTTPStatus.OK, 'Success.')
     @ns.response(HTTPStatus.NOT_FOUND, 'Document Processing resource not found.')
     @api.doc(security='apikey')
@@ -521,18 +519,18 @@ class DocumentprocessingAPI(Resource):
         """Get Protocol Normalized SOA"""
         args = protocol_soa_input.parse_args()
         try:
-            cleaned_inputs = utils.clean_inputs(
-                protocol_number=args['protocolNumber'], aidoc_id=args['id'])
-            protocol_number = cleaned_inputs.get('protocol_number', '')
+            cleaned_inputs = utils.clean_inputs(aidoc_id=args['id'])
             aidoc_id = cleaned_inputs.get('aidoc_id', '')
 
-            if not protocol_number or not aidoc_id:
+            if not aidoc_id:
                 logger.error(f"Invalid user inputs received: {args}")
                 return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
-
-            resource = get_normalized_soa_details(
-                protocol_number=protocol_number, aidoc_id=aidoc_id)
-
+            if args['operationValue'] == 'normalizedSOA':
+                resource = get_normalized_soa_details(aidoc_id=aidoc_id)
+            elif args['operationValue'] == 'SOATable':
+                resource = get_normalized_soa_table(aidoc_id=aidoc_id)
+            else:
+                return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
             if len(resource) == 0:
                 return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
             else:
@@ -540,7 +538,7 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
-
+    
 
 @ns.route('/meta_data_summary')
 @ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')

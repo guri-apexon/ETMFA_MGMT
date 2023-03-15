@@ -3,6 +3,19 @@ from flask_restplus import fields, reqparse, inputs
 from etmfa.server.api import api
 from etmfa.workflow.messaging.models.document_class import DocumentClass
 
+PROTOCOL_UNIQUE_ID = 'Unique PD id of protocol'
+PROTOCOL_NUMBER = 'Protocol number'
+METADATA_ATTRIBUTES = 'Metadata attributes'
+METADATA_FIELDNAME = 'Metadata fieldName'
+ETMFA_UNIQUE_ID = 'The unique identifier (UUID) of eTMFA document.'
+VERSION_NUMBER = 'Version Number'
+DOCUMENT_STATUS = 'Document status, default is "final"'
+ERROR_MESSAGE = 'error message'
+UNIQUE_PROTOCOL_DOCUMENT_ID = 'Unique protocol document id'
+SOURCE_SYSYTEM = 'Source system calling this API'
+DOCUMENT_PROCESSING_MODEL = 'Document Processing Status Model'
+SOURCE_INPUT_DOCUMENT = 'Source Input document name'
+
 kv_pair_model = api.model(' KeyValue Pair for patch ', {
     'name': fields.String(
         description='The metadata object supports dictionary style properties of any number of key-value pairs. ' +
@@ -19,10 +32,10 @@ metadata_get = api.model('eTMFA attribute extraction get attributes', {
     'metadata': fields.List(fields.Nested(k_pair_model))
 })
 
-eTMFA_object_get = api.model('Document Processing Status Model',
+eTMFA_object_get = api.model(DOCUMENT_PROCESSING_MODEL,
                              {
                                  'id': fields.String(readOnly=True,
-                                                     description='The unique identifier (UUID) of eTMFA document.'),
+                                                     description=ETMFA_UNIQUE_ID),
                                  'isProcessing': fields.Boolean(readOnly=True,
                                                                 description='The document is being processed. Final attributes of documents may not exist.'),
                                  'percentComplete': fields.String(readOnly=True,
@@ -49,7 +62,7 @@ eTMFA_object_get = api.model('Document Processing Status Model',
                              )
 
 
-PD_qc_get = api.model('Document Processing Status Model',
+PD_qc_get = api.model(DOCUMENT_PROCESSING_MODEL,
                       {
                           'aidocid': fields.String(readOnly=True,
                                                    description='The aidocid for QC update.'),
@@ -59,10 +72,10 @@ PD_qc_get = api.model('Document Processing Status Model',
                       }
                       )
 
-eTMFA_object_get_status = api.model('Document Processing Status Model',
+eTMFA_object_get_status = api.model(DOCUMENT_PROCESSING_MODEL,
                                     {
                                         'id': fields.String(readOnly=True,
-                                                            description='The unique identifier (UUID) of eTMFA document.'),
+                                                            description=ETMFA_UNIQUE_ID),
                                         'isProcessing': fields.Boolean(readOnly=True,
                                                                        description='The document is being processed. Final attributes of documents may not exist.'),
                                         'percentComplete': fields.String(readOnly=False,
@@ -90,7 +103,7 @@ eTMFA_object_get_status = api.model('Document Processing Status Model',
 eTMFA_metrics_get = api.model('Document Processing Metrics Model',
                               {
                                   'id': fields.String(readOnly=True,
-                                                      description='The unique identifier (UUID) of eTMFA document.'),
+                                                      description=ETMFA_UNIQUE_ID),
                                   'totalProcessTime': fields.String(readOnly=True,
                                                                     description='total processing time of eTMFA document.'),
                                   'queueWaitTime': fields.String(readOnly=True,
@@ -161,11 +174,11 @@ eTMFA_attributes_input = reqparse.RequestParser()
 eTMFA_attributes_input.add_argument('id',
                                     type=str,
                                     required=True,
-                                    help='Source Input document name')
+                                    help=SOURCE_INPUT_DOCUMENT)
 eTMFA_attributes_input.add_argument('protocolNumber',
                                     type=str,
                                     required=True,
-                                    help='Protocol Number')
+                                    help=PROTOCOL_NUMBER)
 eTMFA_attributes_input.add_argument('projectId',
                                     type=str,
                                     required=True,
@@ -173,7 +186,7 @@ eTMFA_attributes_input.add_argument('projectId',
 eTMFA_attributes_input.add_argument('versionNumber',
                                     type=str,
                                     required=False,
-                                    help='Version Number')
+                                    help=VERSION_NUMBER)
 eTMFA_attributes_input.add_argument('amendment',
                                     type=str,
                                     required=False,
@@ -203,50 +216,50 @@ eTMFA_attributes_input.add_argument('requestType',
 # Latest protocol download file
 latest_protocol_download_input = reqparse.RequestParser()
 latest_protocol_download_input.add_argument(
-    'protocolNumber', type=str, required=True, help='Protocol number')
+    'protocolNumber', type=str, required=True, help=PROTOCOL_NUMBER)
 latest_protocol_download_input.add_argument(
     'id', type=str, required=False, help='Unique PD ID of the document')
 latest_protocol_download_input.add_argument(
     'approvalDate', type=str, required=False, help='Approval date of the document in YYYYMMDD format')
 latest_protocol_download_input.add_argument(
-    'versionNumber', type=str, required=False, help='Version Number')
+    'versionNumber', type=str, required=False, help=VERSION_NUMBER)
 latest_protocol_download_input.add_argument(
-    'documentStatus', type=str, required=False, help='Document status, default is "final"')
+    'documentStatus', type=str, required=False, help=DOCUMENT_STATUS)
 latest_protocol_download_input.add_argument(
-    'sourceSystem', type=str, required=False, help='Source system calling this API')
+    'sourceSystem', type=str, required=False, help=SOURCE_SYSYTEM)
 
 # Latest protocol contents
 latest_protocol_contents_input = reqparse.RequestParser()
 latest_protocol_contents_input.add_argument(
-    'protocolNumber', type=str, required=True, help='Protocol number')
+    'protocolNumber', type=str, required=True, help=PROTOCOL_NUMBER)
 latest_protocol_contents_input.add_argument(
     'id', type=str, required=False, help='Unique PD ID of the document')
 latest_protocol_contents_input.add_argument(
     'approvalDate', type=str, required=False, help='Approval date of the document in YYYYMMDD format')
 latest_protocol_contents_input.add_argument(
-    'versionNumber', type=str, required=False, help='Version Number')
+    'versionNumber', type=str, required=False, help=VERSION_NUMBER)
 latest_protocol_contents_input.add_argument(
-    'documentStatus', type=str, required=False, help='Document status, default is "final"')
+    'documentStatus', type=str, required=False, help=DOCUMENT_STATUS)
 latest_protocol_contents_input.add_argument(
-    'sourceSystem', type=str, required=False, help='Source system calling this API')
+    'sourceSystem', type=str, required=False, help=SOURCE_SYSYTEM)
 
 # Protocol versions (sorted)
 latest_protocol_input = reqparse.RequestParser()
 latest_protocol_input.add_argument(
-    'protocolNumber', type=str, required=True, help='Protocol number')
+    'protocolNumber', type=str, required=True, help=PROTOCOL_NUMBER)
 latest_protocol_input.add_argument(
-    'versionNumber', type=str, required=False, help='Version Number')
+    'versionNumber', type=str, required=False, help=VERSION_NUMBER)
 latest_protocol_input.add_argument(
-    'documentStatus', type=str, required=False, help='Document status, default is "final"')
+    'documentStatus', type=str, required=False, help=DOCUMENT_STATUS)
 latest_protocol_input.add_argument(
     'qcStatus', type=str, required=False, help='Quality check validation status, default is "qc_only"')
 latest_protocol_input.add_argument(
-    'sourceSystem', type=str, required=False, help='Source system calling this API')
+    'sourceSystem', type=str, required=False, help=SOURCE_SYSYTEM)
 
 latest_protocol_contract_fields = ('protocol', 'versionNumber', 'sponsor', 'documentStatus', 'aidocId', 'allVersions', 'approvalDate',
                                    'draftNumber', 'uploadDate', 'projectId', 'amendmentNumber', 'amendmentFlag', 'protocolShortTitle', 'protocolTitle', 'indications', 'trialPhase', 'blinded')
 
-latest_protocol_get = api.model('Document Processing Status Model',
+latest_protocol_get = api.model(DOCUMENT_PROCESSING_MODEL,
                                 {
                                     'protocol': fields.String(readOnly=True,
                                                               description='Protocol Number of the latest protocol'),
@@ -277,11 +290,11 @@ latest_protocol_get = api.model('Document Processing Status Model',
 # Protocol attributes and SOA
 protocol_attr_soa_input = reqparse.RequestParser()
 protocol_attr_soa_input.add_argument(
-    'protocolNumber', type=str, required=True, help='Protocol number')
+    'protocolNumber', type=str, required=True, help=PROTOCOL_NUMBER)
 protocol_attr_soa_input.add_argument(
-    'id', type=str, required=True, help='Unique PD id of protocol')
+    'id', type=str, required=True, help=PROTOCOL_UNIQUE_ID)
 protocol_attr_soa_input.add_argument(
-    'sourceSystem', type=str, required=False, help='Source system calling this API')
+    'sourceSystem', type=str, required=False, help=SOURCE_SYSYTEM)
 
 protocol_attr_soa_get = api.model('Protocol Attributes and Normalized SOA',
                                   {
@@ -296,13 +309,13 @@ protocol_attr_soa_get = api.model('Protocol Attributes and Normalized SOA',
 # Normalized SOA compare
 norm_soa_compare_input = reqparse.RequestParser()
 norm_soa_compare_input.add_argument(
-    'protocolNumber', type=str, required=True, help='Protocol number')
+    'protocolNumber', type=str, required=True, help=PROTOCOL_NUMBER)
 norm_soa_compare_input.add_argument(
-    'baseDocId', type=str, required=True, help='Unique PD id of protocol')
+    'baseDocId', type=str, required=True, help=PROTOCOL_UNIQUE_ID)
 norm_soa_compare_input.add_argument(
     'compareDocId', type=str, required=True, help='compare PD id of protocol')
 norm_soa_compare_input.add_argument(
-    'sourceSystem', type=str, required=False, help='Source system calling this API')
+    'sourceSystem', type=str, required=False, help=SOURCE_SYSYTEM)
 
 norm_soa_compare_get = api.model('Normalized SOA compare',
                                  {
@@ -329,15 +342,15 @@ eTMFA_object_post = reqparse.RequestParser()
 eTMFA_object_post.add_argument('sourceFileName',
                                type=str,
                                required=True,
-                               help='Source Input document name')
+                               help=SOURCE_INPUT_DOCUMENT)
 eTMFA_object_post.add_argument('versionNumber',
                                type=str,
                                required=True,
-                               help='Version Number')
+                               help=VERSION_NUMBER)
 eTMFA_object_post.add_argument('protocolNumber',
                                type=str,
                                required=False,
-                               help='Protocol number')
+                               help=PROTOCOL_NUMBER)
 eTMFA_object_post.add_argument('sponsor',
                                type=str,
                                required=True,
@@ -478,7 +491,7 @@ document_processing_object_put_get = api.model('Document Processing Feedback Mod
 
 latest_protocol_input_by_date_range = reqparse.RequestParser()
 latest_protocol_input_by_date_range.add_argument(
-    'documentStatus', type=str, required=False, help='Document status, default is "final"')
+    'documentStatus', type=str, required=False, help=DOCUMENT_STATUS)
 latest_protocol_input_by_date_range.add_argument(
     'qcStatus', type=str, required=False, help='Quality check validation status, default is "qc_only"')
 latest_protocol_input_by_date_range.add_argument(
@@ -492,7 +505,7 @@ latest_protocol_input_by_date_range.add_argument(
 latest_protocol_input_by_date_range.add_argument(
     'endDate', type=str, required=False, help='end date in YYYYMMDD format')
 
-latest_protocol_get_by_date_range = api.model('Document Processing Status Model',
+latest_protocol_get_by_date_range = api.model(DOCUMENT_PROCESSING_MODEL,
                                               {
                                                   'protocol': fields.String(readOnly=True,
                                                                             description='Protocol Number of the latest protocol'),
@@ -525,9 +538,9 @@ latest_protocol_get_by_date_range = api.model('Document Processing Status Model'
 #added for pd 2.0
 # Protocol normalized SOA
 protocol_soa_input = reqparse.RequestParser()
-protocol_soa_input.add_argument('protocolNumber', type=str, required=True, help='Protocol number')
-protocol_soa_input.add_argument('id', type=str, required=True, help='Unique PD id of protocol')
-protocol_soa_input.add_argument('sourceSystem', type=str, required=False, help='Source system calling this API')
+protocol_soa_input.add_argument('id', type=str, required=True, help=PROTOCOL_UNIQUE_ID)
+protocol_soa_input.add_argument('sourceSystem', type=str, required=False, help=SOURCE_SYSYTEM)
+protocol_soa_input.add_argument('operationValue', type=str, required=True, help='Operation value')
 
 protocol_soa_get = api.model('Protocol Normalized SOA',
                              {
@@ -541,16 +554,16 @@ protocol_soa_get = api.model('Protocol Normalized SOA',
 # for metadata get
 metadata_summary_input = reqparse.RequestParser()
 metadata_summary_input.add_argument('op', type=str, required=True, help='Operation required to get metadata(provide "metadata" or "metaparam")')
-metadata_summary_input.add_argument('aidocId', type=str, required=True, help='Unique protocol document id')
-metadata_summary_input.add_argument('fieldName', type=str, required=False, help='Metadata fieldName')
+metadata_summary_input.add_argument('aidocId', type=str, required=True, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
+metadata_summary_input.add_argument('fieldName', type=str, required=False, help=METADATA_FIELDNAME)
 
 
 # for metadata create
 metadata_summary_create = reqparse.RequestParser()
 metadata_summary_create.add_argument('op', type=str, required=True, help='Operation required to create metadata(provide "addField" or "addAttributes")')
-metadata_summary_create.add_argument('aidocId', type=str, required=True, help='Unique protocol document id')
-metadata_summary_create.add_argument('fieldName', type=str, required=True, help='Metadata fieldName')
-metadata_summary_create.add_argument('attributes', type=dict,action='append', required=False, help='Metadata attributes')
+metadata_summary_create.add_argument('aidocId', type=str, required=True, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
+metadata_summary_create.add_argument('fieldName', type=str, required=True, help=METADATA_FIELDNAME)
+metadata_summary_create.add_argument('attributes', type=dict,action='append', required=False, help=METADATA_ATTRIBUTES)
 metadata_summary_add = api.model('API for external systems and BPO view to create metadata attributes',
                              {
                                  'isAdded': fields.Boolean(readOnly=True,
@@ -558,16 +571,16 @@ metadata_summary_add = api.model('API for external systems and BPO view to creat
                                  'isDuplicate': fields.Boolean(readOnly=True,
                                                      description='check metadata duplicate or not'),
                                  'error' : fields.String(readOnly=True,
-                                                     description='error message')
+                                                     description=ERROR_MESSAGE)
                                  
                              })
 
 
 # for metadata update
 metadata_summary = reqparse.RequestParser()
-metadata_summary.add_argument('aidocId', type=str, required=True, help='Unique protocol document id')
-metadata_summary.add_argument('fieldName', type=str, required=True, help='Metadata fieldName')
-metadata_summary.add_argument('attributes', type=dict,action='append', required=True, help='Metadata attributes')
+metadata_summary.add_argument('aidocId', type=str, required=True, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
+metadata_summary.add_argument('fieldName', type=str, required=True, help=METADATA_FIELDNAME)
+metadata_summary.add_argument('attributes', type=dict,action='append', required=True, help=METADATA_ATTRIBUTES)
 metadata_summary_update = api.model('API for external systems and BPO view to update metadata attributes',
                              {
                                  'isAdded': fields.Boolean(readOnly=True,
@@ -575,7 +588,7 @@ metadata_summary_update = api.model('API for external systems and BPO view to up
                                  'isDuplicate': fields.Boolean(readOnly=True,
                                                      description='check metadata duplicate or not'),
                                  'error' : fields.String(readOnly=True,
-                                                     description='error message')
+                                                     description=ERROR_MESSAGE)
                                  
                              })
 
@@ -583,15 +596,15 @@ metadata_summary_update = api.model('API for external systems and BPO view to up
 # for metadata delete
 metadata_detele_summary = reqparse.RequestParser()
 metadata_detele_summary.add_argument('op', type=str, required=True, help='Operation required to delete metadata(provide "deleteField" or "deleteAttribute")')
-metadata_detele_summary.add_argument('aidocId', type=str, required=True, help='Unique protocol document id')
-metadata_detele_summary.add_argument('fieldName', type=str, required=True, help='Metadata fieldName')
-metadata_detele_summary.add_argument('attributeNames', type=str,action='append', required=False, help='Metadata attributes')
+metadata_detele_summary.add_argument('aidocId', type=str, required=True, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
+metadata_detele_summary.add_argument('fieldName', type=str, required=True, help=METADATA_FIELDNAME)
+metadata_detele_summary.add_argument('attributeNames', type=str,action='append', required=False, help=METADATA_ATTRIBUTES)
 
 metadata_summary_delete = api.model('API for external systems and BPO view to delete metadata attributes',
                              {
                                  'isDeleted': fields.Boolean(readOnly=True,
                                                      description='check metadata deleted or not'),
                                  'error' : fields.String(readOnly=True,
-                                                     description='error message')
+                                                     description=ERROR_MESSAGE)
                                  
                              })

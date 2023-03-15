@@ -33,6 +33,9 @@ from sqlalchemy.exc import IntegrityError
 from etmfa.db.models.pd_iqvassessmentvisitrecord_db import IqvassessmentvisitrecordDb, IqvassessmentvisitrecordDbMapper
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata, MetaDataTableHelper
 
+from etmfa.db.models.pd_iqvassessmentvisitrecord_db import Iqvassessmentvisitrecord
+from etmfa.db.models.pd_iqvvisitrecord_db import Iqvvisitrecord
+from etmfa.db.models.pd_iqvassessmentrecord_db import Iqvassessmentrecord
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
@@ -53,36 +56,6 @@ def init_db(app):
 
         # Create schema if not already created
         db_context.create_all()
-
-
-# def update_doc_processing_status(id: str, service_name, process_status, qc_status: QcStatus = None):
-#     """ Receives id for the document being processed along with percent_complete and present status of document
-#         If the document id being processed is present in DB, this function will update the percent_complete and
-#         status of document.
-#         If document id is not present in the DB, it will return a message saying document id not available"""
-
-#     resource = get_doc_resource_by_id(id)
-#     if resource is not None:
-#         resource.percentComplete = process_status
-#         resource.status = service_name
-
-#         if qc_status is not None:
-#             resource.qcStatus = qc_status.value
-
-#         resource.lastUpdated = datetime.utcnow()
-
-#         try:
-#             db_context.session.commit()
-#             return True
-#         except Exception as ex:
-#             db_context.session.rollback()
-#             exception = ManagementException(
-#                 id, ErrorCodes.ERROR_PROCESSING_STATUS)
-#             received_documentprocessing_error_event(exception.__dict__)
-#             logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
-
-#     return False
-
 
 def update_doc_resource_by_id(aidoc_id, resource):
     """
@@ -150,52 +123,6 @@ def schema_to_dict(row):
     for column in row.__table__.columns:
         data[column.name] = (getattr(row, column.name))
     return data
-
-# def update_run_id(aidoc_id: str):
-#     """
-#     Increments runId
-#         Input: doc id
-#         Ouput: New Run id
-#     """
-#     resource = get_doc_resource_by_id(aidoc_id)
-#     if resource is not None:
-#         run_id = resource.runId
-#         next_run_id = run_id + 1
-#         resource.runId = next_run_id
-#
-#         resource.lastUpdated = datetime.utcnow()
-#
-#         try:
-#             db_context.session.commit()
-#             return next_run_id
-#         except Exception as ex:
-#             db_context.session.rollback()
-#
-#             exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS)
-#             received_documentprocessing_error_event(exception.__dict__)
-#             logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
-
-
-# def received_feedbackcomplete_event(id, feedback_status: FeedbackStatus):
-#     resource = get_doc_status_processing_by_id(id, full_mapping=True)
-#
-#     if resource is not None:
-#         resource.feedback = feedback_status.name
-#         resource.lastUpdated = datetime.utcnow()
-#         # log message for feedback received is updated to DB from users/reviewers
-#         logger.info("Feedback received for id is updated to DB: {}".format(id))
-#         try:
-#             db_context.session.commit()
-#             return True
-#         except Exception as ex:
-#             db_context.session.rollback()
-#
-#             exception = ManagementException(id, ErrorCodes.ERROR_PROCESSING_STATUS)
-#             received_documentprocessing_error_event(exception.__dict__)
-#             logger.error(ERROR_PROCESSING_STATUS.format(id, ex))
-#
-#     return False
-
 
 def add_compare_event(session, compare_protocol_list, id_):
     try:
@@ -429,80 +356,6 @@ def insert_into_alert_table(finalattributes):
             finalattributes['AiDocId'], finalattributes['approval_date'], finalattributes['ProtocolNo']))
 
 
-# def received_finalizationcomplete_event(id, finalattributes, message_publisher):
-#     try:
-#         from etmfa.db import table_update_utils
-#         FeedbackRunId = finalattributes.get('FeedbackRunId', 0)
-#         finalattributes = finalattributes['db_data']
-
-#         resource = get_doc_resource_by_id(id)
-#         resource.isProcessing = False
-#         resource.isActive = True
-
-#         table_update_utils.update_protocol_metadata(
-#             id, FeedbackRunId, finalattributes)
-#         protocoldata = table_update_utils.upsert_protocol_data(
-#             FeedbackRunId, finalattributes)
-#         protocolqcdata = table_update_utils.upsert_protocol_qcdata(
-#             FeedbackRunId, finalattributes)
-#         protocol_summary_entities = table_update_utils.upsert_summary_entities(
-#             FeedbackRunId, finalattributes)
-#         table_update_utils.update_protocol_metadata(
-#             id, FeedbackRunId, finalattributes)
-#         protocoldata = table_update_utils.upsert_protocol_data(
-#             FeedbackRunId, finalattributes)
-#         protocolqcdata = table_update_utils.upsert_protocol_qcdata(
-#             FeedbackRunId, finalattributes)
-#         protocol_summary_entities = table_update_utils.upsert_summary_entities(
-#             FeedbackRunId, finalattributes)
-
-#         # Entry in summary table
-#         summary_json_dict = ast.literal_eval(finalattributes['summary'])
-#         summary_dict = {k: v for k, v, _ in summary_json_dict['data']}
-
-#         source = config.SRC_EXTRACT if FeedbackRunId == 0 else config.SRC_FEEDBACK_RUN
-#         summary_record = utils.get_updated_qc_summary_record(doc_id=id, source=source, summary_dict=summary_dict,
-#                                                              is_active_flg=True, FeedbackRunId=FeedbackRunId)
-
-#         db_context.session.merge(protocoldata)
-#         db_context.session.merge(protocolqcdata)
-#         db_context.session.merge(summary_record)
-
-#         if finalattributes.get('summary_entities', {}):
-#             db_context.session.merge(protocol_summary_entities)
-
-#         db_context.session.commit()
-
-#         # No documents sent for QC by default
-#         qc_status = None if FeedbackRunId == 0 else QcStatus.COMPLETED
-#         update_doc_processing_status(
-#             id=id, process_status=ProcessingStatus.PROCESS_COMPLETED, qc_status=qc_status)
-#         update_doc_processing_status(
-#             id=id, process_status=ProcessingStatus.PROCESS_COMPLETED, qc_status=qc_status)
-
-#         compare_request_list = document_compare(finalattributes['AiDocId'], finalattributes['ProtocolNo'],
-#                                                 finalattributes['documentPath'])
-
-#         if FeedbackRunId == 0:
-#             insert_into_alert_table(finalattributes)
-#             generate_email.SendEmail.send_status_email(
-#                 finalattributes['AiDocId'])
-#             generate_email.SendEmail.send_status_email(
-#                 finalattributes['AiDocId'])
-
-#         return compare_request_list
-
-#     except Exception as ex:
-#         logger.error(
-#             f"Exception in received_finalizationcomplete_event() for ID[{id}] : {str(ex)}")
-#         logger.error(
-#             f"Exception in received_finalizationcomplete_event() for ID[{id}] : {str(ex)}")
-#         db_context.session.rollback()
-#         exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
-#         send_to_error_queue(exception.__dict__, message_publisher)
-#         return
-
-
 def send_to_error_queue(error_dict, message_publisher):
     """
     Sends the error details to error RMQ
@@ -601,23 +454,6 @@ def save_doc_processing(request, _id, doc_path):
         logger.error(ERROR_PROCESSING_STATUS.format(_id, ex))
 
 
-# def get_doc_processing_by_id(id, full_mapping=False):
-#     resource_dict = get_doc_resource_by_id(id)
-#     return resource_dict
-
-
-# def get_doc_processed_by_id(id, full_mapping=True):
-#     resource_dict = get_doc_attributes_by_id(id)
-
-#     return resource_dict
-
-
-# def get_doc_proc_metrics_by_id(id, full_mapping=True):
-#     resource_dict = get_doc_metrics_by_id(id)
-
-#     return resource_dict
-
-
 def get_file_contents_by_id(protocol_number: str, aidoc_id: str, protocol_number_verified: bool = False) -> str:
     """
     Extracts file toc json by aidoc_id
@@ -648,51 +484,10 @@ def get_file_contents_by_id(protocol_number: str, aidoc_id: str, protocol_number
     return result
 
 
-# def get_compare_documents(base_doc_id, compare_doc_id):
-#     basedocid = base_doc_id
-#     comparedocid = compare_doc_id
-#     resource_IQVdata = None
-#     resource = Documentcompare.query.filter(Documentcompare.id1 == basedocid, Documentcompare.id2 == comparedocid).first()
-#     flag_order=1
-#     if resource is None:
-#         resource = Documentcompare.query.filter(Documentcompare.id1 == comparedocid,
-#                                                 Documentcompare.id2 == basedocid).first()
-#         flag_order=-1
-#
-#     else:
-#         None
-#     # to check none
-#     if resource is not None:
-#         resource_IQVdata = resource.iqvdata
-#     else:
-#         logger.error(NO_COMPARE_RESOURCE_FOUND.format(basedocid, comparedocid))
-#
-#     return resource_IQVdata
-
-
-# def get_doc_metrics_by_id(id):
-#     g.aidocid = id
-#     resource = Metric.query.filter(Metric.id.like(str(id))).first()
-#
-#     if resource is None:
-#         logger.error(NO_RESOURCE_FOUND.format(id))
-#
-#     return resource
-
-
 def get_doc_status_processing_by_id(id, full_mapping=True, session=None):
     resource_dict = get_doc_resource_by_id(id, session)
 
     return resource_dict
-
-
-# def get_compare_resource_by_compare_id(comparevalues):
-#     compareid = comparevalues['COMPARE_ID']
-#     resource = Documentcompare.query.filter(Documentcompare.compareId == compareid).first()
-#
-#     if resource is None:
-#         logger.error(NO_RESOURCE_FOUND.format(compareid))
-#     return resource
 
 
 def get_doc_resource_by_id(_id, session=None):
@@ -725,42 +520,6 @@ def get_work_flow_resource_by_id(_id, session=None):
 
     return resource
 
-# def get_user_protocol_by_id(id):
-#     g.aidocid = id
-#     resource = PDUserProtocols.query.filter(PDUserProtocols.id.like(str(id))).first()
-#
-#     if resource is None:
-#         logger.error(NO_RESOURCE_FOUND.format(id))
-#
-#     return resource
-
-
-# def upsert_attributevalue(doc_processing_id, namekey, value):
-#     g.aidocid = id
-#     doc_processing_resource = get_doc_attributes_by_id(doc_processing_id)
-#
-#     if doc_processing_resource is None:
-#         logger.error(NO_RESOURCE_FOUND.format(id))
-#     else:
-#         try:
-#             setattr(doc_processing_resource, namekey, value)
-#             db_context.session.commit()
-#         except Exception as ex:
-#             db_context.session.rollback()
-#             exception = ManagementException(id, ErrorCodes.ERROR_UPDATING_ATTRIBUTES)
-#             received_documentprocessing_error_event(exception.__dict__)
-#             logger.error("Error while updating attribute to PD_protocol_data to DB for ID: {},{}".format(
-#                 doc_processing_id, ex))
-
-
-# def get_attribute_dict(doc_processing_id):
-#     doc_processing_resource = get_doc_resource_by_id(doc_processing_id)
-#
-#     if doc_processing_resource is None:
-#         logger.error(NO_RESOURCE_FOUND.format(id))
-#
-#     return doc_processing_resource
-
 
 def safe_unicode(obj, *args):
     """ return the unicode representation of obj """
@@ -780,27 +539,6 @@ def get_latest_record(sponsor, protocol_number, version_number):
         PDProtocolMetadata.timeCreated.desc()).first()
 
     return resource
-
-
-# def set_draft_version(document_status, sponsor, protocol, version_number):
-#     # to set draft version for documents
-#     if not version_number:
-#         version_number = '-0.01'
-#
-#     if document_status == 'draft':
-#         resource = get_latest_record(sponsor, protocol, version_number)
-#
-#         if resource is None:
-#             draftVersion = float(version_number) + 0.01
-#         else:
-#             if resource.documentStatus == 'draft':
-#                 old_draftVersion = resource.draftVersion
-#                 draftVersion = float(old_draftVersion) + 0.01
-#             else:
-#                 draftVersion = float(version_number) + 0.01
-#     else:
-#         draftVersion = None
-#     return draftVersion
 
 
 def get_latest_protocol(protocol_number, version_number="", approval_date="", aidoc_id="", document_status="",
@@ -1043,12 +781,11 @@ def update_document_run_no(compare_id, session):
 
 
 # added for pd 2.0
-def get_normalized_soa_details(protocol_number, aidoc_id) -> dict:
+def get_normalized_soa_details(aidoc_id) -> dict:
     """
     Get protocol Normalized SOA
     """
     visitrecord_mapper = None
-    resource_dict = dict()
     norm_dict = dict()
     norm_soa_str= dict()
     
@@ -1083,7 +820,7 @@ def get_normalized_soa_details(protocol_number, aidoc_id) -> dict:
 
     except Exception as exc:
         logger.exception(
-            f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
+            f"Exception received while formatting the data; [aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
 
     return norm_dict
 
@@ -1218,3 +955,38 @@ def get_protocols_by_date_time_range(version_date="", approval_date="", start_da
         logger.error(f"Exception message:\n{e}")
 
     return resource
+
+def get_normalized_soa_table(aidoc_id) -> dict:
+    """
+    Get protocol Normalized SOA for table mapping
+	"""
+    normalizedsoa_list = []
+    study_visits = dict()
+    normalizedsoa_data = dict()
+    roi_set = None
+
+    try:
+        visits_obj = Iqvvisitrecord(aidoc_id)
+        assessmentvisit_obj = Iqvassessmentvisitrecord(aidoc_id)
+        assessment_obj = Iqvassessmentrecord(aidoc_id)
+        roi_set = assessment_obj.get_tableroi_list()
+        if roi_set is None:
+            raise Exception("roi set is None.")
+        roi_list = list(roi_set)
+        study_procedures = assessment_obj.get_assessment_text()
+        norm_dict = assessmentvisit_obj.get_normalized_soa()
+        study_visits = visits_obj.get_visit_records()        
+        
+        for roi_id in roi_list:
+            normalized_soa = dict()
+            normalized_soa["tableId"] = roi_id
+            normalized_soa["studyVisit"] = study_visits.get(roi_id)
+            normalized_soa["studyProcedure"] = study_procedures.get(roi_id)
+            normalized_soa["normalized_SOA"] = norm_dict.get(roi_id)
+            normalizedsoa_list.append(normalized_soa)
+        normalizedsoa_data = {"id":aidoc_id,"soa_data":normalizedsoa_list}   
+        
+    except Exception as exc:
+        logger.exception(
+            f"Exception received while formatting the data [aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
+    return normalizedsoa_data
