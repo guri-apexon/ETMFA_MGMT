@@ -208,8 +208,9 @@ class DocumentprocessingAPI(Resource):
         filepath = str(filepath)
         if duplicate_check:
             doc_uid = generate_doc_meta_hash(filepath)
-            if check_if_document_processed(doc_uid):
-                return abort(409, DUPLICATE_DOCUMENT_REQUEST)
+            is_processed,duplicate_docs=check_if_document_processed(doc_uid)
+            if is_processed:
+                return abort(409, duplicate_docs)
         else:
             doc_uid = _id
 
