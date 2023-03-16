@@ -20,6 +20,7 @@ from flask_cors import CORS
 from flask_restplus import Api
 from werkzeug.contrib.fixers import ProxyFix
 from etmfa_core.postgres_db_schema import create_schemas
+from es_ingest import ElasticIngestionRunner
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -44,13 +45,12 @@ def start_workflow_runner(logger):
     WorkFlowClient(app.config["ZMQ_PORT"], logger)
 
 def start_es_runner():
-    from es_ingest.es_ms import ElasticIngestionRunner
     es=ElasticIngestionRunner()
     es.start()
 
 def create_app(config_name, ssl_enabled=False):
     # Override 'Development' config when invoking server
-    #create_schemas(app.config['SQLALCHEMY_DATABASE_URI'])
+    create_schemas(app.config['SQLALCHEMY_DATABASE_URI'])
     load_app_config(config_name)
     logger = logging.getLogger(Consts.LOGGING_NAME)
     if app.config['WORK_FLOW_RUNNER']:
