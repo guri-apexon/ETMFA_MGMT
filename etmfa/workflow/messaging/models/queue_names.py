@@ -19,10 +19,10 @@ class EtmfaQueues(Enum):
     META_TAGGING = "meta_tagging"
     META_EXTRACTION = "meta_extraction"
     PB_ANALYZER = "analyzer"
+    ES_INGESTION= "es_ingestion"
 
     def __init__(self, queue_prefix):
         """Construct queue name enum."""
-        # self.queue_prefix = queue_prefix+'_eg'
         self.queue_prefix = queue_prefix
         
 

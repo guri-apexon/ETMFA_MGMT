@@ -7,6 +7,7 @@ from etmfa.server.config import Config
 from flask import send_from_directory, make_response
 from http import HTTPStatus
 from pathlib import Path
+import json
 
 from flask import request, g
 from flask_restplus import Resource, abort
@@ -210,7 +211,7 @@ class DocumentprocessingAPI(Resource):
             doc_uid = generate_doc_meta_hash(filepath)
             is_processed,duplicate_docs=check_if_document_processed(doc_uid)
             if is_processed:
-                return abort(409, duplicate_docs)
+                return abort(409,json.dumps({'duplicate_docs':duplicate_docs},default=str))
         else:
             doc_uid = _id
 

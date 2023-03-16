@@ -43,14 +43,19 @@ def start_workflow_runner(logger):
     # wf client is singleton class only once connection created.
     WorkFlowClient(app.config["ZMQ_PORT"], logger)
 
+def start_es_runner():
+    from es_ingest.es_ms import ElasticIngestionRunner
+    es=ElasticIngestionRunner()
+    es.start()
 
 def create_app(config_name, ssl_enabled=False):
     # Override 'Development' config when invoking server
-    create_schemas(app.config['SQLALCHEMY_DATABASE_URI'])
+    #create_schemas(app.config['SQLALCHEMY_DATABASE_URI'])
     load_app_config(config_name)
     logger = logging.getLogger(Consts.LOGGING_NAME)
     if app.config['WORK_FLOW_RUNNER']:
         start_workflow_runner(logger)
+        start_es_runner()  
     # register centralized logger
     initialize_logger(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'])
 
