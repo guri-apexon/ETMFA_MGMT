@@ -21,6 +21,9 @@ class GenericMessageHandler(MessageHandler):
             msg_params = sr_param.params
             if not msg_params.get('docId', None):
                 msg_params['docId'] = message.flow_id
+            #this to be removed once meta and pb service both use same doc_id in place of docId
+            if msg_params.get('doc_id', None):
+                msg_params['docId'] = msg_params['doc_id']
         update_doc_processing_status(
             message.flow_id, service_name, True, message.flow_name)
         return message.dict()

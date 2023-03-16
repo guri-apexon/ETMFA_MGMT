@@ -134,7 +134,6 @@ class WorkFlowManager():
         self.out_queue_service_map, self.service_queue_tuple_map = self._get_services_map(
             services_info)
         queues_to_monitor = list(self.out_queue_service_map.keys())
-
         queues_to_monitor.append(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value)
         self.logger.info(f"Monitoring queues :{queues_to_monitor}")
         self.broker.add_queues_to_monitor(queues_to_monitor)
