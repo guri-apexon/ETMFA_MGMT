@@ -10,11 +10,11 @@ from pathlib import Path
 import json
 
 from flask import request, g
-from flask_restplus import Resource, abort
-
+from flask_restplus import Resource, abort, reqparse
 from etmfa.auth import authenticate
 from etmfa.consts import Consts as consts
 from etmfa.db import feedback_utils as fb_utlis
+from etmfa.db.models import pd_dipa_view_data
 from etmfa.db import (
     pd_fetch_summary_data,
     get_work_flow_status_by_id,
@@ -33,7 +33,9 @@ from etmfa.db import (
     get_metadata_summary,
     add_metadata_summary,
     update_metadata_summary,
-    delete_metadata_summary
+    delete_metadata_summary,
+    get_dipaview_details_by_id,
+    get_dipa_data_by_category
 )
 from etmfa.db import utils
 from etmfa.workflow.messaging.models.triage_request import TriageRequest
@@ -62,13 +64,16 @@ from etmfa.server.namespaces.serializers import (
     metadata_summary_add,
     metadata_summary,
     metadata_detele_summary,
-    metadata_summary_delete
+    dipadata_details_get,
+    dipadata_details_input,
+    metadata_summary_delete,
+    dipa_view_data
 )
 from etmfa.workflow.default_workflows import DWorkFLows, DEFAULT_WORKFLOWS
 from etmfa.workflow import WorkFlowClient
 from etmfa.workflow.messaging.models.generic_request import DocumentRequest, CompareRequest
 from etmfa.db.models.work_flow_status import WorkFlowStatus
-
+from flask import jsonify
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -78,7 +83,7 @@ DUPLICATE_DOCUMENT_REQUEST = 'Duplicate document request '
 DOCUMENT_MISSING_FROM_METADATA_TABLE = 'Document missing from protocol metadata table'
 SERVER_ERROR = 'Server error: {}'
 DOCUMENT_COMPARISON_ALREADY_PRESENT = 'Comparison already present for given protocols'
-
+MISSING_INPUT = 'Mandatory parameter {} not provided'
 ns = api.namespace('PD', path='/v1/documents',
                    description='REST endpoints for PD workflows.')
 
@@ -122,7 +127,7 @@ class DocumentprocessingAPI(Resource):
 
         except Exception as e:
             logger.error(
-                'requested document is not in workflow status table'+str(doc_id))
+                'requested document is not in workflow status table' + str(doc_id))
             abort(404, DOCUMENT_MISSING_FROM_METADATA_TABLE)
         work_flow_graph = DEFAULT_WORKFLOWS.get(work_flow_name, None)
         if not work_flow_graph or len(work_flow_graph) < 1:
@@ -130,7 +135,7 @@ class DocumentprocessingAPI(Resource):
 
         start_service_name = work_flow_graph[0].get('service_name', None)
         if not start_service_name:
-           abort(404, str(WorkFlowParamMissing(work_flow_name)))
+            abort(404, str(WorkFlowParamMissing(work_flow_name)))
         create_doc_Processing_status(
             _id, doc_uid, work_flow_name, doc_file_path, protocol)
         doc_request = None
@@ -317,8 +322,10 @@ class DocumentprocessingAPI(Resource):
                 logger.error(f"Invalid user inputs received: {args}")
                 return abort(404, INVALID_USER_INPUT.format(args))
 
-            resources = get_latest_protocol(protocol_number=protocol_number, aidoc_id=aidoc_id, version_number=version_number,
-                                            approval_date=approval_date, document_status=document_status, is_top_1_only=True)
+            resources = get_latest_protocol(protocol_number=protocol_number, aidoc_id=aidoc_id,
+                                            version_number=version_number,
+                                            approval_date=approval_date, document_status=document_status,
+                                            is_top_1_only=True)
             aligned_resources = utils.post_process_resource(
                 resources, multiple_records=False)
 
@@ -367,8 +374,10 @@ class DocumentprocessingAPI(Resource):
                 return abort(404, INVALID_USER_INPUT.format(args))
 
             if not aidoc_id:
-                resources = get_latest_protocol(protocol_number=protocol_number, aidoc_id=aidoc_id, version_number=version_number,
-                                                approval_date=approval_date, document_status=document_status, is_top_1_only=True)
+                resources = get_latest_protocol(protocol_number=protocol_number, aidoc_id=aidoc_id,
+                                                version_number=version_number,
+                                                approval_date=approval_date, document_status=document_status,
+                                                is_top_1_only=True)
                 aligned_resources = utils.post_process_resource(
                     resources, multiple_records=False)
                 expected_aidoc_id = '' if aligned_resources is None else aligned_resources[
@@ -379,7 +388,8 @@ class DocumentprocessingAPI(Resource):
 
             if expected_aidoc_id:
                 resource = get_file_contents_by_id(
-                    protocol_number=protocol_number, aidoc_id=expected_aidoc_id, protocol_number_verified=protocol_number_verified)
+                    protocol_number=protocol_number, aidoc_id=expected_aidoc_id,
+                    protocol_number_verified=protocol_number_verified)
 
             if resource is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(args))
@@ -404,7 +414,8 @@ class DocumentprocessingAPI(Resource):
         """Get all the protocols processed in PD based on input parameters"""
         args = latest_protocol_input.parse_args()
         try:
-            cleaned_inputs = utils.clean_inputs(protocol_number=args['protocolNumber'], version_number=args['versionNumber'],
+            cleaned_inputs = utils.clean_inputs(protocol_number=args['protocolNumber'],
+                                                version_number=args['versionNumber'],
                                                 document_status=args['documentStatus'], qc_status=args['qcStatus'])
             protocol_number = cleaned_inputs.get('protocol_number', '')
             version_number = cleaned_inputs.get('version_number', '')
@@ -415,7 +426,8 @@ class DocumentprocessingAPI(Resource):
                 logger.error(f"Invalid protocol_number received: {args}")
                 return abort(404, INVALID_USER_INPUT.format(args))
 
-            resources = get_latest_protocol(protocol_number=protocol_number, version_number=version_number, document_status=document_status,
+            resources = get_latest_protocol(protocol_number=protocol_number, version_number=version_number,
+                                            document_status=document_status,
                                             qc_status=qc_status, is_top_1_only=False)
             aligned_resources = utils.post_process_resource(
                 resources, multiple_records=True)
@@ -767,6 +779,102 @@ class DocumentprocessingAPI(Resource):
                 return abort(404, DOCUMENT_NOT_FOUND.format(args))
             else:
                 return resources
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
+
+#DIPA view
+@ns.route('/get_dipadata_by_doc_id')
+@ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(dipadata_details_get)
+    @ns.response(HTTPStatus.OK, 'Success.')
+    @ns.response(HTTPStatus.NOT_FOUND, 'Document Processing resource not found.')
+    @api.doc(security='apikey')
+    @authenticate
+    def get(self):
+        """Get dipadata attributes"""
+        args = dipadata_details_get.parse_args()
+        try:
+            aidoc_id=args['doc_id']
+
+            if aidoc_id:
+                resource = get_dipaview_details_by_id(aidoc_id)
+
+                if len(resource) == 0:
+                    return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
+                else:
+                    return jsonify({"DIPA Variables":resource})
+            else:
+                logger.error(f"Invalid aidocId received: {args}")
+                return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
+        
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
+
+
+@ns.route('/get_dipadata_by_category')
+@ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(dipadata_details_input)
+    @ns.response(HTTPStatus.OK, 'Success.')
+    @ns.response(HTTPStatus.NOT_FOUND, 'Document Processing resource not found.')
+    @api.doc(security='apikey')
+    @authenticate
+    def get(self):
+        """Get dipadata JSON for given doc_id and Category"""
+        args = dipadata_details_input.parse_args()
+        try:
+            _id = args['id']
+            aidoc_id = args['doc_id']
+            category = args['category'] if args['category'] is not None else ' '
+
+            if aidoc_id:
+                resource = get_dipa_data_by_category(_id, aidoc_id, category)
+
+                if len(resource) == 0:
+                    return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
+                else:
+                    return jsonify({"DIPA Data":resource})
+            else:
+                logger.error(f"Invalid aidocId received: {args}")
+                return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
+        
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
+
+
+@ns.route('/update_dipa_data')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(dipa_view_data)
+    @ns.response(200, 'Success.')
+    @ns.response(404, 'Document Processing resource not found.')
+    @ns.response(400, 'Bad Request')
+    @api.doc(security='apikey')
+    @authenticate
+    def put(self):
+        """Update/Add/Delete dipa view data"""
+        args = dipa_view_data.parse_args()
+        _id = args['id']
+        doc_id = args.get('doc_id')
+        link1 = args.get('link_id_1')
+        link2 = args.get('link_id_2')
+        link3 = args.get('link_id_3')
+        link4 = args.get('link_id_4')
+        link5 = args.get('link_id_5')
+        link6 = args.get('link_id_6')
+        try:
+            result = pd_dipa_view_data.DipaViewHelper.upsert(_id, doc_id, link1, link2, link3, link4, link5,
+                                                        link6,
+                                                        dipa_view_data = args['dipa_data'])
+
+            if result is None:
+                return abort(404, DOCUMENT_NOT_FOUND.format(args))
+            else:
+                return {"status": 200, "response": "Successfully Inserted Data in DB"}
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))

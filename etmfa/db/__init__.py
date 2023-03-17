@@ -32,6 +32,7 @@ from sqlalchemy.exc import IntegrityError
 # added for pd 2.0
 from etmfa.db.models.pd_iqvassessmentvisitrecord_db import IqvassessmentvisitrecordDb, IqvassessmentvisitrecordDbMapper
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata, MetaDataTableHelper
+from etmfa.db.models.pd_dipa_view_data import PDDipaViewdata
 
 from etmfa.db.models.pd_iqvassessmentvisitrecord_db import Iqvassessmentvisitrecord
 from etmfa.db.models.pd_iqvvisitrecord_db import Iqvvisitrecord
@@ -1003,3 +1004,56 @@ def get_normalized_soa_table(aidoc_id) -> dict:
         logger.exception(
             f"Exception received while formatting the data [aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
     return normalizedsoa_data
+
+
+#dipa view
+def get_dipaview_details_by_id(doc_id):
+    """
+    Get dipa view details fields 
+    """
+    resource= None
+    response_list = []
+    try:
+        apply_filter = f"{PDDipaViewdata.__tablename__}.\"doc_id\"=\'{doc_id}\'"
+        if doc_id:
+            resource = db_context.session.query(
+                                                PDDipaViewdata.id, PDDipaViewdata.doc_id,
+                                                PDDipaViewdata.link_id_1, PDDipaViewdata.link_id_2,
+                                                PDDipaViewdata.link_id_3, PDDipaViewdata.link_id_4,
+                                                PDDipaViewdata.link_id_5, PDDipaViewdata.link_id_6,
+                                                PDDipaViewdata.category                                         
+                                                ).filter(text(apply_filter)).all()
+            
+            response_list = [i._asdict() for i in resource]
+    except Exception as e:
+        logger.error(f"Exception message:\n{e}")
+    return response_list
+
+
+def get_dipa_data_by_category(_id, doc_id, category):
+    """
+    Get dipa data for given doc_id and category
+    """
+    resource= None
+    response_list = []
+    
+    try:
+        apply_filter= f"({PDDipaViewdata.__tablename__}.\"id\"='{_id}' AND \
+            {PDDipaViewdata.__tablename__}.\"doc_id\"='{doc_id}' AND \
+            {PDDipaViewdata.__tablename__}.\"category\" = '{category}')" 
+
+        if _id:
+            resource = db_context.session.query(
+                                                PDDipaViewdata.id, PDDipaViewdata.doc_id,
+                                                PDDipaViewdata.link_id_1, PDDipaViewdata.link_id_2,
+                                                PDDipaViewdata.link_id_3, PDDipaViewdata.link_id_4,
+                                                PDDipaViewdata.link_id_5, PDDipaViewdata.link_id_6,
+                                                PDDipaViewdata.category, PDDipaViewdata.dipa_data,
+                                                PDDipaViewdata.timeCreated, PDDipaViewdata.timeUpdated                                         
+                                                ).filter(text(apply_filter)).all()
+            
+            response_list = [i._asdict() for i in resource]
+    except Exception as e:
+        logger.error(f"Exception message:\n{e}")
+    return response_list
+
