@@ -608,3 +608,26 @@ metadata_summary_delete = api.model('API for external systems and BPO view to de
                                                      description=ERROR_MESSAGE)
                                  
                              })
+
+# for dipadata get
+dipadata_details_get = reqparse.RequestParser()
+dipadata_details_get.add_argument('doc_id', type=str, required=True, help='Unique protocol document id')
+
+dipadata_details_input = reqparse.RequestParser()
+dipadata_details_input.add_argument('id', type=str, required=False, help='The unique identifier (UUID) of a document processing job.')
+dipadata_details_input.add_argument('doc_id', type=str, required=True, help='Unique protocol document id')
+dipadata_details_input.add_argument('category', type=str, required=False, help='Dipadata Category')
+
+
+# for Upsert DIPA View Data
+dipa_view_data = reqparse.RequestParser()
+dipa_view_data.add_argument('id', type=str, required=True, help='unique db id for dipa view data')
+dipa_view_data.add_argument('doc_id', type=str, required=False, help='unqiue id of document')
+dipa_view_data.add_argument('link_id_1', type=str, required=False, help='link level id 1')
+dipa_view_data.add_argument('link_id_2', type=str, required=False, help='link level id 2')
+dipa_view_data.add_argument('link_id_3', type=str, required=False, help='link level id 3')
+dipa_view_data.add_argument('link_id_4', type=str, required=False, help='link level id 4')
+dipa_view_data.add_argument('link_id_5', type=str, required=False, help='link level id 5')
+dipa_view_data.add_argument('link_id_6', type=str, required=False, help='link level id 6')
+dipa_view_data.add_argument('dipa_data', help='contains json data to be stored in dipa data column')
+
