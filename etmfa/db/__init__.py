@@ -32,11 +32,14 @@ from sqlalchemy.exc import IntegrityError
 # added for pd 2.0
 from etmfa.db.models.pd_iqvassessmentvisitrecord_db import IqvassessmentvisitrecordDb, IqvassessmentvisitrecordDbMapper
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata, MetaDataTableHelper
+from etmfa.db.models.pd_protocol_metadata import default_accordion
 from etmfa.db.models.pd_dipa_view_data import PDDipaViewdata
 
 from etmfa.db.models.pd_iqvassessmentvisitrecord_db import Iqvassessmentvisitrecord
 from etmfa.db.models.pd_iqvvisitrecord_db import Iqvvisitrecord
 from etmfa.db.models.pd_iqvassessmentrecord_db import Iqvassessmentrecord
+from etmfa.error import GenericMessageException
+
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
@@ -44,7 +47,7 @@ NO_RESOURCE_FOUND = "No document resource is found for requested input(s): {}"
 NO_COMPARE_RESOURCE_FOUND = "No document resource is found for requested input(s): {}, {}"
 ERROR_PROCESSING_STATUS = "Error while updating processing status to pd_protocol_metadata to DB for ID: {},{}"
 
-
+FILE_EXTENSION = "*.xml*"
 # Global DB ORM object
 def init_db(app):
     """ Returns db context"""
@@ -57,6 +60,8 @@ def init_db(app):
 
         # Create schema if not already created
         db_context.create_all()
+        # creates default metadata accordion
+        default_accordion()
 
 def update_doc_resource_by_id(aidoc_id, resource):
     """
@@ -76,7 +81,7 @@ def update_doc_resource_by_id(aidoc_id, resource):
     return resource
 
 
-def create_doc_Processing_status(work_flow_id, doc_uid, work_flow_name, doc_file_path, protocol_name):
+def create_doc_processing_status(work_flow_id, doc_uid, work_flow_name, doc_file_path, protocol_name):
     session = db_context.session
     status = WorkFlowStatus(
         work_flow_id=work_flow_id, protocol_name=protocol_name, doc_uid=doc_uid, work_flow_name=work_flow_name, documentFilePath=doc_file_path)
@@ -231,36 +236,36 @@ def document_compare_all_permutations(session, work_flow_id, flow_name):
                                                        WorkFlowStatus.work_flow_name == DWorkFLows.FULL_FLOW.value,
                                                        WorkFlowStatus.status == WorkFlowState.COMPLETED.value
                                                        )).all()
-    IQVXMLPath1 = get_latest_file_path(
-        document_path, prefix="D2_", suffix="*.xml*")
+    iqvxml_path1 = get_latest_file_path(
+        document_path, prefix="D2_", suffix=FILE_EXTENSION)
     ids_list = [row['work_flow_id'] for row in ids_compare_protocol]
     ids_compare_protocol_list = list()
     for row in ids_compare_protocol:
-        IQVXMLPath2_documentFilePath = row['documentFilePath'][:row.documentFilePath.rfind(
+        iqvxml_path2_document_file_path = row['documentFilePath'][:row.documentFilePath.rfind(
             '\\')]
-        IQVXMLPath2 = get_latest_file_path(
-            IQVXMLPath2_documentFilePath, prefix='D2_', suffix="*.xml*")
+        iqvxml_path2 = get_latest_file_path(
+            iqvxml_path2_document_file_path, prefix='D2_', suffix=FILE_EXTENSION)
         # if digitization doesnt run for any of flow path will be null
-        if IQVXMLPath2:
+        if iqvxml_path2:
             for redact_profile in redact_profile_list:
                 ids_compare_protocol_list.extend([{'compare_id': str(uuid.uuid4()),
                                                    'id1': work_flow_id,
                                                    'flow_id': work_flow_id,
                                                    'flow_name': flow_name,
-                                                   'IQVXMLPath1': IQVXMLPath1,
+                                                   'IQVXMLPath1': iqvxml_path1,
                                                    'id2': row['work_flow_id'],
                                                    'protocolNumber': protocol_number,
-                                                   'IQVXMLPath2': IQVXMLPath2,
+                                                   'IQVXMLPath2': iqvxml_path2,
                                                    'redact_profile': redact_profile
                                                    },
                                                   {'compare_id': str(uuid.uuid4()),
                                                  'id1': row['work_flow_id'],
                                                    'flow_id':work_flow_id,
                                                    'flow_name':flow_name,
-                                                   'IQVXMLPath1': IQVXMLPath2,
+                                                   'IQVXMLPath1': iqvxml_path2,
                                                    'id2': work_flow_id,
                                                    'protocolNumber': protocol_number,
-                                                   'IQVXMLPath2': IQVXMLPath1,
+                                                   'IQVXMLPath2': iqvxml_path1,
                                                    'redact_profile': redact_profile
                                                    }
                                                   ])
@@ -278,32 +283,32 @@ def document_compare_tuple(session, work_flow_id, flow_name, id1, id2, document_
     from etmfa.db.feedback_utils import get_latest_file_path
     redact_profile_list = {"profile_0", "profile_1"}
     document_path_1 = document_path_1[:document_path_1.rfind('\\')]
-    IQVXMLPath1 = get_latest_file_path(
-        document_path_1, prefix="D2_", suffix="*.xml*")
+    iqvxml_path1 = get_latest_file_path(
+        document_path_1, prefix="D2_", suffix=FILE_EXTENSION)
     ids_compare_protocol_list = []
     document_path_2 = document_path_2[:document_path_2.rfind('\\')]
-    IQVXMLPath2 = get_latest_file_path(
-        document_path_2, prefix='D2_', suffix="*.xml*")
+    iqvxml_path2 = get_latest_file_path(
+        document_path_2, prefix='D2_', suffix=FILE_EXTENSION)
 
     for redact_profile in redact_profile_list:
         ids_compare_protocol_list.extend([{'compare_id': str(uuid.uuid4()),
                                            'flow_id': work_flow_id,
                                            'id1': id1,
                                            'flow_name': flow_name,
-                                           'IQVXMLPath1': IQVXMLPath1,
+                                           'IQVXMLPath1': iqvxml_path1,
                                            'id2': id2,
                                            'protocolNumber': protocol_number,
-                                           'IQVXMLPath2': IQVXMLPath2,
+                                           'IQVXMLPath2': iqvxml_path2,
                                            'redact_profile': redact_profile
                                            },
                                           {'compare_id': str(uuid.uuid4()),
                                          'id1': id2,
                                            'flow_name': flow_name,
                                            'flow_id': work_flow_id,
-                                           'IQVXMLPath1': IQVXMLPath2,
+                                           'IQVXMLPath1': iqvxml_path2,
                                            'id2': id1,
                                            'protocolNumber': protocol_number,
-                                           'IQVXMLPath2': IQVXMLPath1,
+                                           'IQVXMLPath2': iqvxml_path1,
                                            'redact_profile': redact_profile
                                            }
                                           ])
@@ -498,7 +503,7 @@ def get_file_contents_by_id(protocol_number: str, aidoc_id: str, protocol_number
     return result
 
 
-def get_doc_status_processing_by_id(id, full_mapping=True, session=None):
+def get_doc_status_processing_by_id(id, session=None):
     resource_dict = get_doc_resource_by_id(id, session)
 
     return resource_dict
@@ -510,7 +515,6 @@ def get_doc_resource_by_id(_id, session=None):
     """
     if not session:
         g.aidocid = _id
-    # resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.id.like(str(id))).first()
     session = session if session else db_context.session
     resource = session.query(PDProtocolMetadata).filter(
         PDProtocolMetadata.id == _id).first()
@@ -526,7 +530,6 @@ def get_work_flow_resource_by_id(_id, session=None):
     """
     if not session:
         g.aidocid = _id
-    # resource = PDProtocolMetadata.query.filter(PDProtocolMetadata.id.like(str(id))).first()
     session = session if session else db_context.session
     resource = session.query(WorkFlowStatus).get(_id)
     if resource is None:
@@ -794,7 +797,7 @@ def update_document_run_no(compare_id, session):
             f"No Document found for [compare_id: {compare_id}].Exception: {str(exc)}")
 
 
-# added for pd 2.0
+
 def get_normalized_soa_details(aidoc_id) -> dict:
     """
     Get protocol Normalized SOA
@@ -840,7 +843,7 @@ def get_normalized_soa_details(aidoc_id) -> dict:
 
 
 
-def get_metadata_summary(op, aidocId, fieldName=None) -> dict:
+def get_metadata_summary(op, aidoc_id, field_name=None) -> dict:
     """
     Get metadata summary fields 
     """
@@ -848,18 +851,18 @@ def get_metadata_summary(op, aidocId, fieldName=None) -> dict:
     try:
         helper_obj = MetaDataTableHelper()
         if op == 'metadata':
-            metadata = helper_obj.get_data(aidocId, fieldName)
+            metadata = helper_obj.get_data(aidoc_id, field_name)
         elif op == 'metaparam':
-            metadata = helper_obj.getMetaParam(aidocId)
+            metadata = helper_obj.get_meta_param(aidoc_id)
         else:
-            raise Exception("invalid op value.")
+            raise GenericMessageException("invalid op value.")
         
         response_dict_str = json.loads(json.dumps(metadata, default=str))
         response_dict["data"] = response_dict_str
         
     except Exception as exc:
         logger.exception(
-            f"Exception received while formatting the data [aidoc_id: {aidocId}]. Exception: {str(exc)}")
+            f"Exception received while formatting the data [aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
     return response_dict
 
 
@@ -875,7 +878,7 @@ def add_metadata_summary(op, **data):
         elif op == 'addAttributes':
             metadata_response = helper_obj.add_field_data(data.get("id"), data.get("fieldName"), data.get("attributes"))
         else:
-            raise Exception("invalid op value.")
+            raise GenericMessageException("invalid op value.")
     except Exception as exc:
         logger.exception(
             f"Exception received while formatting the data [op: {op}]. Exception: {str(exc)}")
@@ -890,7 +893,7 @@ def update_metadata_summary(field_name, **data):
     try:
         helper_obj = MetaDataTableHelper()   
         if field_name:     
-            metadata_response = helper_obj.add_update_attribute(data.get("id"), data.get("fieldName"), data.get("attributes"))  
+            metadata_response = helper_obj.add_update_attribute(db_context.session(), data.get("id"), data.get("fieldName"), data.get("attributes"))  
         else:
             metadata_response = helper_obj.update_primary_attributes(data.get("id"), data.get("attributes"))  
             
@@ -912,7 +915,7 @@ def delete_metadata_summary(op, **data):
         elif op == 'deleteField':
              metadata_response = helper_obj.delete_field(data.get("id"), data.get("fieldName"))
         else:
-            raise Exception("unknown operation received.")
+            raise GenericMessageException("unknown operation received.")
     except Exception as exc:
         logger.exception(
             f"Exception received while formatting the data [id: {id}]. Exception: {str(exc)}")
@@ -932,7 +935,7 @@ def get_protocols_by_date_time_range(version_date="", approval_date="", start_da
         version_date, approval_date, start_date, end_date, document_status, upload_date, qc_status)
 
     try:
-        if qc_status is not '':
+        if not qc_status:
             resource = db_context.session.query( PDProtocolMetadata,
                                                 PDProtocolMetadata.draftVersion, PDProtocolMetadata.id,
                                                 PDProtocolMetadata.protocol, PDProtocolMetadata.documentFilePath,
@@ -985,7 +988,7 @@ def get_normalized_soa_table(aidoc_id) -> dict:
         assessment_obj = Iqvassessmentrecord(aidoc_id)
         roi_set = assessment_obj.get_tableroi_list()
         if roi_set is None:
-            raise Exception("roi set is None.")
+            raise GenericMessageException("roi set is None.")
         roi_list = list(roi_set)
         study_procedures = assessment_obj.get_assessment_text()
         norm_dict = assessmentvisit_obj.get_normalized_soa()
