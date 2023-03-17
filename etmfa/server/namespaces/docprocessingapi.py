@@ -20,7 +20,7 @@ from etmfa.db import (
     get_work_flow_status_by_id,
     get_details_by_elm,
     check_if_document_processed,
-    create_doc_Processing_status,
+    create_doc_processing_status,
     save_doc_processing,
     get_file_contents_by_id,
     get_latest_protocol,
@@ -121,7 +121,6 @@ class DocumentprocessingAPI(Resource):
         try:
             fields = get_details_by_elm(
                 WorkFlowStatus, WorkFlowStatus.work_flow_id, doc_id)
-            # version_number = fields.get('versionNumber')
             doc_file_path = fields['documentFilePath']
             protocol = fields['protocol_name']
 
@@ -135,8 +134,8 @@ class DocumentprocessingAPI(Resource):
 
         start_service_name = work_flow_graph[0].get('service_name', None)
         if not start_service_name:
-            abort(404, str(WorkFlowParamMissing(work_flow_name)))
-        create_doc_Processing_status(
+           abort(404, str(WorkFlowParamMissing(work_flow_name)))
+        create_doc_processing_status(
             _id, doc_uid, work_flow_name, doc_file_path, protocol)
         doc_request = None
         if work_flow_name == DWorkFLows.DOCUMENT_COMPARE.value:
@@ -182,13 +181,13 @@ class DocumentprocessingAPI(Resource):
         # get save path and output path
         processing_dir = Path(Config.DFS_UPLOAD_FOLDER).joinpath(_id)
         processing_dir.mkdir(exist_ok=True, parents=True)
-        file = args['file']
-        filename_main = file.filename
+        _file = args['file']
+        filename_main = _file.filename
 
         # build file path in the processing directory
         filepath = processing_dir.joinpath(filename_main)
         # Save document in the processing directory
-        file.save(str(filepath))
+        _file.save(str(filepath))
         logger.info("Document saved at location: {}".format(filepath))
 
         source_filename = args['sourceFileName'] if args['sourceFileName'] is not None else ' '
@@ -220,7 +219,7 @@ class DocumentprocessingAPI(Resource):
         else:
             doc_uid = _id
 
-        create_doc_Processing_status(
+        create_doc_processing_status(
             _id, doc_uid, workflow_name, filepath, protocol)
         # # Mark the user primary for the protocol
         update_user_protocols(
@@ -568,10 +567,11 @@ class DocumentprocessingAPI(Resource):
         try:
             op = args.get('op', '').strip()
             aidoc_id = args.get('aidocId', '').strip()
+            if not aidoc_id:
+                aidoc_id = '0'*36
             field_name = args.get('fieldName', None)
             if isinstance(field_name, str):
                 field_name = field_name.strip()
-
             if op == 'metadata' or op == 'metaparam':
                 if aidoc_id:
                     resource = get_metadata_summary(op, aidoc_id, field_name)
@@ -591,6 +591,7 @@ class DocumentprocessingAPI(Resource):
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
 
 
+        
 @ns.route('/add_meta_data')
 @ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
 class DocumentprocessingAPI(Resource):
@@ -604,12 +605,14 @@ class DocumentprocessingAPI(Resource):
         """Add metadata attributes"""
         args = metadata_summary_create.parse_args()
         try:
-            op = args.get('op', '').strip()
-            aidoc_id = args.get('aidocId', '').strip()
-            field_name = args.get('fieldName', '').strip()
-            attributes = args['attributes']
             data = {}
             attr_list = []
+            op = args.get('op', '').strip()
+            aidoc_id = args.get('aidocId', '').strip()
+            if not aidoc_id:
+                aidoc_id = '0'*36
+            field_name = args.get('fieldName', '').strip()
+            attributes = args['attributes']
 
             if op and aidoc_id:
                 data['id'] = aidoc_id
@@ -628,10 +631,10 @@ class DocumentprocessingAPI(Resource):
                         if isinstance(confidence_value, str):
                             confidence_value = confidence_value.strip()
                         attr_list.append({"attributeName": attribute_name,
-                                          "attributeType": attribute_type,
-                                          "attributeValue": attribute_value,
-                                          "note": note_value,
-                                          "confidence": confidence_value})
+                                        "attributeType": attribute_type,
+                                        "attributeValue": attribute_value,
+                                        "note": note_value,
+                                        "confidence": confidence_value})
                 data['attributes'] = attr_list
                 resource = add_metadata_summary(op, **data)
 
@@ -662,6 +665,8 @@ class DocumentprocessingAPI(Resource):
         args = metadata_summary.parse_args()
         try:
             aidoc_id = args.get('aidocId', '').strip()
+            if not aidoc_id:
+                aidoc_id = '0'*36
             field_name = args.get('fieldName', '').strip()
             attributes = args['attributes']
             data = {}
@@ -717,11 +722,13 @@ class DocumentprocessingAPI(Resource):
         try:
             op = args.get('op', '').strip()
             aidoc_id = args.get('aidocId', '').strip()
+            if not aidoc_id:
+                aidoc_id = '0'*36
             field_name = args.get('fieldName', '').strip()
             attributes = args.get('attributeNames')
             data = {}
             attr_list = []
-            if op and aidoc_id and field_name:
+            if op or aidoc_id or field_name:
                 data['id'] = aidoc_id
                 data['fieldName'] = field_name
                 if attributes is not None:
@@ -741,6 +748,7 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
+
 
 
 @ns.route('/get_protocols')

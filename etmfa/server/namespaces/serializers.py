@@ -566,9 +566,9 @@ metadata_summary_create.add_argument('fieldName', type=str, required=True, help=
 metadata_summary_create.add_argument('attributes', type=dict,action='append', required=False, help=METADATA_ATTRIBUTES)
 metadata_summary_add = api.model('API for external systems and BPO view to create metadata attributes',
                              {
-                                 'isAdded': fields.Boolean(readOnly=True,
+                                 'is_added': fields.Boolean(readOnly=True,
                                                      description='check metadata added or not'),
-                                 'isDuplicate': fields.Boolean(readOnly=True,
+                                 'is_duplicate': fields.Boolean(readOnly=True,
                                                      description='check metadata duplicate or not'),
                                  'error' : fields.String(readOnly=True,
                                                      description=ERROR_MESSAGE)
@@ -583,9 +583,9 @@ metadata_summary.add_argument('fieldName', type=str, required=True, help=METADAT
 metadata_summary.add_argument('attributes', type=dict,action='append', required=True, help=METADATA_ATTRIBUTES)
 metadata_summary_update = api.model('API for external systems and BPO view to update metadata attributes',
                              {
-                                 'isAdded': fields.Boolean(readOnly=True,
+                                 'is_added': fields.Boolean(readOnly=True,
                                                      description='check metadata added or not'),
-                                 'isDuplicate': fields.Boolean(readOnly=True,
+                                 'is_duplicate': fields.Boolean(readOnly=True,
                                                      description='check metadata duplicate or not'),
                                  'error' : fields.String(readOnly=True,
                                                      description=ERROR_MESSAGE)
@@ -602,7 +602,7 @@ metadata_detele_summary.add_argument('attributeNames', type=str,action='append',
 
 metadata_summary_delete = api.model('API for external systems and BPO view to delete metadata attributes',
                              {
-                                 'isDeleted': fields.Boolean(readOnly=True,
+                                 'is_deleted': fields.Boolean(readOnly=True,
                                                      description='check metadata deleted or not'),
                                  'error' : fields.String(readOnly=True,
                                                      description=ERROR_MESSAGE)

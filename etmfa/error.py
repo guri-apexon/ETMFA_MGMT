@@ -35,3 +35,13 @@ class ManagementException:
 
     def __str__(self):
         return f'({self.service_name}, {self.id}, {self.error_code}, {self.error_message})'
+    
+    
+    
+class GenericMessageException(Exception):
+    def __init__(self,name,*args):
+        self.name=name
+        super().__init__(args)
+
+    def __str__(self):
+        return self.name

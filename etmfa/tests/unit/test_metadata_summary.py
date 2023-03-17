@@ -9,53 +9,75 @@ from etmfa.server.config import Config
 # Setup logger
 logger = logging.getLogger(consts.LOGGING_NAME)
 
-"""
-Test cases for add data
-"""
-# add metadata
 
-
+UNAUTHORIZED_MSG = "Credential validation: Authentication failed for given username and password"
+DELETE_BASE_PATH = "/pd/api/v1/documents/delete_meta_data"
+CONTENT_TYPE = "application/json"
+input_dict = {
+    "op": '',
+    "aidocId": '',
+    "fieldName": ''
+}
+"""
+Test cases for delete data if exists
+"""
 @pytest.mark.order(1)
-@pytest.mark.parametrize("op, aidocId, fieldName, attributeNames, expected_status_cd, comments",
-                         [("deleteField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f", "test_info",
-                           [],  HTTPStatus.OK, "delete record if there only for consistency"),
-                         ("deleteField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f", "summary_extended",
-                           [],  HTTPStatus.OK, "delete record if there only for consistency")]
-                         )
-def test_delete_metadata_start(new_app_context, op, aidocId, fieldName, attributeNames, expected_status_cd, comments):
+@pytest.mark.parametrize("op, aidoc_id, field_name, attribute_names, expected_status_cd, comments",
+                         [ ("deleteField", "", "summary_extended", [],
+                                 HTTPStatus.OK, "delete summary_extended if there only for consistency"),
+                          ("deleteField", "00263eb0-7713-4abc-ab38-bcebac2b0437", "test_info.aa.bb.cc.dd.ee", [],
+                                 HTTPStatus.OK, "delete field if there only for consistency"),
+                          ("deleteField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                              "test_info.aa.bb.cc.dd.ee", [],  HTTPStatus.OK, "at level 6"),
+                             ("deleteField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                              "test_info.aa.bb.cc.dd", [],  HTTPStatus.OK, "at level 5"),
+                             ("deleteField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                              "test_info.aa.bb.cc", [],  HTTPStatus.OK, "at level 4"),
+                             ("deleteField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                              "test_info.aa.bb", [],  HTTPStatus.OK, "at level 3"),
+                             ("deleteField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                              "test_info.aa", [],  HTTPStatus.OK, "at level 2"),
+                             ("deleteField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                              "test_info", [], HTTPStatus.OK, "at level 1"),
+                        ])
+                         
+def test_delete_metadata_start(new_app_context, op, aidoc_id, field_name, attribute_names, expected_status_cd, comments):
     new_app, _ = new_app_context
     client = new_app.test_client()
 
-    input_dict = {
+    input_dict.update({
         "op": op,
-        "aidocId": aidocId,
-        "fieldName": fieldName
-    }
+        "aidocId": aidoc_id,
+        "fieldName": field_name
+    })
 
     with client:
         logger.debug(
-            f"test_delete_metadata: Processing for unit test type [{comments}]: [{op}, {aidocId}, {fieldName}, {attributeNames}]")
-        response = client.delete("/pd/api/v1/documents/delete_meta_data",
+            f"test_delete_metadata: Processing for unit test type [{comments}]: [{op}, {aidoc_id}, {field_name}, {attribute_names}]")
+        response = client.delete(DELETE_BASE_PATH,
                                  json=input_dict, headers=Config.UNIT_TEST_HEADERS)
         assert response.status_code == expected_status_cd
 
 
+"""
+Test cases for add metadata
+"""
 @pytest.mark.order(3)
-@pytest.mark.parametrize("op, aidocId, fieldName, attributes, expected_status_cd, comments,valid",
+@pytest.mark.parametrize("op, aidoc_id, field_name, attributes, expected_status_cd, comments,valid",
                          [
-                             ("addField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
+                             ("addField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
                               "test_info", [],  HTTPStatus.OK, "at level 1", True),
-                             ("addField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
+                             ("addField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
                               "test_info.aa", [],  HTTPStatus.OK, "at level 2", True),
-                             ("addField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
+                             ("addField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
                               "test_info.aa.bb", [],  HTTPStatus.OK, "at level 3", True),
-                             ("addField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
+                             ("addField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
                               "test_info.aa.bb.cc", [],  HTTPStatus.OK, "at level 4", True),
-                             ("addField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
+                             ("addField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
                               "test_info.aa.bb.cc.dd", [],  HTTPStatus.OK, "at level 5", True),
-                             ("addField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
+                             ("addField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
                               "test_info.aa.bb.cc.dd.ee", [], HTTPStatus.OK, "at level 6", True),
-                             ("addAttributes", "1a1015e4-7d32-48db-ab5b-85f50df2e73f", "test_info.aa.bb.cc.dd.ee", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "sugar"},
+                             ("addAttributes", "00263eb0-7713-4abc-ab38-bcebac2b0437", "test_info.aa.bb.cc.dd.ee", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "sugar"},
                                                                                                                     {"attr_name": "isHealthy", "attr_type": "boolean", "attr_value": True},
                                                                                                                     {"attr_name": "no_of_years", "attr_type": "integer", "attr_value": 29},
                                                                                                                     {"attr_name": "treatment_timeperiod",
@@ -63,276 +85,267 @@ def test_delete_metadata_start(new_app_context, op, aidocId, fieldName, attribut
                                                                                                                     {"attr_name": "treatment", "attr_type": "string", "attr_value": "diabetics",
                                                                                                                      "note": "test in every 3 months", "confidence": "sugar_within_control"},
                                                                                                                     {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "at level 6", True),
-                             ("addAttributes", "1a1015e4-7d32-48db-ab5b-85f50df2e73f", "level.a.b",
-                              ["", "", "",],  HTTPStatus.OK, "missing attributes value", False),
-                             ("", "", "", "",  HTTPStatus.NOT_FOUND,
-                              "All missing", False),
-                             ("", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                                 "level.a.b", [],  HTTPStatus.NOT_FOUND, "Missing op", False),
-                             ("addField", "", "level.aa.bb", [],
-                                 HTTPStatus.NOT_FOUND, "Missing aidocId", False),
-                             ("addField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f", "alphabet.aa.bb.cc.dd.ee.ff",
+                             ("addAttributes", "00263eb0-7713-4abc-ab38-bcebac2b0437", "level.a.b",
+                              [{"attr_name": "", "attr_type": "", "attr_value": "", "note": "", "confidence": ""}],  HTTPStatus.OK, "Field level.a.b does not exist", False),
+                             
+                             ("", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                                 "test_info.aa.bb.cc.dd.ee", [],  HTTPStatus.NOT_FOUND, "Missing op", False),
+                             ("addField", "00263eb0-7713-4abc-ab38-bcebac2b0437", "test_info.aa.bb.cc.dd.ee.ff",
                                  [],  HTTPStatus.NOT_FOUND, "Not allow more than 6 level", False),
+                             ("addField", "", "summary_extended.l1.l2.l3.l4.l5", [],
+                                 HTTPStatus.OK, "summary_extended fields added", True),
+                             ("addField", "", "summary_extended.l1.l2.l3.l4.l5.l6", [],
+                                 HTTPStatus.NOT_FOUND, "Not allow more than 6 level", False),
+                             ("addAttributes", "", "summary_extended",
+                              [{"attr_name": "Team", "attr_type": "string", "attr_value": "accordionTeam", "note": "", "confidence": ""}],  HTTPStatus.OK, "added in summary_extended", True)
                          ])
-def test_add_metadata(new_app_context, op, aidocId, fieldName, attributes, expected_status_cd, comments, valid):
+def test_add_metadata(new_app_context, op, aidoc_id, field_name, attributes, expected_status_cd, comments, valid):
     new_app, _ = new_app_context
     client = new_app.test_client()
-    input_dict = {
+    input_dict.update({
         "op": op,
-        "aidocId": aidocId,
-        "fieldName": fieldName,
+        "aidocId": aidoc_id,
+        "fieldName": field_name,
         "attributes": attributes,
-    }
+    })
 
     with client:
         logger.debug(
-            f"test_add_metadata: Processing for unit test type [{comments}]: [{op}, {aidocId}, {fieldName}, {attributes}]")
+            f"test_add_metadata: Processing for unit test type [{comments}]: [{op}, {aidoc_id}, {field_name}, {attributes}]")
         response = client.put("/pd/api/v1/documents/add_meta_data",
                               json=input_dict, headers=Config.UNIT_TEST_HEADERS)
 
         assert response.status_code == expected_status_cd
-        assert response.headers["Content-Type"] == "application/json"
+        assert response.headers["Content-Type"] == CONTENT_TYPE
 
         if valid:
-            assert json.loads(response.data)['isAdded'] == True
-            assert json.loads(response.data)['isDuplicate'] == False
+            assert json.loads(response.data)['is_added'] == True
+            assert json.loads(response.data)['is_duplicate'] == False
             assert json.loads(response.data)['error'] == "False"
+        if response.status_code == 200 and json.loads(response.data)['is_added'] == False:
+            assert json.loads(response.data)['error'] is not None
         if response.status_code == HTTPStatus.UNAUTHORIZED:
            assert json.loads(response.data)[
-               'message'] == "Credential validation: Authentication failed for given username and password"
+               'message'] == UNAUTHORIZED_MSG
+       
 
 
+"""
+Test cases for duplicate data check
+"""
 @pytest.mark.order(4)
-@pytest.mark.parametrize("op, aidocId, fieldName, attributes, expected_status_cd, comments",
-                         [("addField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f", "test_info.aa.bb.cc.dd.ee", [],  HTTPStatus.OK, "duplication error"),
-                          ("addAttributes", "1a1015e4-7d32-48db-ab5b-85f50df2e73f", "test_info.aa.bb.cc.dd.ee", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "sugar"},
+@pytest.mark.parametrize("op, aidoc_id, field_name, attributes, expected_status_cd, comments, valid",
+                         [("addField", "00263eb0-7713-4abc-ab38-bcebac2b0437", "test_info.aa.bb.cc.dd.ee", [],  HTTPStatus.OK, "Normal",True),
+                          ("addAttributes", "00263eb0-7713-4abc-ab38-bcebac2b0437", "test_info.aa.bb.cc.dd.ee", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "sugar"},
                                                                                                                  {"attr_name": "isHealthy", "attr_type": "boolean", "attr_value": False},
                                                                                                                  {"attr_name": "no_of_years", "attr_type": "integer", "attr_value": 27},
-                                                                                                                 {"attr_name": "treatment_timeperiod",
-                                                                                                                  "attr_type": "date", "attr_value": "20Mar1999"},
-                                                                                                                 {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "duplication error")
+                                                                                                                 {"attr_name": "treatment_timeperiod", "attr_type": "date", "attr_value": "20Mar1999"},
+                                                                                                                 {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "Normal",True),
+                          ("addField", "", "summary_extended", [], HTTPStatus.OK, "Normal", True)
                           ])
-def test_add_metadata_duplicate(new_app_context, op, aidocId, fieldName, attributes, expected_status_cd, comments):
+def test_add_metadata_duplicate(new_app_context, op, aidoc_id, field_name, attributes, expected_status_cd, comments, valid):
     new_app, _ = new_app_context
     client = new_app.test_client()
-    input_dict = {
+    input_dict.update({
         "op": op,
-        "aidocId": aidocId,
-        "fieldName": fieldName,
+        "aidocId": aidoc_id,
+        "fieldName": field_name,
         "attributes": attributes,
-    }
-    print('in order 3')
+    })
+    
     with client:
         logger.debug(
-            f"test_add_metadata_duplicate: Processing for unit test type [{comments}]: [{op}, {aidocId}, {fieldName}, {attributes}]")
+            f"test_add_metadata_duplicate: Processing for unit test type [{comments}]: [{op}, {aidoc_id}, {field_name}, {attributes}]")
         response = client.put("/pd/api/v1/documents/add_meta_data",
                               json=input_dict, headers=Config.UNIT_TEST_HEADERS)
 
         assert response.status_code == expected_status_cd
-        assert response.headers["Content-Type"] == "application/json"
+        assert response.headers["Content-Type"] == CONTENT_TYPE
 
-        if response.status_code == HTTPStatus.OK:
-            assert json.loads(response.data)['isDuplicate'] == True
-            assert json.loads(response.data)['isAdded'] == False
+        if valid:
+            assert json.loads(response.data)['is_duplicate'] == True
+            assert json.loads(response.data)['is_added'] == False
             assert json.loads(response.data)['error'] == "duplication error"
+        if response.status_code == 200 and json.loads(response.data)['is_added'] == False:
+            assert json.loads(response.data)['error'] is not None
         if response.status_code == HTTPStatus.UNAUTHORIZED:
             assert json.loads(response.data)[
-                'message'] == "Credential validation: Authentication failed for given username and password"
-
-
+                'message'] == UNAUTHORIZED_MSG
+        
+        
 """
 Test cases for update metadata
 """
-# update metadata
-
-
 @pytest.mark.order(5)
-@pytest.mark.parametrize("aidocId, fieldName, attributes, expected_status_cd, comments",
+@pytest.mark.parametrize("aidoc_id, field_name, attributes, expected_status_cd, comments, valid",
                          [
-                             ("1a1015e4-7d32-48db-ab5b-85f50df2e73f", "summary_extended", [{"attr_name": "specimen", "attr_type": "string", "attr_value": "blood"},
-                                                                                                   {"attr_name": "valid", "attr_type": "boolean", "attr_value": True}], HTTPStatus.OK, "Normal"),
-                             ("1a1015e4-7d32-48db-ab5b-85f50df2e73f", "test_info.aa.bb.cc.dd.ee", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"},
+                             
+                             ("00263eb0-7713-4abc-ab38-bcebac2b0437", "test_info.aa.bb.cc.dd.ee", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"},
                                                                                                    {"attr_name": "isHealthy", "attr_type": "boolean", "attr_value": True},
                                                                                                    {"attr_name": "no_of_years", "attr_type": "integer", "attr_value": 28},
                                                                                                    {"attr_name": "treatment_timeperiod",
                                                                                                     "attr_type": "date", "attr_value": "21Mar1999"},
-                                                                                                   {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "Normal"),
-                             ("1a1015e4-7d32-48db-ab5b-85f50df2e73f", "", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"},
-                                                                           {"attr_name": "isHealthy", "attr_type": "boolean", "attr_value": True},
-                                                                           {"attr_name": "no_of_years", "attr_type": "integer", "attr_value": 28},
-                                                                           {"attr_name": "treatment_timeperiod",
-                                                                            "attr_type": "date", "attr_value": "21Mar1999"},
-                                                                           {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "without field name"),
-                             ("1a1015e4-7d32-48db-ab5b-85f50df2e73f", "test_info.aa.bb.cc.dd.ee", [
-                                 {"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"}], HTTPStatus.OK, "Normal"),
-                             ("", "test_info.aa.bb.cc.dd.ee", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"},
-                                                               {"attr_name": "isHealthy",
-                                                                "attr_type": "boolean", "attr_value": True},
-                                                               {"attr_name": "no_of_years",
-                                                                "attr_type": "integer", "attr_value": 28},
-                                                               {"attr_name": "treatment_timeperiod",
-                                                                "attr_type": "date", "attr_value": "21Mar1999"},
-                                                               {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.NOT_FOUND, "Missing aidocId"),
-                             ("", "", "", HTTPStatus.NOT_FOUND, "All missing"),
-                             ("1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                                 "test_info.aa.bb.cc.dd.ee", "", HTTPStatus.NOT_FOUND, "Normal")
+                                                                                                   {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "Normal", True),
+   
+                             ("00263eb0-7713-4abc-ab38-bcebac2b0437", "test_info.aa.bb.cc.dd.ee", [
+                                 {"attr_name": "testFor", "attr_type": "string", "attr_value": "blood"}], HTTPStatus.OK, "Normal", True),
+                             
+                             
+                             ("00263eb0-7713-4abc-ab38-bcebac2b0437",
+                                 "test_info.aa.bb.cc.dd.ee", "", HTTPStatus.NOT_FOUND, "Missing attributes", False),
+                             ("", "summary_extended", [{"attr_name": "Team", "attr_type": "string", "attr_value": "accordionMetaTeam"}], HTTPStatus.OK, "summary_extended fields added", True),
                          ])
-def test_update_meta_data(new_app_context, aidocId, fieldName, attributes, expected_status_cd, comments):
+def test_update_meta_data(new_app_context, aidoc_id, field_name, attributes, expected_status_cd, comments, valid):
     new_app, _ = new_app_context
     client = new_app.test_client()
-    input_dict = {
-        "aidocId": aidocId,
-        "fieldName": fieldName,
+    input_dict.update({
+        "aidocId": aidoc_id,
+        "fieldName": field_name,
         "attributes": attributes
-    }
+    })
 
     with client:
         logger.debug(
-            f"test_update_meta_data: Processing for unit test type [{comments}]: [{aidocId}, {fieldName}, {attributes}]")
+            f"test_update_meta_data: Processing for unit test type [{comments}]: [{aidoc_id}, {field_name}, {attributes}]")
         response = client.post("/pd/api/v1/documents/add_update_meta_data",
                                json=input_dict, headers=Config.UNIT_TEST_HEADERS)
         assert response.status_code == expected_status_cd
-        assert response.headers["Content-Type"] == "application/json"
+        assert response.headers["Content-Type"] == CONTENT_TYPE
 
-        if response.status_code == HTTPStatus.OK:
-            assert json.loads(response.data)['isAdded'] == True
-            assert json.loads(response.data)['isDuplicate'] == False
+        if valid:
+            assert json.loads(response.data)['is_added'] == True
+            assert json.loads(response.data)['is_duplicate'] == False
             assert json.loads(response.data)['error'] == "False"
+        if response.status_code == 200 and json.loads(response.data)['is_added'] == False:
+            assert json.loads(response.data)['error'] is not None
         if response.status_code == HTTPStatus.UNAUTHORIZED:
             assert json.loads(response.data)[
-                'message'] == "Credential validation: Authentication failed for given username and password"
-
+                'message'] == UNAUTHORIZED_MSG
+        
+        
 """
-Get meta data
+Test case for get metadata
 """
-# get metadata
-
-
-@pytest.mark.order(6)
-@pytest.mark.parametrize("op, aidoc_id, field_name, expected_status_cd, comments",
-                         [("metadata", "1a1015e4-7d32-48db-ab5b-85f50df2e73f", "test_info.aa.bb.cc.dd.ee", HTTPStatus.OK, "Normal"),
-                          ("metaparam", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                           "test_info.aa.bb.cc.dd.ee", HTTPStatus.OK, "Normal"),
-                          ("metadata", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                           "test_info.aa.bb.cc.dd.ee", HTTPStatus.OK, "Normal"),
-                          ("metadata", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                           "",  HTTPStatus.OK, "Normal"),
-                          ("metaparam", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                           "", HTTPStatus.OK, "Normal"),
-                          ("metadataa", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                           "test_info.aa.bb.cc.dd.ee", HTTPStatus.NOT_FOUND, "incorrect input"),
-                          ("", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                           "", HTTPStatus.NOT_FOUND, "Missing op value"),
-                          ("metadata", "", "", HTTPStatus.NOT_FOUND, "Missing aidocId"),
-                          ("", "", "", HTTPStatus.NOT_FOUND, "All missing")
+@pytest.mark.order(2)
+@pytest.mark.parametrize("op, aidoc_id, field_name, expected_status_cd, comments, valid",
+                         [("metadata", "00263eb0-7713-4abc-ab38-bcebac2b0437", "test_info.aa.bb.cc.dd.ee", HTTPStatus.OK, "Normal", True),
+                          ("metaparam", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                           "test_info.aa.bb.cc.dd.ee", HTTPStatus.OK, "Normal", True),
+                          ("metadataa", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                           "test_info.aa.bb.cc.dd.ee", HTTPStatus.NOT_FOUND, "incorrect input", False),
+                          ("metadata", "", "", HTTPStatus.OK, "summary_extended response", True),
+                          ("metadata", "", "summary_extended", HTTPStatus.OK, "summary_extended response", True),
+                          ("metaparam", "", "", HTTPStatus.OK, "summary_extended metaparam response", True)
                           ])
-def test_get_metadata(new_app_context, op, aidoc_id, field_name, expected_status_cd, comments):
+def test_get_metadata(new_app_context, op, aidoc_id, field_name, expected_status_cd, comments, valid):
     new_app, _ = new_app_context
     client = new_app.test_client()
-    input_dict = {
+    input_dict.update({
         "op": op,
         "aidocId": aidoc_id,
         "fieldName": field_name
-    }
+    })
     with client:
         logger.debug(
             f"test_get_metadata_summary: Processing for unit test type [{comments}]: [{op}, {aidoc_id}, {field_name}]")
         response = client.get("/pd/api/v1/documents/meta_data_summary",
                               json=input_dict, headers=Config.UNIT_TEST_HEADERS)
         assert response.status_code == expected_status_cd
-        assert response.headers["Content-Type"] == "application/json"
+        assert response.headers["Content-Type"] == CONTENT_TYPE
 
-        if response.status_code == HTTPStatus.OK:
+        if valid:
             assert json.loads(response.data) is not None
         if response.status_code == HTTPStatus.UNAUTHORIZED:
             assert json.loads(response.data)[
-                'message'] == "Credential validation: Authentication failed for given username and password"
+                'message'] == UNAUTHORIZED_MSG
+        
 
 
 """
-Delete metadata
+Test case for delete metadata
 """
-# delete field and attribute
+@pytest.mark.order(6)
+@pytest.mark.parametrize("op, aidoc_id, field_name, attribute_names, expected_status_cd, comments, valid",
+                         [
+                          ("", "00263eb0-7713-4abc-ab38-bcebac2b0437", "test_info.aa.bb.cc.dd.ee",
+                           ["num_houses"],  HTTPStatus.NOT_FOUND, "Missing op", False),
+                         
+                          ("deleteAttribute", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                           "test_info.aa.bb.cc.dd.ee", ["no_of_years", "isHealthy","treatment_timeperiod", "treatment", "testFor", "treatment_week_timeperiod"],  HTTPStatus.OK, "Normal", True),
+                          
+                          ("deleteField", "", "test_info.aa.bb.cc.dd.ee",
+                           [],  HTTPStatus.OK, "Normal", True),
+                          ("deleteField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                              "test_info", [],  HTTPStatus.OK, "at level 1", True),
+                             ("deleteField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                              "test_info.aa", [],  HTTPStatus.OK, "at level 2", True),
+                             ("deleteField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                              "test_info.aa.bb", [],  HTTPStatus.OK, "at level 3", True),
+                             ("deleteField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                              "test_info.aa.bb.cc", [],  HTTPStatus.OK, "at level 4", True),
+                             ("deleteField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                              "test_info.aa.bb.cc.dd", [],  HTTPStatus.OK, "at level 5", True),
+                             ("deleteField", "00263eb0-7713-4abc-ab38-bcebac2b0437",
+                              "test_info.aa.bb.cc.dd.ee", [], HTTPStatus.OK, "at level 6", True),
+                          ("deleteAttribute","", "summary_extended", ["Sponsor", "testFor", "Team"], HTTPStatus.OK, "summary_extended fields deleted", True)
+                          ])
+def test_delete_metadata(new_app_context, op, aidoc_id, field_name, attribute_names, expected_status_cd, comments, valid):
+    new_app, _ = new_app_context
+    client = new_app.test_client()
+
+    input_dict.update({
+        "op": op,
+        "aidocId": aidoc_id,
+        "fieldName": field_name,
+        "attributeName": attribute_names
+    })
+
+    with client:
+        logger.debug(
+            f"test_delete_metadata: Processing for unit test type [{comments}]: [{op}, {aidoc_id}, {field_name}, {attribute_names}]")
+        response = client.delete(DELETE_BASE_PATH,
+                                 json=input_dict, headers=Config.UNIT_TEST_HEADERS)
+        assert response.status_code == expected_status_cd
+        assert response.headers["Content-Type"] == CONTENT_TYPE
+
+        if valid:
+            assert json.loads(response.data)['is_deleted'] == True
+            assert json.loads(response.data)['error'] == ""
+        if response.status_code == HTTPStatus.UNAUTHORIZED:
+            assert json.loads(response.data)[
+                'message'] == UNAUTHORIZED_MSG
+        
 
 
 @pytest.mark.order(7)
-@pytest.mark.parametrize("op, aidocId, fieldName, attributeNames, expected_status_cd, comments",
-                         [("deleteField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f", "test_info.aa.bb.cc.dd.ee", [],  HTTPStatus.OK, "delete at level 6"),
-                          ("deleteField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                           "level.a.b.", [],  HTTPStatus.OK, "delete at level 3 "),
-                          ("deleteAttribute", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                           "test_info.aa.bb.cc.dd.ee", ["testFor"],  HTTPStatus.OK, "Normal"),
-                          ("deleteAttribute", "1a1015e4-7d32-48db-ab5b-85f50df2e73f", "level.a.b", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "sugar"},
-                                                                                                    {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "at level 3"),
-                          ("deleteField", "", "test_info.aa.bb.cc.dd.ee",
-                           "",  HTTPStatus.NOT_FOUND, "Missing aidocId"),
-                          ("deleteField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                           "", "",  HTTPStatus.NOT_FOUND, "Field name missing"),
-                          ("", "1a1015e4-7d32-48db-ab5b-85f50df2e73f", "test_info.aa.bb.cc.dd.ee",
-                           ["num_houses"],  HTTPStatus.NOT_FOUND, "Missing op"),
-                          ("", "", "", "",  HTTPStatus.NOT_FOUND, "All missing"),
-                          ("deleteAttribute", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                           "test_info.aa.bb.cc.dd.ee", ["no_of_years", "isHealthy"],  HTTPStatus.OK, "Normal"),
-                          ("deleteAttribute", "1a1015e4-7d32-48db-ab5b-85f50df2e73f", "",
-                           ["no_of_years", "isHealthy"],  HTTPStatus.NOT_FOUND, "Field name missing")
-                          ])
-def test_delete_metadata(new_app_context, op, aidocId, fieldName, attributeNames, expected_status_cd, comments):
-    new_app, _ = new_app_context
-    client = new_app.test_client()
-
-    input_dict = {
-        "op": op,
-        "aidocId": aidocId,
-        "fieldName": fieldName,
-        "attributeName": attributeNames
-    }
-
-    with client:
-        logger.debug(
-            f"test_delete_metadata: Processing for unit test type [{comments}]: [{op}, {aidocId}, {fieldName}, {attributeNames}]")
-        response = client.delete("/pd/api/v1/documents/delete_meta_data",
-                                 json=input_dict, headers=Config.UNIT_TEST_HEADERS)
-        assert response.status_code == expected_status_cd
-        assert response.headers["Content-Type"] == "application/json"
-
-        if response.status_code == HTTPStatus.OK:
-            assert json.loads(response.data)['isDeleted'] == True
-            assert json.loads(response.data)['error'] == ""
-        if response.status_code == HTTPStatus.UNAUTHORIZED:
-            assert json.loads(response.data)[
-                'message'] == "Credential validation: Authentication failed for given username and password"
-
-
-@pytest.mark.order(8)
-@pytest.mark.parametrize("op, aidocId, fieldName, attributeNames, expected_status_cd, comments",
-                         [("deleteField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                           "test_info", [],  HTTPStatus.OK, "delete record if there"),
-                           ("deleteField", "1a1015e4-7d32-48db-ab5b-85f50df2e73f",
-                           "summary_extended", [],  HTTPStatus.OK, "delete record if there")
+@pytest.mark.parametrize("op, aidoc_id, field_name, attribute_names, expected_status_cd, comments, valid",
+                         [
+                          ("deleteField","", "summary_extended", [], HTTPStatus.OK, "summary_extended fields deleted", True)
                            ]
                          )
-def test_delete_metadata_end(new_app_context, op, aidocId, fieldName, attributeNames, expected_status_cd, comments):
+def test_delete_metadata_end(new_app_context, op, aidoc_id, field_name, attribute_names, expected_status_cd, comments, valid):
     new_app, _ = new_app_context
     client = new_app.test_client()
 
-    input_dict = {
+    input_dict.update({
         "op": op,
-        "aidocId": aidocId,
-        "fieldName": fieldName,
-        "attributeName": attributeNames
-    }
+        "aidocId": aidoc_id,
+        "fieldName": field_name,
+        "attributeName": attribute_names
+    })
 
     with client:
         logger.debug(
-            f"test_delete_metadata: Processing for unit test type [{comments}]: [{op}, {aidocId}, {fieldName}, {attributeNames}]")
-        response = client.delete("/pd/api/v1/documents/delete_meta_data",
+            f"test_delete_metadata: Processing for unit test type [{comments}]: [{op}, {aidoc_id}, {field_name}, {attribute_names}]")
+        response = client.delete(DELETE_BASE_PATH,
                                  json=input_dict, headers=Config.UNIT_TEST_HEADERS)
         assert response.status_code == expected_status_cd
-        assert response.headers["Content-Type"] == "application/json"
+        assert response.headers["Content-Type"] == CONTENT_TYPE
 
-        if response.status_code == HTTPStatus.OK:
-            assert json.loads(response.data)['isDeleted'] == True
+        if valid:
+            assert json.loads(response.data)['is_deleted'] == True
             assert json.loads(response.data)['error'] == ""
         if response.status_code == HTTPStatus.UNAUTHORIZED:
             assert json.loads(response.data)[
-                'message'] == "Credential validation: Authentication failed for given username and password"
+                'message'] == UNAUTHORIZED_MSG
+        
