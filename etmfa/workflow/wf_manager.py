@@ -101,20 +101,23 @@ class WorkFlowManager():
         """
         register all default workflows
         """
+        self.store.delete_all_dependancy_graph(list(DEFAULT_WORKFLOWS.keys()))
         for wf_name, graph in DEFAULT_WORKFLOWS.items():
             self.register_work_flow(wf_name, graph)
 
     def _register_default_services(self):
         etmafa_map = {
             queue_name.value: queue_name for queue_name in EtmfaQueues}
-
+        ms_list=[]
         for sr_name, _ in DEFAULT_SERVICE_FLOW_MAP.items():
             if sr_name == TERMINATE_NODE:
                 continue
             sr_enum = etmafa_map[sr_name]
             ms = MsRegistry(
                 service_name=sr_name, input_queue=sr_enum.request, output_queue=sr_enum.complete)
-            self.store.register_service(ms)
+            ms_list.append(ms)
+        self.store.delete_all_services(ms_list)
+        self.store.register_all_services(ms_list)
 
     def on_init(self):
         """
