@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import FLOAT,INTEGER,ARRAY
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 from dataclasses import dataclass
+from etmfa.db.models.meta_accordion_defaults import META_ACCORDION
 import hashlib
 
 
@@ -266,7 +267,7 @@ def read_accordion():
     """
     read the default accordion from external file
     """
-    file_path="meta_accordion.json"
+    file_path="./etmfa/defaults/meta_accordion.txt"
     file_list = []
     with open(file_path, 'r') as f:
         content = json.load(f)
@@ -282,7 +283,7 @@ def default_accordion():
     add default accordion fields for the 1st time
     """ 
     default_id = add_default_id()
-    accordionlist = read_accordion()
+    accordionlist = META_ACCORDION
     helper_obj = MetaDataTableHelper()
     for accordion in accordionlist:
         field_name = accordion.get("fieldName") 

@@ -1,69 +1,67 @@
-{
-    "accordion":[
-    
-    {
-        "fieldName": "summary_extended",
-        "attributes": [
-            {
+
+META_ACCORDION=[
+        {
+            "fieldName": "summary_extended",
+            "attributes": [
+                {
 				"attributeName": "protocolTitle",
 				"attributeType": "string",
 				"attributeValue": "",
 				"confidence": "",
 				"note": ""
-            },
-            {
+                },
+                {
 				"attributeName": "shortTitle",
 				"attributeType": "string",
 				"attributeValue": "",
 				"confidence": "",
 				"note": ""
-            },
-            {
+                },
+                {
 				"attributeName": "amendment",
 				"attributeType": "string",
 				"attributeValue": "",
 				"confidence": "",
 				"note": ""
-            },
-            {
+                },
+                {
 				"attributeName": "phase",
 				"attributeType": "string",
 				"attributeValue": "",
 				"confidence": "",
 				"note": ""
-            },
-            {
+                },
+                {
 				"attributeName": "sponsor",
 				"attributeType": "string",
 				"attributeValue": "",
 				"confidence": "",
 				"note": ""
-            },
-            {
+                },
+                {
 				"attributeName": "versionNumber",
 				"attributeType": "string",
 				"attributeValue": "",
 				"confidence": "",
 				"note": ""
-            },
-            {
+                },
+                {
 				"attributeName": "moleculeDevice",
 				"attributeType": "string",
 				"attributeValue": "",
 				"confidence": "",
 				"note": ""
-            },
-            
-            {
+                },
+
+                {
 				"attributeName": "indication",
 				"attributeType": "string",
 				"attributeValue": "",
 				"confidence": "",
 				"note": ""
-            }
+                }
 
-        ]
-    }
+            ]
+        }
 
     ]
-}
