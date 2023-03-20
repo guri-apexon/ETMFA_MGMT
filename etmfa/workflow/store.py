@@ -52,8 +52,11 @@ class PostGresStore(WorkFlowStore, DbMixin):
     def get_work_flow(self, wf_name: str) -> WorkFlow:
         return self.read_by_id(wf_name)
 
-    def store_dependancy_graph(self, depend_graph_info) -> None:
+    def store_dependancy_graph(self,depend_graph_info) -> None:
         self.write_unique(depend_graph_info)
+
+    def delete_all_dependancy_graph(self,wf_list:List):
+        self.delete_group_of_elms(ServiceWorkflows,ServiceWorkflows.work_flow_name,wf_list)
 
     def get_all_dependacy_graphs(self) -> List[ServiceWorkflows]:
         return self.fetch_all(ServiceWorkflows)
@@ -63,6 +66,14 @@ class PostGresStore(WorkFlowStore, DbMixin):
         fetch all 
         """
         return self.fetch_all(MsRegistry)
+    
+    def delete_all_services(self,data_list:List):
+        service_names=[data.service_name  for data in data_list]
+        self.delete_group_of_elms(MsRegistry,MsRegistry.service_name,service_names)
 
+    def register_all_services(self,data_list):
+        self.add_group_of_elms(data_list)
+        
     def register_service(self, data: MsRegistry):
+        self.delete_by_key(MsRegistry,MsRegistry.service_name,data.service_name)
         self.write_unique(data)

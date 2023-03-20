@@ -33,7 +33,23 @@ class DbMixin:
             except IntegrityError as e:
                 if not isinstance(e.orig, UniqueViolation):
                     raise e
+                
+    def delete_by_key(self,table_name,key_name,val):
+        with SessionLocal() as session:
+            session.query(table_name).filter(key_name==val).delete()
+            session.commit()
 
+    def delete_group_of_elms(self,table_name,key_name,elm_list):
+        with SessionLocal() as session:
+            session.query(table_name).filter(key_name.in_(elm_list)).delete()
+            session.commit()
+
+    def add_group_of_elms(self,elm_list):
+        with SessionLocal() as session:
+            for elm in elm_list:
+                session.add(elm)
+            session.commit()
+    
     def fetch_all(self, table):
         """
         return all table info
