@@ -812,7 +812,7 @@ class DocumentprocessingAPI(Resource):
                 if len(resource) == 0:
                     return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
                 else:
-                    return jsonify({"DIPA Variables":resource})
+                    return jsonify({"dipa_resource":resource})
             else:
                 logger.error(f"Invalid aidocId received: {args}")
                 return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
@@ -844,7 +844,7 @@ class DocumentprocessingAPI(Resource):
                 if len(resource) == 0:
                     return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
                 else:
-                    return jsonify({"DIPA Data":resource})
+                    return jsonify({"dipa_resource":resource})
             else:
                 logger.error(f"Invalid aidocId received: {args}")
                 return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))

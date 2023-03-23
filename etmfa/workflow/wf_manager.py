@@ -21,8 +21,7 @@ from .db.db_utils import (create_doc_processing_status,
                           get_pending_running_work_flows,
                           check_stale_work_flows_and_remove
                           )
-from ..server.loggingconfig import initialize_logger
-
+from .loggerconfig import initialize_wf_logger, ContextFilter
 
 WF_RUN_WAIT_TIME = 3  # 3 sec
 
@@ -261,14 +260,14 @@ class WorkFlowManager():
             sr_name = h_node.name
             service_param = param
             input_queue_name, _ = self.service_queue_tuple_map[sr_name]
-            self.logger.debug('creating start message')
+            self.logger.debug('creating start message', extra = {"doc_id":flow_id})
             composite_msg = self.service_message_handler.create_start_message(
                 sr_name, input_queue_name, wf_name, flow_id, service_param)
             next_service_with_comp_msg = {sr_name: composite_msg}
-            self.logger.debug('creating adapted message')
+            self.logger.debug('creating adapted message', extra = {"doc_id":flow_id})
             adapted_msg_map, skipped_services_msg_obj_map = self.service_message_handler.on_output_message_adapter(
                 next_service_with_comp_msg)
-            self.logger.debug('sending adapted message to ', input_queue_name)
+            self.logger.debug(f'sending adapted message to {input_queue_name}', extra = {"doc_id":flow_id})
             work_flow.get_channel(
                 flow_id).dynamic_instance_creation_check_update(adapted_msg_map)
             self.broker.send_msg(adapted_msg_map[sr_name], input_queue_name)
@@ -291,7 +290,6 @@ class WorkFlowClient():
         """
         type: msgtype info or command. to run workflow its COMMAND, to get info INFO
         """
-
         wfm = WorkFlowMessage(work_flow_name=wf_name,
                               work_flow_id=wf_id, doc_uid=doc_uid, param=param)
         data = MqReqMsg(type, wfm.dict())
@@ -306,11 +304,10 @@ class WorkFlowController(Thread):
     """
     work flow controller manages a queue
     """
-
     def __init__(self, message_broker_exchange, message_broker_address, dfs_path, logger,extra_config):
         self.msg_queue = []
         self.logger = logger
-        self.logger.info("Controller process is "+str(os.getpid()))
+        self.logger.info("Controller process is " + str(os.getpid()))
         self.wfm = WorkFlowManager(
             message_broker_exchange, message_broker_address, dfs_path, logger, True,extra_config)
         self.remove_time_for_stale_workflows=extra_config['MAX_EXECUTION_WAIT_TIME_HRS']
@@ -321,10 +318,10 @@ class WorkFlowController(Thread):
 
     def add_msg(self, msg):
         with self.lock:
-            self.logger.debug("Message added :", msg)
+            self.logger.debug("Message added")
             wf_msg = WorkFlowMessage(**msg)
             self.msg_queue.append(wf_msg)
-            self.logger.debug('doc pressing status created')
+            self.logger.debug('doc processing status created')
 
     def get_msg(self):
         with self.lock:
@@ -348,16 +345,17 @@ class WorkFlowController(Thread):
         """
         Receive message on controller
         """
-        self.logger.debug("Message received on controller :", msg_obj)
+        self.logger.addFilter(ContextFilter(doc_id=msg_obj['msg']['doc_uid']))
+        self.logger.debug("Message received on controller")
         msg_obj = MqReqMsg(**msg_obj)
-        type, msg = msg_obj.type, msg_obj.msg
-        if type == MsqType.COMMAND.value:
+        _type, msg = msg_obj.type, msg_obj.msg
+        if _type == MsqType.COMMAND.value:
             self.add_msg(msg)
-        elif type == MsqType.INFO:
-            raise Exception(f"{type} is not implemented yet in controller ")
+        elif _type == MsqType.INFO:
+            raise Exception(f"{_type} is not implemented yet in controller ")
         else:
             raise Exception(
-                f"{type} is not a valid type request on controller ")
+                f"{_type} is not a valid type request on controller ")
         return {}
 
 
@@ -405,9 +403,9 @@ class WorkFlowRunner(Process):
         self.start()
 
     def run(self):
-        logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(Consts.LOGGING_WF)
-        initialize_logger(self.log_stash_host, self.log_stash_port)
+        # register workflow logger
+        initialize_wf_logger(self.log_stash_host, self.log_stash_port)
         self.logger.info("Running workflow Runner")
         wfc = WorkFlowController(
             self.message_broker_exchange, self.message_broker_address, self.dfs_path, self.logger,self.extra_config)

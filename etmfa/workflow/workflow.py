@@ -5,6 +5,7 @@ from pydantic import BaseModel, ValidationError
 from .db.schemas import ServiceWorkflows
 import copy
 from .messaging.models import ServiceInfo, CompositeServiceMessage,TERMINATE_NODE
+from etmfa.workflow.loggerconfig import ContextFilter
 
 
 class NodeInfoModel(BaseModel):
@@ -184,12 +185,13 @@ class WorkFlow():
         return graph
 
     def create_channel(self, flow_id):
+        self.logger.addFilter(ContextFilter(doc_id=flow_id))
         with self.lock:
             if flow_id in self.channels:
-                raise Exception(f'id {flow_id} already being processed  ')
+                raise Exception(f'{flow_id} id already being processed')
             self.channels[flow_id] = Channel(
                 self.work_flow_name, flow_id, self.node_graph)
-            self.logger.info(f'{flow_id} is added to channel')
+            self.logger.info('added to channel')
 
     def delete_channel(self, flow_id):
         """"
