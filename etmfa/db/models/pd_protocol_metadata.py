@@ -4,16 +4,17 @@ import logging
 
 from etmfa.db import db_context
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Index, String, DateTime, Boolean, ForeignKey
-from sqlalchemy.dialects.postgresql import FLOAT,INTEGER,ARRAY
+from sqlalchemy import Column, Index, String, DateTime, Boolean, ForeignKey, Integer
+from sqlalchemy.dialects.postgresql import FLOAT,INTEGER,ARRAY, VARCHAR
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 from dataclasses import dataclass
+from etmfa.consts import  DUPLICATION_ERROR,ACCORDIAN_DOC_ID
 from etmfa.db.models.meta_accordion_defaults import META_ACCORDION
 import hashlib
 
 
-DUPLICATION_ERROR = "duplication error"
+
     
 class PDProtocolMetadata(db_context.Model):
     __tablename__ = "pd_protocol_metadata"
@@ -119,8 +120,11 @@ class PDProtocolMetaDataAttribute(db_context.Model):
     attribute_value_array=Column(ARRAY(String))
     confidence=Column(String)
     note=Column(String)
-    user_id=Column(String)
     parent_id = Column(String, ForeignKey('pd_protocol_metadata_level.id', ondelete="CASCADE"))
+    user_id=Column(VARCHAR(100))
+    last_updated = Column(DateTime(timezone=False))
+    display_name = Column(VARCHAR(100))
+    num_updates = Column(Integer, default=1)
     meta_levels = relationship(
         "PDProtocolMetaDataLevel", back_populates="attributes")
 
@@ -164,65 +168,49 @@ class NestedDict():
                 continue
             if str(name).startswith(prefix):
                 attr_value = getattr(attr_data, attr.name)
-                if attr_value:
+                if attr_value != None:
                     return attr_value
 
 
 @dataclass
 class MetaStatusResponse():
-    is_added: Boolean
-    is_duplicate: Boolean = False
+    isAdded: Boolean
+    isDuplicate: Boolean = False
     error: str = ''
 
 @dataclass
 class MetaDeleteResponse():
-    is_deleted:Boolean
+    isDeleted:Boolean
     error:str
-    
 
-SUMMARY_DEFAULT_MAPPED_FIELDS = {
-                         'protocolTitle':'Protocol title',
-                         'shortTitle': 'Protocol Title Short',
-                         'amendment': 'Amendment Number',
-                         'phase': 'Trial Phase',
-                         'sponsor': 'Sponsor',
-                         'versionNumber': 'Version Number',
-                         'moleculeDevice': 'Molecule Device',
-                         'indication': 'Indication',
-                         #'draftVersion': 'Draft Version',
-                         #'fileName': 'Protocol Name',
-                         #'protocol': 'Protocol Number',
-                         #'approvalDate': 'Approval Date',
-                         #'documentStatus': 'Document Status',
+SUMMARY_FIELDS = {"Protocol Name": "fileName",
+                         "Protocol Number": "protocol",
+                         "Protocol title": "protocolTitle",
+                         "Protocol Title Short": "shortTitle",
+                         "Is Amendment": "isAmendment",
+                         "Amendment Number": "amendment",
+                         "Trial Phase": "phase",
+                         "Sponsor": "sponsor",
+                         "Sponsor Address": "sponsorAddress",
+                         "Drug": "drug",
+                         "Approval Date": "approvalDate",
+                         "Version Number": "versionNumber",
+                         "Version Date": "versionDate",
+                         "Blinded": "blinded",
+                         "Compound Number": "compoundNumber",
+                         "Control": "control",
+                         "Investigator": "investigator",
+                         "Study Id": "studyId",
+                         "Number of Subjects": "numOfSubjects",
+                         "Participant Age": "participantAge",
+                         "Participant Sex": "participantSex",
+                         "Trial Type randomized":"trialTypeRandomized",
+                         "Molecule Device": "moleculeDevice",
+                         "Document Status": "documentStatus",
+                         "Indication": "indication",
+                         "Draft Version": "draftVersion"
                          }
-SUMMARY_MAPPED_FIELDS = {'Protocol Name': 'fileName',
-                         'Protocol Number': 'protocol',
-                         'Protocol title': 'protocolTitle',
-                         'Protocol Title Short': 'shortTitle',
-                         'Is Amendment': '',
-                         'Amendment Number': 'amendment',
-                         'Trial Phase': 'phase',
-                         'Sponsor': 'sponsor',
-                         'Sponsor Address': '',
-                         'Drug': '',
-                         'Approval Date': 'approvalDate',
-                         'Version Number': 'versionNumber',
-                         'Version Date': '',
-                         'Blinded': '',
-                         'Compound Number': '',
-                         'Control': '',
-                         'Investigator': '',
-                         'Study Id': '',
-                         'Number of Subjects': '',
-                         'Participant Age': '',
-                         'Participant Sex': '',
-                         'Trial Type randomized':'',
-                         'Molecule Device': 'moleculeDevice',
-                         'Document Status': 'documentStatus',
-                         'Indication': 'indication',
-                         'Draft Version': 'draftVersion'
-                         }
-
+SUMMARY_ATTR_REV_MAP={v:k for k,v in SUMMARY_FIELDS.items()}
 
 class SessionManager():
     """
@@ -238,23 +226,21 @@ class SessionManager():
         
 
 
-def add_default_id():
+def add_default_id(session):
     """
     creates default id for accordion fields
     """
     try:
         metadata_obj = PDProtocolMetadata()
-        record_id = '0'*36
+        record_id = ACCORDIAN_DOC_ID
         metadata_obj.id = record_id
         metadata_obj.userId = 'mgmt_service'
         metadata_obj.runId = '0'
-        with SessionManager() as session:
-            db_query = session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == record_id).first()
-            if db_query is not None:
-                session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == record_id).delete()
+        db_query = session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == record_id).first()
+        if not db_query:
             session.add(metadata_obj)
-            session.commit()
-            return record_id
+        session.commit()
+        return record_id
     except IntegrityError as e:
         error=str(e)
         if isinstance(e.orig, UniqueViolation):
@@ -263,34 +249,21 @@ def add_default_id():
 
 
 
-def read_accordion():
-    """
-    read the default accordion from external file
-    """
-    file_path="./etmfa/defaults/meta_accordion.txt"
-    file_list = []
-    with open(file_path, 'r') as f:
-        content = json.load(f)
-        for i in content['accordion']:
-            file_list.append(i)
-        f.close()
-    return file_list   
-
-
               
 def default_accordion():
     """
     add default accordion fields for the 1st time
     """ 
-    default_id = add_default_id()
     accordionlist = META_ACCORDION
     helper_obj = MetaDataTableHelper()
-    for accordion in accordionlist:
-        field_name = accordion.get("fieldName") 
-        attributes = accordion.get("attributes")
-        helper_obj.delete_field(default_id,field_name)
-        helper_obj.add_field(default_id, field_name)
-        helper_obj.add_default_field_data(default_id, field_name, attributes)
+    with SessionManager() as session:
+        default_id = add_default_id(session)
+        for accordion in accordionlist:
+            field_name = accordion.get("fieldName",None) 
+            if helper_obj.check_field_exist(session,default_id,field_name):
+                helper_obj.delete_field(session,default_id,field_name)
+            helper_obj.add_field(session,default_id, field_name)
+            helper_obj.add_field_data(session,default_id,field_name,accordion.get('attributes',[]))
     
 
 class MetaDataTableHelper():
@@ -310,19 +283,17 @@ class MetaDataTableHelper():
     def get_variable_types(self):
         return list(self.variable_type_map.keys())
 
-    def get_meta_param(self, id):
+    def get_meta_param(self,session,_id):
         """
         get metaparams for specific docid
         """
         nested_obj = NestedDict(self.max_level)
-        with SessionManager() as session:
-            data = session.query(PDProtocolMetadata).get(id)
-        
-            if data == None:
-                return {}
-            for lvl_data in data.levels:
-                curr_nested_obj, field_list = nested_obj.add_level(lvl_data)
-            return nested_obj.data
+        data = session.query(PDProtocolMetadata).get(_id)
+        if data == None:
+            return {}
+        for lvl_data in data.levels:
+            curr_nested_obj, field_list = nested_obj.add_level(lvl_data)
+        return nested_obj.data
         
     def add_child_info(self, obj):
         """
@@ -336,68 +307,93 @@ class MetaDataTableHelper():
                 obj['_childs'].append(key)
             self.add_child_info(value)
 
-    def get_data(self, id, field_name=None):
+
+    def get_result_list(self, data, attr_list):
+
+        attr_map={attr['attr_name']:attr  for attr in attr_list.get('_meta_data',[]) if attr.get('attr_name',None)}
+        top_obj = {c.name: getattr(data, c.name) for c in data.__table__.columns}
+        result_list = []
+        for display_name, attr_name in SUMMARY_FIELDS.items():
+            value, confidence, note = "", "", ""
+            audit_info = {}
+            if not attr_name:
+                attr_name = display_name
+            if attr_map.get(attr_name,None):
+                curr_data=attr_map[attr_name]
+                value = curr_data.get("attr_value")
+                display_name=curr_data.get("display_name",display_name)
+                confidence = curr_data.get("confidence")
+                note = curr_data.get("note")
+                audit_info = curr_data.get("audit_info")
+            else:
+                value = top_obj.get(attr_name,'')
+            result_list.append({'display_name':display_name,
+                                    'attr_name': attr_name,
+                                    'attr_value': value,
+                                    "confidence":confidence,
+                                    "note":note,
+                                    'audit_info':audit_info})
+        return  result_list           
+                    
+    def get_data(self,session,_id, field_name=None):
         """
         Get all metadata
         """
         nested_obj = NestedDict(self.max_level)
         nested_fields, _ = self._get_level(field_name)
-        with SessionManager() as session:
-            data = session.query(PDProtocolMetadata).get(id)
-            if data == None:
-                return {}
-            for lvl_data in data.levels:
-                curr_nested_obj, field_list = nested_obj.add_level(lvl_data)
-                if set(nested_fields).difference(set(field_list)):
-                    continue
-                attribute_info = []
-                for attr in lvl_data.attributes:
-                    attr_value = nested_obj.get_attribute_value(
-                        attr, 'attribute_value')
-                    attribute_info.append({'attr_name': attr.attribute_name, 'attr_type':attr.attribute_type,
-                                        'attr_value': attr_value, 'confidence': attr.confidence, 'note': attr.note})
-                curr_nested_obj['_meta_data'] = attribute_info
+        data = session.query(PDProtocolMetadata).get(_id)
+        if data == None:
+            return {}     
+        for lvl_data in data.levels:          
+            curr_nested_obj, field_list = nested_obj.add_level(lvl_data)
+            if set(nested_fields).difference(set(field_list)):
+                continue
+            attribute_info = []
+            for attr in lvl_data.attributes:
+                audit_info = {
+                    "user_id":attr.user_id,
+                    "last_updated":attr.last_updated,
+                    "num_updates":attr.num_updates
+                }
+                attr_value = nested_obj.get_attribute_value(
+                    attr, 'attribute_value')
+                display_name= attr.display_name  if attr.display_name else attr.attribute_name
+                attribute_info.append({'attr_name': attr.attribute_name,'display_name':display_name,'attr_type':attr.attribute_type,
+                                    'attr_value': attr_value, 'confidence': attr.confidence, 'note': attr.note, 'audit_info':audit_info})
+            curr_nested_obj['_meta_data'] = attribute_info
 
-            curr_obj = nested_obj.data
-            if not field_name:
-                top_obj = {c.name: getattr(data, c.name) for c in data.__table__.columns}
-                result_list = []
-                for display_name, attr_name in SUMMARY_DEFAULT_MAPPED_FIELDS.items():
-                    if not attr_name:
-                        attr_name = display_name
-                    result_list.append({'display_name':display_name,
-                                        'attr_name': attr_name,
-                                        'attr_value': top_obj.get(attr_name,'')})
-                curr_obj.update({'summary':{'_meta_data':result_list}})
-            
+        curr_obj = nested_obj.data    
+        if not field_name and _id!=ACCORDIAN_DOC_ID:
+            result_list = self.get_result_list(data, curr_obj.get(MetaDataTableHelper.SUMMARY_EXTENDED,{}))
+            curr_obj.update({'summary':{'_meta_data':result_list}})
 
-            if not curr_obj:
-                return curr_obj
-            self.add_child_info(curr_obj)
-            for field in nested_fields:
-                curr_obj = curr_obj.get(field,{})
-            return {nested_fields[-1]: curr_obj} if nested_fields else curr_obj
+        if not curr_obj:
+            return curr_obj
+        self.add_child_info(curr_obj)
+        for field in nested_fields:
+            curr_obj = curr_obj.get(field,{})
+        return {nested_fields[-1]: curr_obj} if nested_fields else curr_obj
 
-    def _get_level_id(self, id, start_field, lvl, end_field):
-        return self._get_elements_hash([id, start_field, lvl, end_field])
 
-    def add_data(self, data):
+    def _get_level_id(self, _id, start_field, lvl, end_field):
+        return self._get_elements_hash([_id, start_field, lvl, end_field])
+
+    def add_data(self,session,data):
         """
         add data
         """
         status, duplicate, error = True, False, False
-        with SessionManager() as session:
-            try:
-                pd = PDProtocolMetadata(**data)
-                session.add(pd)
-                session.commit()
-            except IntegrityError as e:
-                status = False
-                error=str(e)
-                if isinstance(e.orig, UniqueViolation):
-                    error = DUPLICATION_ERROR
-                    duplicate = True
-            return MetaStatusResponse(is_added=status, is_duplicate=duplicate, error=error).__dict__
+        try:
+            pd = PDProtocolMetadata(**data)
+            session.add(pd)
+            session.commit()
+        except IntegrityError as e:
+            status = False
+            error=str(e)
+            if isinstance(e.orig, UniqueViolation):
+                error = DUPLICATION_ERROR
+                duplicate = True
+            return MetaStatusResponse(isAdded=status, isDuplicate=duplicate, error=error).__dict__
 
     def _get_level(self, field_name):
         if not field_name:
@@ -413,78 +409,46 @@ class MetaDataTableHelper():
         joined_elm = "_".join(map(str, elm_list)).encode()
         result = hashlib.sha256(joined_elm)
         return result.hexdigest()
-
-                  
-    
-    def _get_meta_data_default_attr(self, session, id, data, start_field, end_field, level):
-            data_obj = session.query(PDProtocolMetadata).get(id)
-            last_updated, user_id = "", ""
-            top_obj = {c.name: getattr(data_obj, c.name) for c in data_obj.__table__.columns}
-            for attr_key, attr_value in top_obj.items():
-                if attr_key == "lastUpdated": 
-                        last_updated = attr_value
-                if attr_key == "userId":
-                    user_id = attr_value
-                if attr_key == data["attributeName"]:
-                    meta_field = self.variable_type_map[data['attributeType']]
-                    _type, value,  = data['attributeType'], attr_value
-                    
-                    for attr_name, display_name in SUMMARY_DEFAULT_MAPPED_FIELDS.items():
-                        if attr_name == attr_key:
-                            name = display_name
-
-                    attr_id = self._get_elements_hash(
-                                [id, start_field, level, end_field, name])
-                    meta_data_attr = PDProtocolMetaDataAttribute(id = attr_id)
-                    setattr(meta_data_attr, meta_field, value)
-                    meta_data_attr.attribute_name = name
-                    meta_data_attr.attribute_type = _type
-                    meta_data_attr.user_id = user_id
-                    meta_data_attr.last_updated = last_updated
-                    meta_data_attr.confidence = data.get('confidence', None)
-                    meta_data_attr.note = data.get('note', None)
-                    return meta_data_attr
-                
-            
-                
-    def _get_meta_data_attr(self, id, data, start_field, end_field, level):  
-        meta_field = self.variable_type_map[data['attributeType']]
-        name, _type, value = data['attributeName'], data['attributeType'], data['attributeValue']
+               
+    def _get_meta_data_attr(self,_id, data, start_field, end_field, level):
+        meta_field = self.variable_type_map[data['attribute_type']]
+        name, _type, value = data['attribute_name'], data['attribute_type'], data['attribute_value']
         attr_id = self._get_elements_hash(
-            [id, start_field, level, end_field, name])
+            [_id, start_field, level, end_field, name])
         meta_data_attr = PDProtocolMetaDataAttribute(id = attr_id)
         setattr(meta_data_attr, meta_field, value)
         meta_data_attr.attribute_name = name
         meta_data_attr.attribute_type = _type
+        meta_data_attr.user_id = data.get('user_id', None)
+        meta_data_attr.display_name = data.get('display_name',None)
+        meta_data_attr.last_updated = datetime.datetime.utcnow()
         meta_data_attr.confidence = data.get('confidence', None)
         meta_data_attr.note = data.get('note', None)
         return meta_data_attr
     
     
-    def add_field_data(self, id, field_name = None, data_list=[]):
+    def add_field_data(self,session,_id, field_name = None, data_list=[]):
         """
         Add metadata field attributes
         """
         status, duplicate, error = True, False, False
         if field_name == MetaDataTableHelper.SUMMARY_EXTENDED:
-            if not self.check_field_exist(id, MetaDataTableHelper.SUMMARY_EXTENDED):
-                self.add_field(id, MetaDataTableHelper.SUMMARY_EXTENDED)
+            if not self.check_field_exist(session,_id, MetaDataTableHelper.SUMMARY_EXTENDED):
+                self.add_field(session,_id, MetaDataTableHelper.SUMMARY_EXTENDED)
         nested_fields, level = self._get_level(field_name)
         try:
             start_field, end_field = nested_fields[0],nested_fields[-1]
-            lvl_id = self._get_level_id(id, start_field, level, end_field)
-            with SessionManager() as session:
-                meta_data_level = session.query(
-                    PDProtocolMetaDataLevel).get(lvl_id)
-                if not meta_data_level:
-                    status=False
-                    error= str(f"Field {field_name} does not exist")
-                    data_list=[]
-                for data in data_list:
-                    meta_data_attr = self._get_meta_data_attr(id, data, start_field, end_field, level)
-                    meta_data_level.attributes.append(meta_data_attr)
-                
-                session.commit()
+            lvl_id = self._get_level_id(_id, start_field, level, end_field)
+            meta_data_level = session.query(
+                PDProtocolMetaDataLevel).get(lvl_id)
+            if not meta_data_level:
+                status=False
+                error= str(f"Field {field_name} does not exist")
+                data_list=[]
+            for data in data_list:
+                meta_data_attr = self._get_meta_data_attr(_id, data, start_field, end_field, level)
+                meta_data_level.attributes.append(meta_data_attr)           
+            session.commit()
         except IntegrityError as e:
             status = False
             if isinstance(e.orig, UniqueViolation):
@@ -492,101 +456,83 @@ class MetaDataTableHelper():
                 duplicate = True
             else:
                 error=str(e)
-        return MetaStatusResponse(is_added=status, is_duplicate=duplicate, error=error).__dict__
-
-    def add_default_field_data(self, id, field_name=None, data_list=[]):
-        """
-        Add metadata field attributes
-        """
-        status, duplicate, error = True, False, False
-        if field_name == MetaDataTableHelper.SUMMARY_EXTENDED:
-            if not self.check_field_exist(id, MetaDataTableHelper.SUMMARY_EXTENDED):
-                self.add_field(id, MetaDataTableHelper.SUMMARY_EXTENDED)
-        nested_fields, level = self._get_level(field_name)
-        with SessionManager() as session:
-            try:
-                start_field, end_field = nested_fields[0],nested_fields[-1]
-                lvl_id = self._get_level_id(id, start_field, level, end_field)
-                
-                meta_data_level = session.query(
-                    PDProtocolMetaDataLevel).get(lvl_id)
-                if not meta_data_level:
-                    status=False
-                    error= str(f"Field {field_name} does not exist")
-                    data_list=[]
-                for data in data_list:
-                    meta_data_attr = self._get_meta_data_default_attr(session, id, data, start_field, end_field, level)
-                    meta_data_level.attributes.append(meta_data_attr)
-                
-                session.commit()
-                    
-            except IntegrityError as e:
-                status = False
-                if isinstance(e.orig, UniqueViolation):
-                    error = DUPLICATION_ERROR
-                    duplicate = True
-                else:
-                    error=str(e)
-        return MetaStatusResponse(is_added=status, is_duplicate=duplicate, error=error).__dict__
+        return MetaStatusResponse(isAdded=status, isDuplicate=duplicate, error=error).__dict__
 
 
-    def check_field_exist(self,id,field_name):
+    def check_field_exist(self,session,_id,field_name):
         """
         Checks for existing fields
         """
         nested_fields, level = self._get_level(field_name)
         start_field, end_field = nested_fields[0],nested_fields[-1]
-        lvl_id = self._get_level_id(id, start_field, level, end_field)
-        with SessionManager() as session:
-            meta_data_level = session.query(
-                PDProtocolMetaDataLevel).get(lvl_id)
-            if meta_data_level:
-                return True
-            return False
+        lvl_id = self._get_level_id(_id, start_field, level, end_field)
+        meta_data_level = session.query(
+            PDProtocolMetaDataLevel).get(lvl_id)
+        if meta_data_level:
+            return True
+        return False
 
-    def delete_field(self, id, field_name=None):
+    def delete_field(self,session,_id, field_name=None):
         """
         Delete metadata field
         """
         nested_obj = NestedDict(self.max_level)
         deleted,error = True,''
         nested_fields, _ = self._get_level(field_name)
-        with SessionManager() as session:
-            try:
-                data = session.query(PDProtocolMetadata).get(id)
-                if data == None:
-                    return {}
-                if not field_name:
-                    session.delete(data)
-                else:
-                    for lvl_data in data.levels:
-                        _, field_list = nested_obj.add_level(lvl_data)
-                        if set(nested_fields).difference(set(field_list)):
-                            continue
-                        lvl_id = self._get_level_id(id,field_list[0],len(field_list), field_list[-1])
-                        obj = session.query(PDProtocolMetaDataLevel).get(lvl_id)
-                        session.delete(obj)
-            except Exception as e:
+        try:
+            data = session.query(PDProtocolMetadata).get(_id)
+            if data == None:
+                return {}
+            if not field_name:
+                session.delete(data)
+            else:
+                for lvl_data in data.levels:
+                    _, field_list = nested_obj.add_level(lvl_data)
+                    if set(nested_fields).difference(set(field_list)):
+                        continue
+                    lvl_id = self._get_level_id(_id,field_list[0],len(field_list), field_list[-1])
+                    obj = session.query(PDProtocolMetaDataLevel).get(lvl_id)
+                    session.delete(obj)
+            session.commit()
+        except Exception as e:
                 deleted=False
                 error=str(e)
-            session.commit()
-        return MetaDeleteResponse(is_deleted = deleted, error = error).__dict__
+            
+        return MetaDeleteResponse(isDeleted = deleted, error = error).__dict__
 
-    
-    def add_update_attribute(self, session, id, field_name, data_list=[]):
+    def _update_attribute_value(self, obj, col, attr):
+        col_name = col.name
+        val = getattr(attr, col.name)
+        if (col_name.startswith('attribute_value')) and val != None:
+            for _, m_field in self.variable_type_map.items():
+                setattr(obj, m_field, None)
+            setattr(obj, col.name, val)
+        elif (col_name.startswith('num_updates')):
+            val = obj.num_updates+1
+            setattr(obj, col.name, val)
+        elif ((col_name == 'attribute_type') or
+              (col_name == 'confidence') or
+                (col_name == 'note') or
+                (col_name == 'display_name') or
+                (col_name == 'user_id')) and val != None:
+            setattr(obj, col.name, val)
+
+    def add_update_attribute(self, session, _id, field_name, data_list=[]):
         """
         Update attributes
         """
         status, duplicate, error = True, False, False
         if field_name == MetaDataTableHelper.SUMMARY_EXTENDED:
-            if not self.check_field_exist(id, MetaDataTableHelper.SUMMARY_EXTENDED):
-                self.add_field(id, MetaDataTableHelper.SUMMARY_EXTENDED)
+            if not self.check_field_exist(session,_id, MetaDataTableHelper.SUMMARY_EXTENDED):
+                self.add_field(session,_id, MetaDataTableHelper.SUMMARY_EXTENDED)
         nested_fields, level = self._get_level(field_name)
         start_field, end_field = nested_fields[0], nested_fields[-1]
-        parent_id = self._get_elements_hash([id, start_field, level, end_field])
+        parent_id = self._get_elements_hash([_id, start_field, level, end_field])
         for data in data_list:
             try:
-                attr = self._get_meta_data_attr(id, data, start_field, end_field, level)  
+                attr = self._get_meta_data_attr(_id, data, start_field, end_field, level)  
+                if field_name==MetaDataTableHelper.SUMMARY_EXTENDED:
+                    attr.display_name=SUMMARY_ATTR_REV_MAP.get(attr.attribute_name,attr.display_name)
                 obj = session.query(PDProtocolMetaDataAttribute).get(attr.id)
                 if not obj:
                     attr.parent_id = parent_id
@@ -594,49 +540,17 @@ class MetaDataTableHelper():
                 else:
                     obj.parent_id = parent_id
                     for col in attr.__table__.columns:
-                        col_name=col.name
-                        if ((col_name.startswith('attribute_value')) or \
-                            (col_name.startswith('confidence')) or \
-                                (col_name.startswith('note'))):
-                            val = getattr(attr, col.name)
-                            if val:
-                                setattr(obj, col.name, val)
+                        self._update_attribute_value(obj,col,attr)
                 session.commit()
-                session.close()
             except IntegrityError as e:
                     status = False
                     error = str(e)
                     if isinstance(e.orig, UniqueViolation):
                         error = str("duplication error")
                         duplicate = True
-        return MetaStatusResponse(is_added=status, is_duplicate=duplicate, error=error).__dict__
-    
-    def update_primary_attributes(self,_id,data_list=[]):
-        """
-        Update parent attributes
-        """
-        status, duplicate, error = True, False, False
-        try:
-            with SessionManager() as session:
-                for data in data_list:
-                    obj = session.query(PDProtocolMetadata).filter(PDProtocolMetadata.id == _id ).first()
-                
-                    for col in PDProtocolMetadata.__table__.columns:
-                            col_name=col.name
-                            if col_name.startswith(data['attributeName']):
-                                setattr(obj, col_name, data['attributeValue'])
-                    session.commit()
-        except IntegrityError as e:
-                status = False
-                error = str(e)
-                if isinstance(e.orig, UniqueViolation):
-                    error = DUPLICATION_ERROR
-                    duplicate = True
-        return MetaStatusResponse(is_added=status, is_duplicate=duplicate, error=error).__dict__
+        return MetaStatusResponse(isAdded=status, isDuplicate=duplicate, error=error).__dict__
 
-
-
-    def delete_attribute(self, id, field_name, data_list=[]):
+    def delete_attribute(self,session,_id, field_name, data_list=[]):
         """
         Delete metadata attribute
         """
@@ -644,40 +558,38 @@ class MetaDataTableHelper():
         nested_fields, level = self._get_level(field_name)
         start_field, end_field = nested_fields[0], nested_fields[-1]
         for data in data_list:
-            name = data['attributeName']
-            attr_id = self._get_elements_hash([id, start_field, level, end_field, name])
+            name = data['attribute_name']
+            attr_id = self._get_elements_hash([_id, start_field, level, end_field, name])
             try:
-                with SessionManager() as session:
-                    obj = session.query(PDProtocolMetaDataAttribute).get(attr_id)
-                    if obj:
-                        session.delete(obj)
-                        session.commit()
+                obj = session.query(PDProtocolMetaDataAttribute).get(attr_id)
+                if obj:
+                    session.delete(obj)
+                    session.commit()
             except Exception as e:
                 error=str(e)
-        return MetaDeleteResponse(is_deleted = deleted, error=error).__dict__       
+        return MetaDeleteResponse(isDeleted = deleted, error=error).__dict__       
        
     
-    def add_field(self, id, field_name):
+    def add_field(self,session, _id, field_name):
         """
         Add metadata field
         """
         status, duplicate, error = True, False, False
         nested_fields, level = self._get_level(field_name)
         try:
-            with SessionManager() as session:
-                pd = session.query(PDProtocolMetadata).get(id)
-                start_field, end_field = nested_fields[0], nested_fields[-1]
-                lvl_id = self._get_level_id(id, start_field, level, end_field)
-                l1 = PDProtocolMetaDataLevel(id=lvl_id)
-                for idx, field in enumerate(nested_fields):
-                    setattr(l1, 'level'+str(idx+1), field)
-                pd.levels.append(l1)
-                session.commit()
+            pd = session.query(PDProtocolMetadata).get(_id)
+            start_field, end_field = nested_fields[0], nested_fields[-1]
+            lvl_id = self._get_level_id(_id, start_field, level, end_field)
+            l1 = PDProtocolMetaDataLevel(id=lvl_id)
+            for idx, field in enumerate(nested_fields):
+                setattr(l1, 'level'+str(idx+1), field)
+            pd.levels.append(l1)
+            session.commit()
         except IntegrityError as e:
             status = False
             error = str(e)
             if isinstance(e.orig, UniqueViolation):
                 error = DUPLICATION_ERROR
                 duplicate = True
-        return MetaStatusResponse(is_added=status, is_duplicate=duplicate, error=error).__dict__
+        return MetaStatusResponse(isAdded=status, isDuplicate=duplicate, error=error).__dict__
     

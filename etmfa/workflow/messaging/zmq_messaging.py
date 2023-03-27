@@ -13,8 +13,10 @@ class MqStatus(Enum):
 
 
 class MsqType(Enum):
+    ADD_CUSTOM_WORKFLOW = "add_custom_workflow"
     INFO = "info"
     COMMAND = "command"
+    REGISTER = "register"
 
 
 @dataclass

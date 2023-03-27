@@ -9,7 +9,7 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     PRESERVE_CONTEXT_ON_EXCEPTION = False
     PROPAGATE_EXCEPTIONS = False
-    MAX_EXECUTION_WAIT_TIME_HRS=12
+    MAX_EXECUTION_WAIT_TIME_HRS=48
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
         "pool_recycle": 900,

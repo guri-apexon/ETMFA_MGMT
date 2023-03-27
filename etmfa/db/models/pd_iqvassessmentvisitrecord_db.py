@@ -89,6 +89,7 @@ class IqvassessmentvisitrecordDbMapper:
     footnotes: List = field(default_factory=list)
     marked_record: dict = field(default_factory=dict)
 
+
 mapper_registry.map_imperatively(IqvassessmentvisitrecordDbMapper, IqvassessmentvisitrecordDb)
 
 
@@ -161,4 +162,13 @@ class Iqvassessmentvisitrecord():
             logger.exception(
                 f"Exception received for normalized soa data [aidoc_id: {self.aidoc_id}]. Exception: {str(exc)}")        
         return  norm_dict
-        
+
+
+@dataclass
+class IqvassessmentvisitrecordDeleteDbMapper:
+    id: str = ""
+    table_roi_id: str = ""
+    table_row_index: int = ""
+    table_column_index: int = ""
+
+mapper_registry.map_imperatively(IqvassessmentvisitrecordDeleteDbMapper, IqvassessmentvisitrecordDb)

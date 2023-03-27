@@ -6,7 +6,6 @@ import sys
 from etmfa.consts import Consts
 from etmfa.db import init_db
 # messaging
-from etmfa.workflow import  WorkFlowClient,WorkFlowRunner
 from etmfa.server.api import api, specs_url
 from etmfa.server.config import Config, app_config
 from .loggingconfig import initialize_logger
@@ -22,6 +21,7 @@ from flask_restplus import Api
 from werkzeug.contrib.fixers import ProxyFix
 from etmfa_core.postgres_db_schema import create_schemas
 from es_ingest import ElasticIngestionRunner
+from etmfa.workflow import  WorkFlowClient,WorkFlowRunner
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -56,7 +56,7 @@ def create_app(config_name, ssl_enabled=False):
     logger = logging.getLogger(Consts.LOGGING_NAME)
     if app.config['WORK_FLOW_RUNNER']:
         start_workflow_runner(logger)
-        start_es_runner()  
+        start_es_runner()
     # register centralized logger
     initialize_logger(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'])
 

@@ -51,7 +51,7 @@ FULL_GRAPH = [{'service_name': EtmfaQueues.TRIAGE.value, 'depends': []},
                   'depends': [EtmfaQueues.DIGITIZER2_OMOPUPDATE.value]},
              {'service_name': EtmfaQueues.ES_INGESTION.value, 'depends': [EtmfaQueues.DIGITIZER2_OMOPUPDATE.value]},
               {'service_name': TERMINATE_NODE,'depends': [
-                  EtmfaQueues.PB_ANALYZER.value,EtmfaQueues.META_EXTRACTION.value,EtmfaQueues.COMPARE.value]}
+                  EtmfaQueues.PB_ANALYZER.value,EtmfaQueues.META_EXTRACTION.value,EtmfaQueues.COMPARE.value,EtmfaQueues.ES_INGESTION.value]}
               ]
 
 META_GRPAH = [{'service_name': EtmfaQueues.META_TAGGING.value, 'depends': []},

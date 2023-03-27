@@ -54,13 +54,12 @@ eTMFA_object_get = api.model(DOCUMENT_PROCESSING_MODEL,
                                  'status': fields.String(readOnly=True,
                                                          description='Document processing stage (triage/dig1/dig2/omop/extractor/finalizer'),
                                  'qcStatus': fields.String(readOnly=True,
-                                                         description='QC status (NOT started/QC1/QC2/Feedback run/completed)'),
+                                                           description='QC status (NOT started/QC1/QC2/Feedback run/completed)'),
                                  'runId': fields.Integer(readOnly=True, description='Feedback Run ID'),
                                  'workFlowName': fields.String(readOnly=True,
-                                                         description='work flow name ')
+                                                               description='work flow name ')
                              }
                              )
-
 
 PD_qc_get = api.model(DOCUMENT_PROCESSING_MODEL,
                       {
@@ -94,11 +93,10 @@ eTMFA_object_get_status = api.model(DOCUMENT_PROCESSING_MODEL,
                                         'timeCreated': fields.DateTime,
                                         'lastUpdated': fields.DateTime,
                                         'workFlowName': fields.String(readOnly=True,
-                                                                        description='work flow name ')
+                                                                      description='work flow name ')
 
                                     }
                                     )
-
 
 eTMFA_metrics_get = api.model('Document Processing Metrics Model',
                               {
@@ -169,7 +167,6 @@ eTMFA_metrics_get = api.model('Document Processing Metrics Model',
                               }
                               )
 
-
 eTMFA_attributes_input = reqparse.RequestParser()
 eTMFA_attributes_input.add_argument('id',
                                     type=str,
@@ -211,7 +208,6 @@ eTMFA_attributes_input.add_argument('requestType',
                                     type=str,
                                     required=False,
                                     help='Request Type')
-
 
 # Latest protocol download file
 latest_protocol_download_input = reqparse.RequestParser()
@@ -256,8 +252,10 @@ latest_protocol_input.add_argument(
 latest_protocol_input.add_argument(
     'sourceSystem', type=str, required=False, help=SOURCE_SYSYTEM)
 
-latest_protocol_contract_fields = ('protocol', 'versionNumber', 'sponsor', 'documentStatus', 'aidocId', 'allVersions', 'approvalDate',
-                                   'draftNumber', 'uploadDate', 'projectId', 'amendmentNumber', 'amendmentFlag', 'protocolShortTitle', 'protocolTitle', 'indications', 'trialPhase', 'blinded')
+latest_protocol_contract_fields = (
+    'protocol', 'versionNumber', 'sponsor', 'documentStatus', 'aidocId', 'allVersions', 'approvalDate',
+    'draftNumber', 'uploadDate', 'projectId', 'amendmentNumber', 'amendmentFlag', 'protocolShortTitle', 'protocolTitle',
+    'indications', 'trialPhase', 'blinded')
 
 latest_protocol_get = api.model(DOCUMENT_PROCESSING_MODEL,
                                 {
@@ -270,20 +268,31 @@ latest_protocol_get = api.model(DOCUMENT_PROCESSING_MODEL,
                                     'documentStatus': fields.String(readOnly=True,
                                                                     description='Status(draft/final) of latest protocol'),
                                     'id': fields.String(readOnly=True,
-                                                             description='Unique PD ID of the latest protocol'),
+                                                        description='Unique PD ID of the latest protocol'),
                                     'allVersions': fields.String(readOnly=True,
                                                                  description='All the available version details'),
-                                    'approvalDate': fields.String(readOnly=True, description='Approval date (in YYYYMMDD format) of the latest protocol'),
-                                    'draftNumber': fields.String(readOnly=True, description='Draft number of the latest protocol'),
-                                    'uploadDate': fields.String(readOnly=True, description='Upload date in ISO-8601 format'),
-                                    'projectId': fields.String(readOnly=True, description='projectId of the latest protocol'),
-                                    'amendmentNumber': fields.String(readOnly=True, description='Amendment number of the latest protocol'),
-                                    'amendmentFlag': fields.String(readOnly=True, description='Amendment flag(Y/N) of the latest protocol'),
-                                    'shortTitle': fields.String(readOnly=True, description='Protocol Short title of the latest protocol'),
-                                    'protocolTitle': fields.String(readOnly=True, description='Protocol title of the latest protocol'),
-                                    'indication': fields.String(readOnly=True, description='Multiple indications of the latest protocol'),
-                                    'trialPhase': fields.String(readOnly=True, description='Trial phase of the latest protocol'),
-                                    'blinded': fields.String(readOnly=True, description='Blind strategy of the latest protocol'),
+                                    'approvalDate': fields.String(readOnly=True,
+                                                                  description='Approval date (in YYYYMMDD format) of the latest protocol'),
+                                    'draftNumber': fields.String(readOnly=True,
+                                                                 description='Draft number of the latest protocol'),
+                                    'uploadDate': fields.String(readOnly=True,
+                                                                description='Upload date in ISO-8601 format'),
+                                    'projectId': fields.String(readOnly=True,
+                                                               description='projectId of the latest protocol'),
+                                    'amendmentNumber': fields.String(readOnly=True,
+                                                                     description='Amendment number of the latest protocol'),
+                                    'amendmentFlag': fields.String(readOnly=True,
+                                                                   description='Amendment flag(Y/N) of the latest protocol'),
+                                    'shortTitle': fields.String(readOnly=True,
+                                                                description='Protocol Short title of the latest protocol'),
+                                    'protocolTitle': fields.String(readOnly=True,
+                                                                   description='Protocol title of the latest protocol'),
+                                    'indication': fields.String(readOnly=True,
+                                                                description='Multiple indications of the latest protocol'),
+                                    'trialPhase': fields.String(readOnly=True,
+                                                                description='Trial phase of the latest protocol'),
+                                    'blinded': fields.String(readOnly=True,
+                                                             description='Blind strategy of the latest protocol'),
                                 }
                                 )
 
@@ -336,7 +345,6 @@ pd_qc_check_update_post.add_argument('qcApprovedBy',
                                      type=str,
                                      required=True,
                                      help='Qc_approved_by')
-
 
 eTMFA_object_post = reqparse.RequestParser()
 eTMFA_object_post.add_argument('sourceFileName',
@@ -408,21 +416,21 @@ eTMFA_object_post.add_argument('duplicateCheck',
                                required=False,
                                help='duplicate check enable disable')
 
-
 wf_object_post = reqparse.RequestParser()
 wf_object_post.add_argument('docId',
-                               type=str,
-                               required=True,
-                               help='flow id')
+                            type=str,
+                            required=True,
+                            help='flow id')
 wf_object_post.add_argument('workFlowName',
-                               type=str,
-                               required=True,
-                               help='Workflow name')
+                            type=str,
+                            required=False,
+                            help='Workflow name')
+wf_object_post.add_argument('workFlowList', required=False, type=dict, action='append',
+                            help='contains json data for list of workflows')
 wf_object_post.add_argument('docIdToCompare',
-                               type=str,
-                               required=False,
-                               help='doc id to compare')
-                               
+                            type=str,
+                            required=False,
+                            help='doc id to compare')
 
 document_processing_object_put = api.model('Document feedback definition',
                                            {
@@ -516,26 +524,38 @@ latest_protocol_get_by_date_range = api.model(DOCUMENT_PROCESSING_MODEL,
                                                   'documentStatus': fields.String(readOnly=True,
                                                                                   description='Status(draft/final) of latest protocol'),
                                                   'qcStatus': fields.String(readOnly=True,
-                                                                                  description='Status(QC, QC_COMPLETED) of latest protocol'),
+                                                                            description='Status(QC, QC_COMPLETED) of latest protocol'),
                                                   'id': fields.String(readOnly=True,
-                                                                           description='Unique PD ID of the latest protocol'),
+                                                                      description='Unique PD ID of the latest protocol'),
                                                   'allVersions': fields.String(readOnly=True,
                                                                                description='All the available version details'),
-                                                  'versionDate': fields.String(readOnly=True, description='version date inin YYYYMMDD format'),
-                                                  'approvalDate': fields.String(readOnly=True, description='Approval date (in YYYYMMDD format) of the latest protocol'),
-                                                  'draftNumber': fields.String(readOnly=True, description='Draft number of the latest protocol'),
-                                                  'uploadDate': fields.String(readOnly=True, description='Upload date in ISO-8601 format'),
-                                                  'projectId': fields.String(readOnly=True, description='projectId of the latest protocol'),
-                                                  'amendmentNumber': fields.String(readOnly=True, description='Amendment number of the latest protocol'),
-                                                  'amendmentFlag': fields.String(readOnly=True, description='Amendment flag(Y/N) of the latest protocol'),
-                                                  'shortTitle': fields.String(readOnly=True, description='Protocol Short title of the latest protocol'),
-                                                  'protocolTitle': fields.String(readOnly=True, description='Protocol title of the latest protocol'),
-                                                  'indication': fields.String(readOnly=True, description='Multiple indications of the latest protocol'),
-                                                  'trialPhase': fields.String(readOnly=True, description='Trial phase of the latest protocol'),
-                                                  'blinded': fields.String(readOnly=True, description='Blind strategy of the latest protocol'),
+                                                  'versionDate': fields.String(readOnly=True,
+                                                                               description='version date inin YYYYMMDD format'),
+                                                  'approvalDate': fields.String(readOnly=True,
+                                                                                description='Approval date (in YYYYMMDD format) of the latest protocol'),
+                                                  'draftNumber': fields.String(readOnly=True,
+                                                                               description='Draft number of the latest protocol'),
+                                                  'uploadDate': fields.String(readOnly=True,
+                                                                              description='Upload date in ISO-8601 format'),
+                                                  'projectId': fields.String(readOnly=True,
+                                                                             description='projectId of the latest protocol'),
+                                                  'amendmentNumber': fields.String(readOnly=True,
+                                                                                   description='Amendment number of the latest protocol'),
+                                                  'amendmentFlag': fields.String(readOnly=True,
+                                                                                 description='Amendment flag(Y/N) of the latest protocol'),
+                                                  'shortTitle': fields.String(readOnly=True,
+                                                                              description='Protocol Short title of the latest protocol'),
+                                                  'protocolTitle': fields.String(readOnly=True,
+                                                                                 description='Protocol title of the latest protocol'),
+                                                  'indication': fields.String(readOnly=True,
+                                                                              description='Multiple indications of the latest protocol'),
+                                                  'trialPhase': fields.String(readOnly=True,
+                                                                              description='Trial phase of the latest protocol'),
+                                                  'blinded': fields.String(readOnly=True,
+                                                                           description='Blind strategy of the latest protocol'),
                                               }
                                               )
-#added for pd 2.0
+# added for pd 2.0
 # Protocol normalized SOA
 protocol_soa_input = reqparse.RequestParser()
 protocol_soa_input.add_argument('id', type=str, required=True, help=PROTOCOL_UNIQUE_ID)
@@ -546,68 +566,76 @@ protocol_soa_get = api.model('Protocol Normalized SOA',
                              {
                                  'id': fields.String(readOnly=True,
                                                      description='Unique id of the protocol'),
-                                 
+
                                  'normalizedSOA': fields.String(readOnly=True,
-                                                                  description='Normalized SOA')
+                                                                description='Normalized SOA')
                              })
+
+# for normalized soa: update,delete,create operation
+protocol_soa_post = reqparse.RequestParser()
+protocol_soa_post.add_argument('operation', type=str, required=True, help='Operation to perform')
+protocol_soa_post.add_argument('sub_type', type=str, required=True, help='Sub operation to perform')
+protocol_soa_post.add_argument('table_props', type=dict , required=False, help=SOURCE_SYSYTEM, action='append')
+
 
 # for metadata get
 metadata_summary_input = reqparse.RequestParser()
-metadata_summary_input.add_argument('op', type=str, required=True, help='Operation required to get metadata(provide "metadata" or "metaparam")')
-metadata_summary_input.add_argument('aidocId', type=str, required=True, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
+metadata_summary_input.add_argument('op', type=str, required=True,
+                                    help='Operation required to get metadata(provide "metadata" or "metaparam")')
+metadata_summary_input.add_argument('aidocId', type=str, required=False, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
 metadata_summary_input.add_argument('fieldName', type=str, required=False, help=METADATA_FIELDNAME)
-
 
 # for metadata create
 metadata_summary_create = reqparse.RequestParser()
-metadata_summary_create.add_argument('op', type=str, required=True, help='Operation required to create metadata(provide "addField" or "addAttributes")')
-metadata_summary_create.add_argument('aidocId', type=str, required=True, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
+metadata_summary_create.add_argument('op', type=str, required=True,
+                                     help='Operation required to create metadata(provide "addField" or "addAttributes")')
+metadata_summary_create.add_argument('aidocId', type=str, required=False, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
 metadata_summary_create.add_argument('fieldName', type=str, required=True, help=METADATA_FIELDNAME)
-metadata_summary_create.add_argument('attributes', type=dict,action='append', required=False, help=METADATA_ATTRIBUTES)
+metadata_summary_create.add_argument('attributes', type=dict, action='append', required=False, help=METADATA_ATTRIBUTES)
 metadata_summary_add = api.model('API for external systems and BPO view to create metadata attributes',
-                             {
-                                 'is_added': fields.Boolean(readOnly=True,
-                                                     description='check metadata added or not'),
-                                 'is_duplicate': fields.Boolean(readOnly=True,
-                                                     description='check metadata duplicate or not'),
-                                 'error' : fields.String(readOnly=True,
-                                                     description=ERROR_MESSAGE)
-                                 
-                             })
+                                 {
+                                     'isAdded': fields.Boolean(readOnly=True,
+                                                               description='check metadata added or not'),
+                                     'isDuplicate': fields.Boolean(readOnly=True,
+                                                                   description='check metadata duplicate or not'),
+                                     'error': fields.String(readOnly=True,
+                                                            description=ERROR_MESSAGE)
 
+                                 })
 
 # for metadata update
 metadata_summary = reqparse.RequestParser()
-metadata_summary.add_argument('aidocId', type=str, required=True, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
+metadata_summary.add_argument('aidocId', type=str, required=False, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
 metadata_summary.add_argument('fieldName', type=str, required=True, help=METADATA_FIELDNAME)
-metadata_summary.add_argument('attributes', type=dict,action='append', required=True, help=METADATA_ATTRIBUTES)
+metadata_summary.add_argument('attributes', type=dict, action='append', required=True, help=METADATA_ATTRIBUTES)
 metadata_summary_update = api.model('API for external systems and BPO view to update metadata attributes',
-                             {
-                                 'is_added': fields.Boolean(readOnly=True,
-                                                     description='check metadata added or not'),
-                                 'is_duplicate': fields.Boolean(readOnly=True,
-                                                     description='check metadata duplicate or not'),
-                                 'error' : fields.String(readOnly=True,
-                                                     description=ERROR_MESSAGE)
-                                 
-                             })
+                                    {
+                                        'isAdded': fields.Boolean(readOnly=True,
+                                                                  description='check metadata added or not'),
+                                        'isDuplicate': fields.Boolean(readOnly=True,
+                                                                      description='check metadata duplicate or not'),
+                                        'error': fields.String(readOnly=True,
+                                                               description=ERROR_MESSAGE)
 
+                                    })
 
 # for metadata delete
 metadata_detele_summary = reqparse.RequestParser()
-metadata_detele_summary.add_argument('op', type=str, required=True, help='Operation required to delete metadata(provide "deleteField" or "deleteAttribute")')
-metadata_detele_summary.add_argument('aidocId', type=str, required=True, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
+metadata_detele_summary.add_argument('op', type=str, required=True,
+                                     help='Operation required to delete metadata(provide "deleteField" or "deleteAttribute")')
+metadata_detele_summary.add_argument('aidocId', type=str, required=False, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
 metadata_detele_summary.add_argument('fieldName', type=str, required=True, help=METADATA_FIELDNAME)
-metadata_detele_summary.add_argument('attributeNames', type=str,action='append', required=False, help=METADATA_ATTRIBUTES)
+metadata_detele_summary.add_argument('attributeNames', type=str, action='append', required=False,
+                                     help=METADATA_ATTRIBUTES)
 
 metadata_summary_delete = api.model('API for external systems and BPO view to delete metadata attributes',
-                             {
-                                 'is_deleted': fields.Boolean(readOnly=True,
-                                                     description='check metadata deleted or not'),
-                                 'error' : fields.String(readOnly=True,
-                                                     description=ERROR_MESSAGE)
-                                 
-                             })
+                                    {
+                                        'isDeleted': fields.Boolean(readOnly=True,
+                                                                    description='check metadata deleted or not'),
+                                        'error': fields.String(readOnly=True,
+                                                               description=ERROR_MESSAGE)
+
+                                    })
 
 # To get section header
 section_header_args = reqparse.RequestParser()
@@ -633,21 +661,22 @@ section_data_config_args = reqparse.RequestParser()
 section_data_config_args.add_argument('aidoc_id', type=str, required=True, help='doc id')
 section_data_config_args.add_argument('link_level', type=int, required=False, help='Link leven in between 1 to 6')
 section_data_config_args.add_argument('link_id', type=str, required=False, help='doc section id')
-section_data_config_args.add_argument('section_text', type=str, required=False, help='doc section text, table, appendix')
+section_data_config_args.add_argument('section_text', type=str, required=False,
+                                      help='doc section text, table, appendix')
 section_data_config_args.add_argument('userId', type=str, required=True, help='user id')
 section_data_config_args.add_argument('protocol', type=str, required=False, help='protocol number')
 section_data_config_args.add_argument('config_variables', type=str, required=False,
-                               help='Variables: time_points, clinical_terms, preferred_terms, references, properties, redaction_attributes')
+                                      help='Variables: time_points, clinical_terms, preferred_terms, references, properties, redaction_attributes')
 
 # for dipadata get
 dipadata_details_get = reqparse.RequestParser()
 dipadata_details_get.add_argument('doc_id', type=str, required=True, help='Unique protocol document id')
 
 dipadata_details_input = reqparse.RequestParser()
-dipadata_details_input.add_argument('id', type=str, required=False, help='The unique identifier (UUID) of a document processing job.')
+dipadata_details_input.add_argument('id', type=str, required=False,
+                                    help='The unique identifier (UUID) of a document processing job.')
 dipadata_details_input.add_argument('doc_id', type=str, required=True, help='Unique protocol document id')
 dipadata_details_input.add_argument('category', type=str, required=False, help='Dipadata Category')
-
 
 # for Upsert DIPA View Data
 dipa_view_data = reqparse.RequestParser()
@@ -659,5 +688,10 @@ dipa_view_data.add_argument('link_id_3', type=str, required=False, help='link le
 dipa_view_data.add_argument('link_id_4', type=str, required=False, help='link level id 4')
 dipa_view_data.add_argument('link_id_5', type=str, required=False, help='link level id 5')
 dipa_view_data.add_argument('link_id_6', type=str, required=False, help='link level id 6')
-dipa_view_data.add_argument('dipa_data', help='contains json data to be stored in dipa data column')
+dipa_view_data.add_argument('dipa_data', type=dict,
+                            help='contains json data to be stored against dipa data column')
 
+fetch_workflows_by_userId = reqparse.RequestParser()
+fetch_workflows_by_userId.add_argument('userId', type=str, required=True,
+                                       help='user id for which workflows will be fetched')
+fetch_workflows_by_userId.add_argument('page_offset', type=str, required=True, help='offset value for pagination')

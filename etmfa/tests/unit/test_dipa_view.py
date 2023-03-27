@@ -30,9 +30,10 @@ def test_get_dipa_view_by_doc_id(new_app_context, aidoc_id, expected_status_cd, 
 
 
 @pytest.mark.parametrize("category, doc_id, id, expected_status_cd, comments",
-                         [("cpt_exclusion_criteria", "aaf3a1bd-ea2e-4fab-8475-46bb43a7e25e", "cd6b125e-e70d-4bec-beb7-a5688a5e578c", HTTPStatus.OK, "Normal")
+                         [("cpt_exclusion_criteria", "4afe7070-61d9-434d-aba4-5ca6f25b6117",
+                           "ce357f04-4e8c-45d4-8ded-986fedef664e", HTTPStatus.OK, "Normal")
                           ])
-def test_get_dipadata_by_category(new_app_context,  category, doc_id, id, expected_status_cd, comments):
+def test_get_dipadata_by_category(new_app_context, category, doc_id, id, expected_status_cd, comments):
     new_app, _ = new_app_context
     client = new_app.test_client()
     input_dict = {"category": category, "doc_id": doc_id, "id": id}
@@ -44,14 +45,18 @@ def test_get_dipadata_by_category(new_app_context,  category, doc_id, id, expect
         assert response.status_code == expected_status_cd
 
 
-@pytest.mark.parametrize("id, doc_id, link_id_1, link_id_2, link_id_3, link_id_4, link_id_5, link_id_6, category, dipa_data, expected_status_cd, comments",
-                         [("06d9b878-48b6-4106-820e-249511919fd0", "f79ee831-1a2d-4253-9b78-7c1abff51a1a", "", "", "", "", "", "", "Primary key", '{"test": "1243"}', HTTPStatus.OK, "Normal")
-                          ])
-def test_update_dipa_data(new_app_context, id, doc_id, category, link_id_1, link_id_2, link_id_3, link_id_4, link_id_5, link_id_6, dipa_data, expected_status_cd, comments):
+@pytest.mark.parametrize(
+    "id, doc_id, link_id_1, link_id_2, link_id_3, link_id_4, link_id_5, link_id_6, category, dipa_data, expected_status_cd, comments",
+    [("06d9b878-48b6-4106-820e-249511919fd0", "f79ee831-1a2d-4253-9b78-7c1abff51a1a", "", "", "", "", "", "", "",
+      "", HTTPStatus.OK, "Normal")
+     ])
+def test_update_dipa_data(new_app_context, id, doc_id, category, link_id_1, link_id_2, link_id_3, link_id_4, link_id_5,
+                          link_id_6, dipa_data, expected_status_cd, comments):
     new_app, _ = new_app_context
     client = new_app.test_client()
     input_dict = {"id": id, "doc_id": doc_id, "link_id_1": link_id_1, "link_id_2": link_id_2, "link_id_3": link_id_3,
-                  "link_id_4": link_id_4, "link_id_5": link_id_5, "link_id_6": link_id_6, "category": category, "dipa_data": dipa_data}
+                  "link_id_4": link_id_4, "link_id_5": link_id_5, "link_id_6": link_id_6, "category": category,
+                  "dipa_data": dipa_data}
     with client:
         logger.debug(
             f"test_update_dipa_data: Processing for unit test type [{comments}]: [{id}, {doc_id}, {link_id_1}, {link_id_2}, {link_id_3}, {link_id_4}, {link_id_5},{link_id_6}, {category}, {dipa_data}]")

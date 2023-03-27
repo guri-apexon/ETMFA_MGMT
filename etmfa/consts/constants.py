@@ -16,6 +16,9 @@ GENRE_ATTRIBUTE_ENTITY = "attributes_entity"
 REDACT_ATTR_STR = '~REDACTED~'
 REDACT_PARAGRAPH_STR = '~REDACTED~'
 
+ACCORDIAN_DOC_ID = '1'*10
+DUPLICATION_ERROR = "duplication error"
+
 # Redaction
 REDACTION_FLAG = {"profile_1": False, "profile_0": True}
 EXCLUDE_REDACT_PROPERTY_FLAG = {"profile_1": False, "profile_0": True}
@@ -177,6 +180,9 @@ class _GeneralConfig:
     # Redaction
     REDACTION_SUBCATEGORY_KEY = 'RedactionSubcategory'
     REGEX_SPECIAL_CHAR_REPLACE = re.compile('([^a-zA-Z0-9])')
+
+
+
 
 
 class ModuleConfig:

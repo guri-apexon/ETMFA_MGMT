@@ -2,7 +2,7 @@ import os
 import time
 from pydantic import BaseModel
 from typing import Dict, List
-from . import Consts
+from etmfa.workflow.exceptions import ReplyMsgException, SendExceptionMessages
 import logging
 from threading import Thread, Lock
 from dataclasses import dataclass
@@ -12,16 +12,17 @@ from .db.schemas import ServiceWorkflows, MsRegistry
 from .messaging.message_handlers import ServiceMessageHandler
 from .messaging import MqReceiver, MqSender, MqReqMsg, MqReplyMsg, MsqType, MqStatus
 from typing import Dict, List
-from .default_workflows import DEFAULT_WORKFLOWS, DEFAULT_SERVICE_FLOW_MAP
+from .default_workflows import DEFAULT_WORKFLOWS, DEFAULT_SERVICE_FLOW_MAP, TERMINATE_NODE
 from .service_handlers import GetServiceHandler, SERVICE_HANDLERS
 from .messaging.models import EtmfaQueues, TERMINATE_NODE
 from .db.db_utils import (create_doc_processing_status,
                           update_doc_finished_status,
                           update_doc_running_status,
                           get_pending_running_work_flows,
-                          check_stale_work_flows_and_remove
+                          check_stale_work_flows_and_remove, fetch_workflows_by_userid
                           )
-from .loggerconfig import initialize_wf_logger, ContextFilter
+from ..consts import Consts
+from etmfa.workflow.loggerconfig import initialize_wf_logger, ContextFilter
 
 WF_RUN_WAIT_TIME = 3  # 3 sec
 
@@ -31,10 +32,15 @@ class ServiceParam(BaseModel):
     param: Dict
 
 
+@dataclass
+class CustomWorkFlow():
+    work_flow_name: str
+    graph: dict
+
+
 class WorkFlowMessage(BaseModel):
     work_flow_name: str
     work_flow_id: str  # unique for every run uid generated
-    doc_uid: str  # unique w.r.t document
     param: Dict
 
 
@@ -54,20 +60,23 @@ def get_db_and_broker(message_broker_exchange, message_broker_address):
 
 class WorkFlowManager():
 
-    def __init__(self, message_broker_exchange, message_broker_address, dfs_path, logger, initialize_listener=True,extra_config={}):
+    def __init__(self, message_broker_exchange, message_broker_address, dfs_path, logger, initialize_listener=True,
+                 extra_config=None):
         """
         initialize_listener: for registeration only this should be False
         """
         self.logger = logger
         self.dfs_path = dfs_path
         self.dfs_path = dfs_path
-        self.extra_config=extra_config
-        self.max_service_execution_wait_time=extra_config['MAX_EXECUTION_WAIT_TIME_HRS']
+        if not extra_config:
+            extra_config = {}
+        self.extra_config = extra_config
+        self.max_service_execution_wait_time = extra_config['MAX_EXECUTION_WAIT_TIME_HRS']
 
         self.store, self.broker = get_db_and_broker(
             message_broker_exchange, message_broker_address)
         self.service_message_handler = ServiceMessageHandler(
-            GetServiceHandler(self.dfs_path).get_handler,self.logger)
+            GetServiceHandler(self.dfs_path).get_handler, self.logger)
 
         self.work_flows: Dict[str, WorkFlow] = {}
         if initialize_listener:
@@ -107,7 +116,7 @@ class WorkFlowManager():
     def _register_default_services(self):
         etmafa_map = {
             queue_name.value: queue_name for queue_name in EtmfaQueues}
-        ms_list=[]
+        ms_list = []
         for sr_name, _ in DEFAULT_SERVICE_FLOW_MAP.items():
             if sr_name == TERMINATE_NODE:
                 continue
@@ -127,9 +136,9 @@ class WorkFlowManager():
         self._register_default_workflows()
         services_info = self.get_all_registered_services()
         self.broker.add_listener(self.on_msg)
-        self.work_flows = self.get_all_workflows()     
+        self.work_flows = self.get_all_workflows()
         running_work_flows = get_pending_running_work_flows()
-        for flow_id,wf_name in running_work_flows.items():
+        for flow_id, wf_name in running_work_flows.items():
             if wf_name not in self.work_flows:
                 continue
             self.work_flows[wf_name].create_channel(flow_id)
@@ -169,7 +178,7 @@ class WorkFlowManager():
         work_flow = self.work_flows[work_flow_name]
 
         if not curr_service_name:
-            raise Exception(
+            raise SendExceptionMessages(
                 f'can not find service {curr_service_name} for output queue {out_queue_name}')
 
         next_services_with_msg_obj = work_flow.get_next_services(
@@ -177,7 +186,7 @@ class WorkFlowManager():
         # if there is wait for last services,next_services_with_msg_obj will be None
         if not next_services_with_msg_obj:
             if work_flow.is_work_flow_finished(flow_id):
-                update_doc_finished_status(flow_id,work_flow_name)
+                update_doc_finished_status(flow_id, work_flow_name)
             return
         next_services_input_queue = {
             sr: self.service_queue_tuple_map[sr][0] for sr in next_services_with_msg_obj.keys()}
@@ -199,6 +208,8 @@ class WorkFlowManager():
         message from broker comes here ,as we listening for output queues this is output queue
         get workflow to which it belongs
         """
+        msg_key= 'flow_id' if msg_obj.get('flow_id') else 'id'
+        self.logger.addFilter(ContextFilter(doc_id=msg_obj.get(msg_key,None)))
         self.logger.info(f"message received on {out_queue_name} is: {msg_obj}")
         self._process_msg(out_queue_name, msg_obj)
 
@@ -215,6 +226,59 @@ class WorkFlowManager():
     def get_all_registered_services(self):
         return self.store.get_all_registered_services()
 
+    def get_all_workflows_from_db(self):
+        work_flow_map = {}
+        sr_workflows = self.store.get_all_dependacy_graphs()
+        if not sr_workflows:
+            return {}
+        for sr_wf in sr_workflows:
+            wf_name = sr_wf.work_flow_name
+            work_flow_map[wf_name] = sr_wf.graph
+        return work_flow_map
+
+    def validate_service_dependency(self, service_dependency, services):
+        if len(service_dependency) == 0:
+            return True, None
+        else:
+            for dependency in service_dependency:
+                if dependency not in services:
+                    print("control came")
+                    return False, dependency
+        return True, dependency
+
+    def validate_dependency(self, work_flow_name, services, dependency_graph):
+        dependencies = dependency_graph[work_flow_name]
+        services = [service['service_name'] for service in services]
+        for service_name in services:
+            for service in dependencies:
+                if service['service_name'] == service_name:
+                    check_status, dependency = self.validate_service_dependency(service['depends'], services)
+                    if not check_status:
+                        return False, {"Status": "400",
+                                       "Message": "Validation Error: Service {}  of workflow {} depends"
+                                                  " on service {} which is not "
+                                                  "selected while registering workflow {} ".format(service_name,
+                                                                                                   work_flow_name,
+                                                                                                   dependency,
+                                                                                                   work_flow_name)}
+                    break
+
+        return True, {"Status": 200, "Message": "Dependencies Validated Successfully"}
+
+    def validate_workflow(self, workflows):
+        dependency_graph = self.get_all_workflows_from_db()
+        validation_status, is_valid = None, False
+        print(workflows)
+        for workflow in workflows:
+            print(workflow["work_flow_name"], workflow['dependency_graph'])
+
+            is_valid, validation_status = self.validate_dependency(workflow["work_flow_name"],
+                                                                   workflow['dependency_graph'],
+                                                                   dependency_graph)
+            if validation_status['Status'] == "400":
+                return is_valid, validation_status
+        return is_valid, validation_status
+
     def get_all_workflows(self):
         work_flow_map = {}
         sr_workflows = self.store.get_all_dependacy_graphs()
@@ -225,6 +289,9 @@ class WorkFlowManager():
             work_flow_map[wf_name] = WorkFlow(sr_wf, self.logger)
         return work_flow_map
 
+    def add_work_flow(self, wf_info: CustomWorkFlow):
+        self.work_flows[wf_info.work_flow_name] = WorkFlow(wf_info, self.logger)
+
     def get_work_flow(self, name):
         return self.store.get_work_flow(name)
 
@@ -232,47 +299,50 @@ class WorkFlowManager():
         while (not self.broker.is_ready):
             time.sleep(3)
 
-    @ property
+    @property
     def is_ready(self):
         return self.broker.is_ready
-    
-    def delete_channel_ids(self,wf_channel_ids):
-        for wf_name,channel_id in wf_channel_ids:
+
+    def delete_channel_ids(self, wf_channel_ids):
+        for wf_name, channel_id in wf_channel_ids:
             work_flow = self.work_flows[wf_name]
             work_flow.delete_channel(channel_id)
-            self.logger.info('channel deleted for '+str(channel_id))
-        
+            self.logger.info('channel deleted for ' + str(channel_id))
 
     def run_work_flow(self, wf_name, flow_id, param):
         """
         Message to be sent should be adapted to requested service.
         """
         if not self.is_ready:
-            raise Exception("work flow manager is not ready yet ")
+            raise SendExceptionMessages("work flow manager is not ready yet ")
         if not self.work_flows.get(wf_name, None):
-            raise Exception(f"Work FLow {wf_name} is not registered ")
+            raise SendExceptionMessages(f"Work FLow {wf_name} is not registered ")
         work_flow = self.work_flows[wf_name]
         work_flow.create_channel(flow_id)
-        update_doc_running_status(flow_id,work_flow.services_list,wf_name)
+        update_doc_running_status(flow_id, work_flow.services_list, wf_name)
         self.logger.info(f'channel created for {wf_name}')
         for h_node in work_flow.head_nodes:
             # make this generic messages,read from mapping
             sr_name = h_node.name
             service_param = param
             input_queue_name, _ = self.service_queue_tuple_map[sr_name]
-            self.logger.debug('creating start message', extra = {"doc_id":flow_id})
+            self.logger.debug('creating start message', extra={"doc_id": flow_id})
             composite_msg = self.service_message_handler.create_start_message(
                 sr_name, input_queue_name, wf_name, flow_id, service_param)
             next_service_with_comp_msg = {sr_name: composite_msg}
-            self.logger.debug('creating adapted message', extra = {"doc_id":flow_id})
+            self.logger.debug('creating adapted message', extra={"doc_id": flow_id})
             adapted_msg_map, skipped_services_msg_obj_map = self.service_message_handler.on_output_message_adapter(
                 next_service_with_comp_msg)
-            self.logger.debug(f'sending adapted message to {input_queue_name}', extra = {"doc_id":flow_id})
+            self.logger.debug(f'sending adapted message to {input_queue_name}', extra={"doc_id": flow_id})
             work_flow.get_channel(
                 flow_id).dynamic_instance_creation_check_update(adapted_msg_map)
             self.broker.send_msg(adapted_msg_map[sr_name], input_queue_name)
 
             self._handle_skipped_services(skipped_services_msg_obj_map)
+
+    def get_workflows_status_by_userId(self, user_id, page_offset):
+        workflows = fetch_workflows_by_userid(user_id, page_offset)
+        return workflows
 
 
 class WorkFlowClient():
@@ -281,7 +351,7 @@ class WorkFlowClient():
             cls.instance = super(WorkFlowClient, cls).__new__(cls)
             cls.instance.initialize(port, logger)
         return cls.instance
-    
+
     def initialize(self, port: int = None, logger=None):
         self.mqs = MqSender(str(port))
         self.logger = logger
@@ -291,12 +361,12 @@ class WorkFlowClient():
         type: msgtype info or command. to run workflow its COMMAND, to get info INFO
         """
         wfm = WorkFlowMessage(work_flow_name=wf_name,
-                              work_flow_id=wf_id, doc_uid=doc_uid, param=param)
+                              work_flow_id=wf_id, param=param)
         data = MqReqMsg(type, wfm.dict())
         reply = self.mqs.send(data.__dict__)
         reply = MqReplyMsg(**reply)
         if reply.status != MqStatus.OK.value:
-            raise Exception(reply.msg)
+            raise ReplyMsgException(reply.msg)
         return reply.msg
 
 
@@ -304,13 +374,14 @@ class WorkFlowController(Thread):
     """
     work flow controller manages a queue
     """
-    def __init__(self, message_broker_exchange, message_broker_address, dfs_path, logger,extra_config):
+
+    def __init__(self, message_broker_exchange, message_broker_address, dfs_path, logger, extra_config):
         self.msg_queue = []
         self.logger = logger
         self.logger.info("Controller process is " + str(os.getpid()))
         self.wfm = WorkFlowManager(
-            message_broker_exchange, message_broker_address, dfs_path, logger, True,extra_config)
-        self.remove_time_for_stale_workflows=extra_config['MAX_EXECUTION_WAIT_TIME_HRS']
+            message_broker_exchange, message_broker_address, dfs_path, logger, True, extra_config)
+        self.remove_time_for_stale_workflows = extra_config['MAX_EXECUTION_WAIT_TIME_HRS']
         Thread.__init__(self)
         self.lock = Lock()
         self.daemon = True
@@ -345,37 +416,50 @@ class WorkFlowController(Thread):
         """
         Receive message on controller
         """
-        self.logger.addFilter(ContextFilter(doc_id=msg_obj['msg']['doc_uid']))
+        self.logger.addFilter(ContextFilter(doc_id=msg_obj['msg'].get('work_flow_id')))
         self.logger.debug("Message received on controller")
         msg_obj = MqReqMsg(**msg_obj)
         _type, msg = msg_obj.type, msg_obj.msg
         if _type == MsqType.COMMAND.value:
             self.add_msg(msg)
-        elif _type == MsqType.INFO:
-            raise Exception(f"{_type} is not implemented yet in controller ")
+        elif _type == MsqType.ADD_CUSTOM_WORKFLOW.value:
+            param = msg['param']
+            work_flow_list = param['work_flow_list']
+            status = {}
+            is_valid, status = self.wfm.validate_workflow(work_flow_list)
+            if not is_valid:
+                return status['Message'], is_valid
+            work_flow_graph, service_list = [], []
+            for wfs in work_flow_list:
+                depends_graph = wfs['dependency_graph']
+                work_flow_graph.extend(depends_graph)
+                for sr_info in depends_graph:
+                    service_list.append(sr_info['service_name'])
+            work_flow_graph.append({'service_name': TERMINATE_NODE, 'depends': service_list})
+            self.wfm.add_work_flow(CustomWorkFlow(msg['work_flow_name'], work_flow_graph))
+            return status, is_valid
         else:
-            raise Exception(
-                f"{_type} is not a valid type request on controller ")
+            raise SendExceptionMessages(
+                f"{type} is not a valid type request on controller ")
         return {}
-
 
     def run(self):
         self.wfm.wait_until_listener_ready()
-        last_pending_services_check_time=time.time()
-        stale_work_flow_check_time_sec= max(1,self.remove_time_for_stale_workflows/12)*3600
+        last_pending_services_check_time = time.time()
+        stale_work_flow_check_time_sec = max(1, self.remove_time_for_stale_workflows / 12) * 3600
         while (True):
             try:
-                start_time=time.time()
+                start_time = time.time()
                 self._process_msg()
-                curr_time=time.time()
-                diff=curr_time-last_pending_services_check_time
-                if diff>stale_work_flow_check_time_sec:
+                curr_time = time.time()
+                diff = curr_time - last_pending_services_check_time
+                if diff > stale_work_flow_check_time_sec:
                     self.logger.info('checking stale workflows')
-                    stale_ids=check_stale_work_flows_and_remove(self.remove_time_for_stale_workflows,self.logger)
+                    stale_ids = check_stale_work_flows_and_remove(self.remove_time_for_stale_workflows, self.logger)
                     if stale_ids:
                         self.wfm.delete_channel_ids(stale_ids)
-                    last_pending_services_check_time=curr_time  
-                wait_time= 0.1 if curr_time-start_time>WF_RUN_WAIT_TIME  else WF_RUN_WAIT_TIME         
+                    last_pending_services_check_time = curr_time
+                wait_time = 0.1 if curr_time - start_time > WF_RUN_WAIT_TIME else WF_RUN_WAIT_TIME
                 time.sleep(wait_time)
             except Exception as e:
                 self.logger.error(str(e))
@@ -391,10 +475,10 @@ class WorkFlowRunner(Process):
         self.message_broker_exchange = config["MESSAGE_BROKER_EXCHANGE"]
         self.log_stash_host = config["LOGSTASH_HOST"]
         self.log_stash_port = config["LOGSTASH_PORT"]
-        self.message_broker_address=config['MESSAGE_BROKER_ADDR']
+        self.message_broker_address = config['MESSAGE_BROKER_ADDR']
         self.dfs_path = config['DFS_UPLOAD_FOLDER']
         self.debug = config["DEBUG"]
-        self.extra_config={'MAX_EXECUTION_WAIT_TIME_HRS':config.get('MAX_EXECUTION_WAIT_TIME_HRS',24)}
+        self.extra_config = {'MAX_EXECUTION_WAIT_TIME_HRS': config.get('MAX_EXECUTION_WAIT_TIME_HRS', 24)}
         self.logger = None
         Process.__init__(self)
         self.daemon = True
@@ -403,12 +487,13 @@ class WorkFlowRunner(Process):
         self.start()
 
     def run(self):
+        logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(Consts.LOGGING_WF)
         # register workflow logger
         initialize_wf_logger(self.log_stash_host, self.log_stash_port)
         self.logger.info("Running workflow Runner")
         wfc = WorkFlowController(
-            self.message_broker_exchange, self.message_broker_address, self.dfs_path, self.logger,self.extra_config)
+            self.message_broker_exchange, self.message_broker_address, self.dfs_path, self.logger, self.extra_config)
 
         mqr = MqReceiver(self.port, wfc.on_msg)
         mqr.run()

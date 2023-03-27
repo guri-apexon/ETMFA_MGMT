@@ -1,23 +1,23 @@
 from dataclasses import dataclass, field
 from threading import Lock
-from typing import List, Dict, List, Set,Optional
+from typing import List, Dict, List, Set, Optional
 from pydantic import BaseModel, ValidationError
 from .db.schemas import ServiceWorkflows
 import copy
-from .messaging.models import ServiceInfo, CompositeServiceMessage,TERMINATE_NODE
-from etmfa.workflow.loggerconfig import ContextFilter
+from .messaging.models import ServiceInfo, CompositeServiceMessage, TERMINATE_NODE
+from .exceptions import SendExceptionMessages
 
 
 class NodeInfoModel(BaseModel):
     service_name: str
     depends: List[str]
-    count:Optional[float] = 1
+    count: Optional[float] = 1
 
 
 @dataclass
 class Node:
     name: str
-    count: int=1
+    count: int = 1
     next: List["Node"] = field(default_factory=list)
     prev: List["Node"] = field(default_factory=list)
 
@@ -28,7 +28,7 @@ class DAG:
 
     def add_node(self, node):
         curr_node = self.node_dict.get(
-            node.service_name, Node(node.service_name,node.count))
+            node.service_name, Node(node.service_name, node.count))
         prev_nodes = []
         for service_name in node.depends:
             if not service_name.strip():
@@ -111,18 +111,18 @@ class Channel():
     def add_message(self, service_name, msg_obj):
         self.services_msg[service_name] = msg_obj
 
-    def is_service_all_instance_executed(self,service_name):
+    def is_service_all_instance_executed(self, service_name):
         curr_node = self.node_graph[service_name]
-        if curr_node.count==1:
+        if curr_node.count == 1:
             return True
-        curr_node.count-=1     
+        curr_node.count -= 1
         return False
 
-    def dynamic_instance_creation_check_update(self,service_msg_map):
-        for service_name,msg_obj in service_msg_map.items():
-            if isinstance(msg_obj,list):
+    def dynamic_instance_creation_check_update(self, service_msg_map):
+        for service_name, msg_obj in service_msg_map.items():
+            if isinstance(msg_obj, list):
                 curr_node = self.node_graph[service_name]
-                curr_node.count=len(msg_obj)
+                curr_node.count = len(msg_obj)
 
     def get_next_services_to_run(self, service_name):
         """
@@ -141,9 +141,9 @@ class Channel():
         # remove items from next input nodes
         for nx_sr in next_services_to_run:
             self.pending_services.remove(nx_sr)
-            if nx_sr==TERMINATE_NODE:
-                next_services_to_run=[]
-        #This is the last dummy node terminate all
+            if nx_sr == TERMINATE_NODE:
+                next_services_to_run = []
+        # This is the last dummy node terminate all
 
         return next_services_to_run
 
@@ -174,7 +174,7 @@ class WorkFlow():
     def services_list(self):
         return self._services_list
 
-    def get_channel(self,flow_id):
+    def get_channel(self, flow_id):
         with self.lock:
             return self.channels[flow_id]
 
@@ -185,10 +185,9 @@ class WorkFlow():
         return graph
 
     def create_channel(self, flow_id):
-        self.logger.addFilter(ContextFilter(doc_id=flow_id))
         with self.lock:
             if flow_id in self.channels:
-                raise Exception(f'{flow_id} id already being processed')
+                raise SendExceptionMessages(f'id {flow_id} already being processed  ')
             self.channels[flow_id] = Channel(
                 self.work_flow_name, flow_id, self.node_graph)
             self.logger.info('added to channel')
@@ -202,7 +201,7 @@ class WorkFlow():
                 del self.channels[flow_id]
 
     def is_work_flow_finished(self, flow_id):
-       return True if flow_id not in self.channels else False
+        return True if flow_id not in self.channels else False
 
     def get_next_services(self, flow_id, service_name, msg_obj) -> Dict[str, CompositeServiceMessage]:
         """
@@ -211,11 +210,11 @@ class WorkFlow():
         """
         channel = self.channels.get(flow_id, None)
         if not channel:
-            raise Exception(
+            raise SendExceptionMessages(
                 'channel is not created yet ,might be pending message received')
         channel.add_message(service_name, msg_obj.params)
         next_services = channel.get_next_services_to_run(service_name)
-        #add end node info here and break
+        # add end node info here and break
         if not next_services and not channel.pending_services:
             if channel.is_service_all_instance_executed(service_name):
                 self.delete_channel(flow_id)
