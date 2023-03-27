@@ -8,7 +8,7 @@ LOGSTASH_HOST: 'ca2spdml01q'
 LOGSTASH_PORT: 5959
 ENABLE_WORK_FLOW_RUNNER: False
 DFS_UPLOAD_FOLDER: '//quintiles.net/enterprise/Services/protdigtest/pilot_iqvxml'
-SQLALCHEMY_DATABASE_URI: 'postgresql+psycopg2://u1149477:pddev0kkZUA==@10.3.67.93:5432/pd_dev'
+SQLALCHEMY_DATABASE_URI: 'postgresql+psycopg2://u1149489:pddevQ0pgrg==@10.3.67.93:5432/pd_dev'
 # SQLALCHEMY_DATABASE_URI: 'postgresql+psycopg2://postgres:postgres@localhost/postgres'
 #SQLALCHEMY_DATABASE_URI: 'postgresql+psycopg2://app_pd_test:cpa2dupidti27test@10.3.64.46:5432/pd_test'
 
@@ -22,3 +22,4 @@ AUTH_DETAILS: {'ypd_api_dev': '$pbkdf2-sha256$8000$yfn/n3Oudc75Pw$A7BQFNmip/A/Vq
 AUTH_PD_UI_BACKEND: {'user_name':'ypd_api_dev','password':'Rju1*aS$^v@53aDehkn2r!a4~'}
 
 UNIT_TEST_HEADERS: {"X-API-KEY": "ypd_unit_test:!53*URTa$k1j4t^h2~uSseatnai@nr"}
+

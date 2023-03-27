@@ -1,67 +1,22 @@
 
-META_ACCORDION=[
-        {
-            "fieldName": "summary_extended",
-            "attributes": [
-                {
-				"attributeName": "protocolTitle",
-				"attributeType": "string",
-				"attributeValue": "",
-				"confidence": "",
-				"note": ""
-                },
-                {
-				"attributeName": "shortTitle",
-				"attributeType": "string",
-				"attributeValue": "",
-				"confidence": "",
-				"note": ""
-                },
-                {
-				"attributeName": "amendment",
-				"attributeType": "string",
-				"attributeValue": "",
-				"confidence": "",
-				"note": ""
-                },
-                {
-				"attributeName": "phase",
-				"attributeType": "string",
-				"attributeValue": "",
-				"confidence": "",
-				"note": ""
-                },
-                {
-				"attributeName": "sponsor",
-				"attributeType": "string",
-				"attributeValue": "",
-				"confidence": "",
-				"note": ""
-                },
-                {
-				"attributeName": "versionNumber",
-				"attributeType": "string",
-				"attributeValue": "",
-				"confidence": "",
-				"note": ""
-                },
-                {
-				"attributeName": "moleculeDevice",
-				"attributeType": "string",
-				"attributeValue": "",
-				"confidence": "",
-				"note": ""
-                },
+META_ACCORDION = [
+    {
+        "fieldName": "summary_extended",
+        "attributes": [
+        ]
+    },
+    {
+        "fieldName": "Protocol_info",
+        "attributes": [
+            {
+                "attribute_name": "sponsor",
+                "display_name": "cadilla",
+                "attribute_type": "string",
+                "attribute_value": "cadilla",
+                "confidence": "",
+            }
+        ]
 
-                {
-				"attributeName": "indication",
-				"attributeType": "string",
-				"attributeValue": "",
-				"confidence": "",
-				"note": ""
-                }
+    }
 
-            ]
-        }
-
-    ]
+]

@@ -15,6 +15,16 @@ from etmfa.auth import authenticate
 from etmfa.consts import Consts as consts
 from etmfa.db import feedback_utils as fb_utlis
 from etmfa.db.models import pd_dipa_view_data
+from etmfa.db.db import db_context
+from etmfa.db.soa_operations import (
+    add_study_procedure, 
+    add_normalized_data_for_study_procedure,
+    add_study_visit,
+    add_normalized_data_for_study_visit,
+    update_normalized_soa_cell_value,
+    delete_normalized_soa_cell_value_by_column,
+    delete_normalized_soa_cell_value_by_row
+)
 from etmfa.db import (
     pd_fetch_summary_data,
     get_work_flow_status_by_id,
@@ -38,6 +48,8 @@ from etmfa.db import (
     get_dipa_data_by_category
 )
 from etmfa.db import utils
+from etmfa.consts import ACCORDIAN_DOC_ID
+from etmfa.workflow.messaging import MsqType
 from etmfa.workflow.messaging.models.triage_request import TriageRequest
 from etmfa.server.api import api
 from etmfa.server.namespaces.serializers import (
@@ -58,6 +70,7 @@ from etmfa.server.namespaces.serializers import (
     norm_soa_compare_input,
     norm_soa_compare_get,
     protocol_soa_input,
+    protocol_soa_post,
     metadata_summary_input,
     metadata_summary_create,
     metadata_summary_update,
@@ -67,13 +80,15 @@ from etmfa.server.namespaces.serializers import (
     dipadata_details_get,
     dipadata_details_input,
     metadata_summary_delete,
-    dipa_view_data
+    dipa_view_data, fetch_workflows_by_userId
 )
 from etmfa.workflow.default_workflows import DWorkFLows, DEFAULT_WORKFLOWS
 from etmfa.workflow import WorkFlowClient
 from etmfa.workflow.messaging.models.generic_request import DocumentRequest, CompareRequest
 from etmfa.db.models.work_flow_status import WorkFlowStatus
 from flask import jsonify
+
+from etmfa.workflow.wf_manager import WorkFlowManager
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -98,7 +113,6 @@ def generate_doc_meta_hash(file_path):
 @ns.route('/run_work_flow')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
-    @ns.expect(eTMFA_object_post, validate=True)
     @ns.expect(wf_object_post, validate=True)
     @ns.marshal_with(eTMFA_object_get)
     @ns.response(400, 'Invalid Request.')
@@ -110,14 +124,9 @@ class DocumentprocessingAPI(Resource):
 
         args = wf_object_post.parse_args()
         # Generate ID
-        _id = uuid.uuid4()
-        _id = str(_id)
-        g.aidocid = _id
-        logger.debug("Document received for Processing from: {}".format(
-            request.remote_addr))
         doc_id = args['docId']
         work_flow_name = args['workFlowName']
-        doc_uid, doc_file_path, protocol = None, None, ''
+        work_flow_list = args['workFlowList']
         try:
             fields = get_details_by_elm(
                 WorkFlowStatus, WorkFlowStatus.work_flow_id, doc_id)
@@ -126,17 +135,28 @@ class DocumentprocessingAPI(Resource):
 
         except Exception as e:
             logger.error(
-                'requested document is not in workflow status table' + str(doc_id))
+                'requested document is not in workflow status table' + str(doc_id) + str(e))
             abort(404, DOCUMENT_MISSING_FROM_METADATA_TABLE)
-        work_flow_graph = DEFAULT_WORKFLOWS.get(work_flow_name, None)
-        if not work_flow_graph or len(work_flow_graph) < 1:
-            abort(404, DOCUMENT_MISSING_FROM_METADATA_TABLE)
+        doc_uid = None
+        _id = str(uuid.uuid4())
+        if work_flow_list and Config.WORK_FLOW_RUNNER:
+            wf_client = WorkFlowClient()
+            message, response_status = wf_client.send_msg(work_flow_name, _id, "", {"work_flow_list": work_flow_list,
+                                                                                    "doc_id": doc_id},
+                                                          MsqType.ADD_CUSTOM_WORKFLOW.value)
+            if not response_status:
+                return abort(400, message)
 
-        start_service_name = work_flow_graph[0].get('service_name', None)
-        if not start_service_name:
-           abort(404, str(WorkFlowParamMissing(work_flow_name)))
+        if not work_flow_list:
+            work_flow_graph = DEFAULT_WORKFLOWS.get(work_flow_name, None)
+            if not work_flow_graph or len(work_flow_graph) < 1:
+                abort(404, DOCUMENT_MISSING_FROM_METADATA_TABLE)
+
+            start_service_name = work_flow_graph[0].get('service_name', None)
+            if not start_service_name:
+                abort(404, str(WorkFlowParamMissing(work_flow_name)))
         create_doc_processing_status(
-            _id, doc_uid, work_flow_name, doc_file_path, protocol)
+            _id, doc_id, doc_uid, work_flow_name, doc_file_path, protocol)
         doc_request = None
         if work_flow_name == DWorkFLows.DOCUMENT_COMPARE.value:
             doc_id1 = args.get('docIdToCompare', None)
@@ -213,14 +233,14 @@ class DocumentprocessingAPI(Resource):
         filepath = str(filepath)
         if duplicate_check:
             doc_uid = generate_doc_meta_hash(filepath)
-            is_processed,duplicate_docs=check_if_document_processed(doc_uid)
+            is_processed, duplicate_docs = check_if_document_processed(doc_uid)
             if is_processed:
-                return abort(409,json.dumps({'duplicate_docs':duplicate_docs},default=str))
+                return abort(409, json.dumps({'duplicate_docs': duplicate_docs}, default=str))
         else:
             doc_uid = _id
 
         create_doc_processing_status(
-            _id, doc_uid, workflow_name, filepath, protocol)
+            _id, _id, doc_uid, workflow_name, filepath, protocol)
         # # Mark the user primary for the protocol
         update_user_protocols(
             user_id=user_id, project_id=project_id, protocol_number=protocol)
@@ -551,7 +571,69 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
-    
+
+    @ns.expect(protocol_soa_post)
+    @ns.response(HTTPStatus.OK, 'Success.')
+    @ns.response(HTTPStatus.NOT_FOUND, 'Document Processing resource not found.')
+    @api.doc(security='apikey')
+    @authenticate
+    def post(self):
+        """
+        Create, Update and delete operations
+        """
+        args = protocol_soa_post.parse_args()
+        message = ""
+        try:
+            session = db_context.session()
+            operation = args.get('operation').strip()
+            sub_type = args.get('sub_type').strip()
+            table_props = args.get('table_props')
+
+            # For row addition            
+            if operation == 'add' and sub_type == 'add_row':
+                study_procedure = add_study_procedure(session, table_props)
+                normalized_data = add_normalized_data_for_study_procedure(session, table_props)
+                session.commit()
+                if study_procedure and normalized_data:
+                    message = "Row added successfully"
+            
+            # For column addition
+            elif operation == 'add' and sub_type == 'add_column':
+                study_visit = add_study_visit(session, table_props)
+                normalized_data = add_normalized_data_for_study_visit(session, table_props)
+                session.commit()
+                if study_visit and normalized_data:
+                    message = "Column added successfully"
+            
+            # For cell value updation
+            elif operation == 'update':
+                update_cell = update_normalized_soa_cell_value(session, table_props, sub_type)
+                session.commit()
+                if update_cell:
+                    message = "Updated data"
+
+            # For column deletion
+            elif operation == 'delete' and sub_type == 'delete_column':
+                delete_column = delete_normalized_soa_cell_value_by_column(session, table_props)
+                session.commit()
+                if delete_column:
+                    message = "Successfully deleted column and updated index"
+            
+            # For row deletion
+            elif operation == 'delete' and sub_type == 'delete_row':
+                delete_row = delete_normalized_soa_cell_value_by_row(session, table_props)
+                session.commit()
+                if delete_row:
+                    message = "Successfully deleted row ad updated index"
+            else:
+                abort(INVALID_USER_INPUT, INVALID_USER_INPUT.format(args))
+            if message == "":
+                return {"status": 404, "response": "Error in processing your request."}
+            else:
+                return {"status": 200, "response": message}
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
 
 @ns.route('/meta_data_summary')
 @ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
@@ -566,9 +648,10 @@ class DocumentprocessingAPI(Resource):
         args = metadata_summary_input.parse_args()
         try:
             op = args.get('op', '').strip()
-            aidoc_id = args.get('aidocId', '').strip()
+            aidoc_id = args.get('aidocId', None)
             if not aidoc_id:
-                aidoc_id = '0'*36
+                aidoc_id = ACCORDIAN_DOC_ID
+            aidoc_id=aidoc_id.strip()
             field_name = args.get('fieldName', None)
             if isinstance(field_name, str):
                 field_name = field_name.strip()
@@ -591,7 +674,6 @@ class DocumentprocessingAPI(Resource):
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
 
 
-        
 @ns.route('/add_meta_data')
 @ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
 class DocumentprocessingAPI(Resource):
@@ -605,18 +687,15 @@ class DocumentprocessingAPI(Resource):
         """Add metadata attributes"""
         args = metadata_summary_create.parse_args()
         try:
-            data = {}
-            attr_list = []
+            data, attr_list = {}, []
             op = args.get('op', '').strip()
             aidoc_id = args.get('aidocId', '').strip()
             if not aidoc_id:
-                aidoc_id = '0'*36
+                aidoc_id = ACCORDIAN_DOC_ID
             field_name = args.get('fieldName', '').strip()
             attributes = args['attributes']
 
             if op and aidoc_id:
-                data['id'] = aidoc_id
-                data['fieldName'] = field_name
                 if attributes is not None:
                     for attrs in attributes:
                         attribute_name = attrs.get('attr_name', '').strip()
@@ -630,12 +709,21 @@ class DocumentprocessingAPI(Resource):
                         confidence_value = attrs.get('confidence', None)
                         if isinstance(confidence_value, str):
                             confidence_value = confidence_value.strip()
-                        attr_list.append({"attributeName": attribute_name,
-                                        "attributeType": attribute_type,
-                                        "attributeValue": attribute_value,
+                        user_id = attrs.get('user_id', None)
+                        if isinstance(user_id, str):
+                            user_id = user_id.strip()
+                        display_name = attrs.get('display_name', None)
+                        if isinstance(display_name, str):
+                            display_name = display_name.strip()    
+                        attr_list.append({"attribute_name": attribute_name,
+                                        "attribute_type": attribute_type,
+                                        "attribute_value": attribute_value,
                                         "note": note_value,
-                                        "confidence": confidence_value})
-                data['attributes'] = attr_list
+                                        "confidence": confidence_value,
+                                        "display_name":display_name,
+                                        "user_id":user_id})
+                                    
+                data = {'id':aidoc_id, 'fieldName':field_name, 'attributes':attr_list}
                 resource = add_metadata_summary(op, **data)
 
                 if len(resource) == 0:
@@ -666,14 +754,11 @@ class DocumentprocessingAPI(Resource):
         try:
             aidoc_id = args.get('aidocId', '').strip()
             if not aidoc_id:
-                aidoc_id = '0'*36
+                aidoc_id = ACCORDIAN_DOC_ID
             field_name = args.get('fieldName', '').strip()
             attributes = args['attributes']
-            data = {}
-            attr_list = []
+            data, attr_list = {}, []
             if aidoc_id:
-                data['id'] = aidoc_id
-                data['fieldName'] = field_name
                 if attributes is not None:
                     for attrs in attributes:
                         attribute_name = attrs.get('attr_name', '').strip()
@@ -687,12 +772,22 @@ class DocumentprocessingAPI(Resource):
                         confidence_value = attrs.get('confidence', None)
                         if isinstance(confidence_value, str):
                             confidence_value = confidence_value.strip()
-                        attr_list.append({"attributeName": attribute_name,
-                                          "attributeType": attribute_type,
-                                          "attributeValue": attribute_value,
-                                          "note": note_value,
-                                          "confidence": confidence_value})
-                data['attributes'] = attr_list
+                        user_id = attrs.get('user_id', None)
+                        display_name = attrs.get('display_name', None)
+                        if isinstance(display_name, str):
+                            display_name = display_name.strip()
+
+                        if isinstance(user_id, str):
+                            user_id = user_id.strip()   
+                        attr_list.append({"attribute_name": attribute_name,
+                                            "attribute_type": attribute_type,
+                                            "attribute_value": attribute_value,
+                                            "note": note_value,
+                                            "confidence": confidence_value,
+                                            "display_name":display_name,
+                                            "user_id":user_id})
+                        
+                data = {'id':aidoc_id, 'fieldName':field_name, 'attributes':attr_list}
                 resource = update_metadata_summary(field_name, **data)
 
                 if len(resource) == 0:
@@ -723,18 +818,18 @@ class DocumentprocessingAPI(Resource):
             op = args.get('op', '').strip()
             aidoc_id = args.get('aidocId', '').strip()
             if not aidoc_id:
-                aidoc_id = '0'*36
+                aidoc_id = ACCORDIAN_DOC_ID
             field_name = args.get('fieldName', '').strip()
             attributes = args.get('attributeNames')
             data = {}
             attr_list = []
             if op or aidoc_id or field_name:
-                data['id'] = aidoc_id
-                data['fieldName'] = field_name
                 if attributes is not None:
                     for attrs in attributes:
-                        attr_list.append({'attributeName': attrs})
-                data['attributes'] = attr_list
+                        attr_list.append({'attribute_name': attrs})
+                        
+                data = {'id':aidoc_id, 'fieldName':field_name, 'attributes':attr_list}
+
                 resource = delete_metadata_summary(op, **data)
                 if len(resource) == 0:
                     return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
@@ -748,7 +843,6 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
-
 
 
 @ns.route('/get_protocols')
@@ -791,7 +885,8 @@ class DocumentprocessingAPI(Resource):
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
 
-#DIPA view
+
+# DIPA view
 @ns.route('/get_dipadata_by_doc_id')
 @ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
 class DocumentprocessingAPI(Resource):
@@ -804,7 +899,7 @@ class DocumentprocessingAPI(Resource):
         """Get dipadata attributes"""
         args = dipadata_details_get.parse_args()
         try:
-            aidoc_id=args['doc_id']
+            aidoc_id = args['doc_id']
 
             if aidoc_id:
                 resource = get_dipaview_details_by_id(aidoc_id)
@@ -812,11 +907,11 @@ class DocumentprocessingAPI(Resource):
                 if len(resource) == 0:
                     return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
                 else:
-                    return jsonify({"dipa_resource":resource})
+                    return jsonify({"dipa_resource": resource})
             else:
                 logger.error(f"Invalid aidocId received: {args}")
                 return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
-        
+
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
@@ -844,11 +939,11 @@ class DocumentprocessingAPI(Resource):
                 if len(resource) == 0:
                     return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
                 else:
-                    return jsonify({"dipa_resource":resource})
+                    return jsonify({"dipa_resource": resource})
             else:
                 logger.error(f"Invalid aidocId received: {args}")
                 return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
-        
+
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
@@ -876,13 +971,61 @@ class DocumentprocessingAPI(Resource):
         link6 = args.get('link_id_6')
         try:
             result = pd_dipa_view_data.DipaViewHelper.upsert(_id, doc_id, link1, link2, link3, link4, link5,
-                                                        link6,
-                                                        dipa_view_data = args['dipa_data'])
+                                                             link6,
+                                                             dipa_view_data=args['dipa_data'])
 
             if result is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(args))
             else:
                 return {"status": 200, "response": "Successfully Inserted Data in DB"}
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
+
+
+@ns.route('/get_all_workflows')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.response(200, 'Success.')
+    @ns.response(404, 'Document Processing resource not found.')
+    @api.doc(security='apikey')
+    @authenticate
+    def get(self):
+        try:
+            workflows = WorkFlowManager(None, None, None, logger, True,
+                                        {"MAX_EXECUTION_WAIT_TIME_HRS": 1}).get_all_workflows_from_db()
+            if workflows:
+                del workflows['digitization']
+                del workflows['full_flow']
+                return {"Status": 200, "workflows": workflows}
+            else:
+                return {"Status": 200, "Message": "No Workflows in DB"}
+
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
+
+
+@ns.route('/get_workflows_status')
+@ns.response(500, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(fetch_workflows_by_userId, validate=True)
+    @ns.response(200, 'Success.')
+    @ns.response(404, 'Document Processing resource not found.')
+    @api.doc(security='apikey')
+    @authenticate
+    def get(self):
+        try:
+            args = fetch_workflows_by_userId.parse_args()
+            page_offset = args['page_offset']
+            user_id = args['userId']
+            workflows = WorkFlowManager(None, None, None, logger, True,
+                                        {"MAX_EXECUTION_WAIT_TIME_HRS": 1}).get_workflows_status_by_userId(user_id,
+                                                                                                           page_offset)
+            if workflows:
+                return {"Message": "Success", "workflows": workflows}
+            else:
+                return {"Message": "No Records in DB for given UserId", "workflows": []}
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))

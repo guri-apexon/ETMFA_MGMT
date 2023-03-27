@@ -11,7 +11,7 @@ from etmfa.consts import Consts as consts
 from etmfa.db.models.documentcompare import Documentcompare
 from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_protocol_data import Protocoldata
-from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
+from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata,SessionManager
 from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
@@ -30,15 +30,16 @@ from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 
 # added for pd 2.0
-from etmfa.db.models.pd_iqvassessmentvisitrecord_db import IqvassessmentvisitrecordDb, IqvassessmentvisitrecordDbMapper
+from etmfa.db.models.pd_iqvassessmentvisitrecord_db import IqvassessmentvisitrecordDbMapper
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata, MetaDataTableHelper
 from etmfa.db.models.pd_protocol_metadata import default_accordion
 from etmfa.db.models.pd_dipa_view_data import PDDipaViewdata
 
-from etmfa.db.models.pd_iqvassessmentvisitrecord_db import Iqvassessmentvisitrecord
 from etmfa.db.models.pd_iqvvisitrecord_db import Iqvvisitrecord
+from etmfa.db.models.pd_iqvassessmentvisitrecord_db import Iqvassessmentvisitrecord
 from etmfa.db.models.pd_iqvassessmentrecord_db import Iqvassessmentrecord
 from etmfa.error import GenericMessageException
+
 
 
 logger = logging.getLogger(consts.LOGGING_NAME)
@@ -81,10 +82,10 @@ def update_doc_resource_by_id(aidoc_id, resource):
     return resource
 
 
-def create_doc_processing_status(work_flow_id, doc_uid, work_flow_name, doc_file_path, protocol_name):
+def create_doc_processing_status(work_flow_id,doc_id, doc_uid, work_flow_name, doc_file_path, protocol_name):
     session = db_context.session
     status = WorkFlowStatus(
-        work_flow_id=work_flow_id, protocol_name=protocol_name, doc_uid=doc_uid, work_flow_name=work_flow_name, documentFilePath=doc_file_path)
+        work_flow_id=work_flow_id, doc_id=doc_id, protocol_name=protocol_name, doc_uid=doc_uid, work_flow_name=work_flow_name, documentFilePath=doc_file_path)
     try:
         session.add(status)
         session.commit()
@@ -686,7 +687,7 @@ def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
         session = db_context.session()
 
         helper_obj = MetaDataTableHelper()  
-        protocol_attributes_str = helper_obj.get_data(aidoc_id)
+        protocol_attributes_str = helper_obj.get_data(session,aidoc_id)
 
         visitrecord_mapper = session.query(IqvassessmentvisitrecordDbMapper).filter(
             IqvassessmentvisitrecordDbMapper.doc_id == aidoc_id).all()   
@@ -848,21 +849,21 @@ def get_metadata_summary(op, aidoc_id, field_name=None) -> dict:
     Get metadata summary fields 
     """
     response_dict = {}
-    try:
-        helper_obj = MetaDataTableHelper()
-        if op == 'metadata':
-            metadata = helper_obj.get_data(aidoc_id, field_name)
-        elif op == 'metaparam':
-            metadata = helper_obj.get_meta_param(aidoc_id)
-        else:
-            raise GenericMessageException("invalid op value.")
-        
-        response_dict_str = json.loads(json.dumps(metadata, default=str))
-        response_dict["data"] = response_dict_str
-        
-    except Exception as exc:
-        logger.exception(
-            f"Exception received while formatting the data [aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
+    with SessionManager() as session:
+        try:
+            helper_obj = MetaDataTableHelper()
+            if op == 'metadata':
+                metadata = helper_obj.get_data(session,aidoc_id, field_name)
+            elif op == 'metaparam':
+                metadata = helper_obj.get_meta_param(session,aidoc_id)
+            else:
+                raise GenericMessageException("invalid op value.")
+            
+            response_dict_str = json.loads(json.dumps(metadata, default=str))
+            response_dict["data"] = response_dict_str 
+        except Exception as exc:
+            logger.exception(
+                f"Exception received while formatting the data [aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
     return response_dict
 
 
@@ -871,17 +872,20 @@ def add_metadata_summary(op, **data):
     Add metadata summary fields 
     """
     metadata_response = {}
-    try:
-        helper_obj = MetaDataTableHelper()
-        if op == 'addField':
-            metadata_response = helper_obj.add_field(data.get("id"), data.get("fieldName"))
-        elif op == 'addAttributes':
-            metadata_response = helper_obj.add_field_data(data.get("id"), data.get("fieldName"), data.get("attributes"))
-        else:
-            raise GenericMessageException("invalid op value.")
-    except Exception as exc:
-        logger.exception(
-            f"Exception received while formatting the data [op: {op}]. Exception: {str(exc)}")
+    with SessionManager() as session:
+        try:       
+            helper_obj = MetaDataTableHelper()
+            if op == 'addField':
+                metadata_response = helper_obj.add_field(session,data.get("id"), data.get("fieldName"))
+            elif op == 'addAttributes':
+                metadata_response = helper_obj.add_field_data(session,data.get("id"), data.get("fieldName"), data.get("attributes"))
+            else:
+                raise GenericMessageException("invalid op value.")
+            session.commit()
+        except Exception as exc:
+            session.rollback()
+            logger.exception(
+                f"Exception received while formatting the data [op: {op}]. Exception: {str(exc)}")
     return metadata_response
 
 
@@ -890,35 +894,33 @@ def update_metadata_summary(field_name, **data):
     Update metadata summary fields 
     """
     metadata_response = {}
-    try:
-        helper_obj = MetaDataTableHelper()   
-        if field_name:     
-            metadata_response = helper_obj.add_update_attribute(db_context.session(), data.get("id"), data.get("fieldName"), data.get("attributes"))  
-        else:
-            metadata_response = helper_obj.update_primary_attributes(data.get("id"), data.get("attributes"))  
-            
-    except Exception as exc:
-        logger.exception(
-            f"Exception received while formatting the data [id: {id}]. Exception: {str(exc)}")
+    with SessionManager() as session:
+        try:
+            helper_obj = MetaDataTableHelper()   
+            if field_name:     
+                metadata_response = helper_obj.add_update_attribute(session, data.get("id"), data.get("fieldName"), data.get("attributes"))  
+        except Exception as exc:
+            logger.exception(
+                f"Exception received while formatting the data [id: {id}]. Exception: {str(exc)}")
     return metadata_response
-
 
 def delete_metadata_summary(op, **data):
     """
     Delete metadata summary fields 
     """
     metadata_response = {}
-    try:
-        helper_obj = MetaDataTableHelper()
-        if op == 'deleteAttribute':
-            metadata_response = helper_obj.delete_attribute(data.get("id"), data.get("fieldName"), data.get("attributes"))
-        elif op == 'deleteField':
-             metadata_response = helper_obj.delete_field(data.get("id"), data.get("fieldName"))
-        else:
-            raise GenericMessageException("unknown operation received.")
-    except Exception as exc:
-        logger.exception(
-            f"Exception received while formatting the data [id: {id}]. Exception: {str(exc)}")
+    with SessionManager() as session:
+        try:
+            helper_obj = MetaDataTableHelper()
+            if op == 'deleteAttribute':
+                metadata_response = helper_obj.delete_attribute(session,data.get("id"), data.get("fieldName"), data.get("attributes"))
+            elif op == 'deleteField':
+                metadata_response = helper_obj.delete_field(session,data.get("id"), data.get("fieldName"))
+            else:
+                raise GenericMessageException("unknown operation received.")
+        except Exception as exc:
+            logger.exception(
+                f"Exception received while formatting the data [id: {id}]. Exception: {str(exc)}")
     return metadata_response
 
 
@@ -1060,3 +1062,165 @@ def get_dipa_data_by_category(_id, doc_id, category):
         logger.error(f"Exception message:\n{e}")
     return response_list
 
+def update_normalized_soa_cell_value(table_roi_id, table_row_index, table_column_index, cell_value):
+    """
+    Update normalized soa cell value.
+    """
+    response = dict()
+    
+    try:
+        session = db_context.session()
+        soa_cell_record = session.query(IqvassessmentvisitrecordUpdateDbMapper).filter(
+            IqvassessmentvisitrecordUpdateDbMapper.table_roi_id == table_roi_id, 
+            IqvassessmentvisitrecordUpdateDbMapper.table_column_index == table_column_index,
+            IqvassessmentvisitrecordUpdateDbMapper.table_row_index == table_row_index).all()
+        if len(soa_cell_record) != 0: 
+            soa_cell_record[0].indicator_text = cell_value
+            try:
+                db_context.session.merge(soa_cell_record[0])
+                db_context.session.commit()
+            except Exception as ex:
+                db_context.session.rollback()
+                logger.error("Error while updating record for roi id: {} {}".format(table_roi_id, ex))
+        else:
+            raise Exception(f"No record found for table_roi_id: {table_roi_id}")
+        
+        for data in soa_cell_record:
+            response['indicator_text'] = data.indicator_text
+            response['table_roi_id'] = data.table_roi_id
+            response['table_column_index'] = data.table_column_index
+            response['table_row_index'] = data.table_row_index
+        return response
+    except Exception as exc:
+        logger.exception(
+            f"Exception received while formatting the data [table_roi_id: {table_roi_id},\
+                table_column_index: {table_column_index}, table_row_index: {table_row_index}\
+                    cell_value: {cell_value}]. Exception: {str(exc)}")
+
+def delete_normalized_soa_cell_value_by_column(table_roi_id, table_column_index, study_visit, row_props):
+    """
+    Delete normalized soa cell value By Column.
+    """
+    response = dict()
+    session = db_context.session()
+    try:
+        session = db_context.session()
+        # all X values IqvassessmentvisitrecordDeleteDbMapper,IqvassessmentrecordDeleteDbMapper,IqvvisitrecordDeleteDbMapper
+        visit_record_list_to_delete = session.query(IqvvisitrecordDeleteDbMapper).filter(
+            IqvvisitrecordDeleteDbMapper.table_roi_id == table_roi_id,
+            IqvvisitrecordDeleteDbMapper.table_column_index == table_column_index,
+        ).all()
+        assessment_visit_record_list_to_delete = session.query(IqvassessmentvisitrecordDeleteDbMapper).filter(
+            IqvassessmentvisitrecordDeleteDbMapper.table_roi_id == table_roi_id,
+            IqvassessmentvisitrecordDeleteDbMapper.table_column_index == table_column_index,
+        ).all()
+
+        visit_record_list_to_change_column_index = session.query(IqvvisitrecordDeleteDbMapper).filter(
+            IqvvisitrecordDeleteDbMapper.table_roi_id == table_roi_id,
+            IqvvisitrecordDeleteDbMapper.table_column_index > table_column_index,
+        ).all()
+
+        assessment_visit_record_list_to_change_column_index = session.query(IqvassessmentvisitrecordDeleteDbMapper).filter(
+            IqvassessmentvisitrecordDeleteDbMapper.table_roi_id == table_roi_id,
+            IqvassessmentvisitrecordDeleteDbMapper.table_column_index > table_column_index,
+        ).all()
+
+
+
+        # print(len(visit_record_list_to_delete),len(assessment_visit_record_list_to_delete))
+        # print(len(visit_record_list_to_change_column_index),len(assessment_visit_record_list_to_change_column_index))
+
+        try:
+            for record in visit_record_list_to_delete:
+                session.delete(record)
+                session.commit()
+
+            for record in assessment_visit_record_list_to_delete:
+                session.delete(record)
+                session.commit()
+
+            for record in visit_record_list_to_change_column_index:
+                record.table_column_index = (record.table_column_index - 1)
+                session.commit()
+
+            for record in assessment_visit_record_list_to_change_column_index:
+                record.table_column_index = (record.table_column_index - 1)
+                session.commit()
+            response = {'message':'success'}
+        except Exception as ex:
+            session.rollback()
+            logger.error("Error while deleting record for roi id: {} {}".format(table_roi_id, ex))
+            response = {'message': 'error'}
+        return response
+    except Exception as exc:
+        session.rollback()
+        logger.exception(
+            f"Exception received while formatting the data [table_roi_id: {table_roi_id},\
+                table_column_index: {table_column_index}, study_visit: {study_visit}\
+                    row_props: {row_props}]. Exception: {str(exc)}")
+        response = {'message':'error'}
+        return response
+
+def delete_normalized_soa_cell_value_by_row(table_roi_id, table_row_index, study_visit, column_props):
+    """
+    Delete normalized soa cell value By Row.
+    """
+    response = dict()
+    session = db_context.session()
+    try:
+        session = db_context.session()
+        # all X values IqvassessmentvisitrecordDeleteDbMapper,IqvassessmentrecordDeleteDbMapper,IqvvisitrecordDeleteDbMapper
+        assessment_record_list_to_delete = session.query(IqvassessmentrecordDeleteDbMapper).filter(
+            IqvassessmentrecordDeleteDbMapper.table_roi_id == table_roi_id,
+            IqvassessmentrecordDeleteDbMapper.table_row_index == table_row_index,
+        ).all()
+        assessment_visit_record_list_to_delete = session.query(IqvassessmentvisitrecordDeleteDbMapper).filter(
+            IqvassessmentvisitrecordDeleteDbMapper.table_roi_id == table_roi_id,
+            IqvassessmentvisitrecordDeleteDbMapper.table_row_index == table_row_index,
+        ).all()
+
+        assessment_record_list_to_change_row_index = session.query(IqvassessmentrecordDeleteDbMapper).filter(
+            IqvassessmentrecordDeleteDbMapper.table_roi_id == table_roi_id,
+            IqvassessmentrecordDeleteDbMapper.table_row_index > table_row_index,
+        ).all()
+
+        assessment_visit_record_list_to_change_row_index = session.query(IqvassessmentvisitrecordDeleteDbMapper).filter(
+            IqvassessmentvisitrecordDeleteDbMapper.table_roi_id == table_roi_id,
+            IqvassessmentvisitrecordDeleteDbMapper.table_row_index > table_row_index,
+        ).all()
+
+
+        # print(len(assessment_record_list_to_delete),len(assessment_visit_record_list_to_delete))
+        # print(len(assessment_record_list_to_change_row_index),len(assessment_visit_record_list_to_change_row_index))
+
+        try:
+            for record in assessment_record_list_to_delete:
+                session.delete(record)
+                session.commit()
+
+            for record in assessment_visit_record_list_to_delete:
+                session.delete(record)
+                session.commit()
+
+            for record in assessment_record_list_to_change_row_index:
+                record.table_row_index = (record.table_row_index - 1)
+                session.commit()
+
+            for record in assessment_visit_record_list_to_change_row_index:
+                record.table_row_index = (record.table_row_index - 1)
+                session.commit()
+            response = {'message': 'success'}
+        except Exception as ex:
+            session.rollback()
+            logger.error("Error while deleting record for roi id: {} {}".format(table_roi_id, ex))
+            response = {'message': 'error'}
+        return response
+    except Exception as exc:
+        session.rollback()
+        logger.exception(
+            f"Exception received while formatting the data [table_roi_id: {table_roi_id},\
+                table_row_index: {table_row_index}, study_visit: {study_visit}\
+                    column_props: {column_props}]. Exception: {str(exc)}")
+
+        response = {'message':'error'}
+        return response
