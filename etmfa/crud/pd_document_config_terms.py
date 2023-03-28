@@ -36,6 +36,9 @@ def get_document_terms_data(db: Session, aidoc_id: str,
 
     terms_values = {}
 
+    if config_variables is None: 
+        return []
+    
     if "time_points" in config_variables:
         if link_id:
             iqv_time_point_visit_records = db.query(IqvvisitrecordDb).filter(
