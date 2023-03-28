@@ -366,12 +366,13 @@ class MetaDataTableHelper():
         if not field_name and _id!=ACCORDIAN_DOC_ID:
             result_list = self.get_result_list(data, curr_obj.get(MetaDataTableHelper.SUMMARY_EXTENDED,{}))
             curr_obj.update({'summary':{'_meta_data':result_list}})
-
+            
         if not curr_obj:
             return curr_obj
         self.add_child_info(curr_obj)
         for field in nested_fields:
             curr_obj = curr_obj.get(field,{})
+        curr_obj[MetaDataTableHelper.SUMMARY_EXTENDED] = {}
         return {nested_fields[-1]: curr_obj} if nested_fields else curr_obj
 
 
