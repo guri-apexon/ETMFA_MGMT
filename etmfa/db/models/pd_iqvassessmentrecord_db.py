@@ -120,7 +120,6 @@ class Iqvassessmentrecord():
                             study_procedure_dict['table_column_index'] = 0
                             study_procedure_dict['indicator_text'] = assessment_text
                             assessment_list.append(study_procedure_dict)
-                    assessment_list[0] = {'table_row_index':0, 'table_column_index':0, 'indicator_text':'Study Procedures'}
                     study_procedures[roi_id] = assessment_list
             else:
                 logger.error(f"Error in getting db object or table ids.")
