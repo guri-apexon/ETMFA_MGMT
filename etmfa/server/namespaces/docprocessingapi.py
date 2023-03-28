@@ -992,7 +992,7 @@ class DocumentprocessingAPI(Resource):
     @authenticate
     def get(self):
         try:
-            workflows = WorkFlowManager(None, None, None, logger, True,
+            workflows = WorkFlowManager(None, None, None, logger, False,
                                         {"MAX_EXECUTION_WAIT_TIME_HRS": 1}).get_all_workflows_from_db()
             if workflows:
                 del workflows['digitization']
@@ -1019,7 +1019,7 @@ class DocumentprocessingAPI(Resource):
             args = fetch_workflows_by_userId.parse_args()
             page_offset = args['page_offset']
             user_id = args['userId']
-            workflows = WorkFlowManager(None, None, None, logger, True,
+            workflows = WorkFlowManager(None, None, None, logger, False,
                                         {"MAX_EXECUTION_WAIT_TIME_HRS": 1}).get_workflows_status_by_userId(user_id,
                                                                                                            page_offset)
             if workflows:
