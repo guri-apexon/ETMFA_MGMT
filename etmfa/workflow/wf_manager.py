@@ -58,6 +58,7 @@ def get_db_and_broker(message_broker_exchange, message_broker_address):
     return pg, br
 
 
+
 class WorkFlowManager():
 
     def __init__(self, message_broker_exchange, message_broker_address, dfs_path, logger, initialize_listener=True,
