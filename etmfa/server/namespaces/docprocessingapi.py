@@ -693,6 +693,8 @@ class DocumentprocessingAPI(Resource):
             if not aidoc_id:
                 aidoc_id = ACCORDIAN_DOC_ID
             field_name = args.get('fieldName', '').strip()
+            if not field_name:
+                field_name = "summary_extended" 
             attributes = args['attributes']
 
             if op and aidoc_id:
@@ -756,6 +758,8 @@ class DocumentprocessingAPI(Resource):
             if not aidoc_id:
                 aidoc_id = ACCORDIAN_DOC_ID
             field_name = args.get('fieldName', '').strip()
+            if not field_name:
+                field_name = "summary_extended" 
             attributes = args['attributes']
             data, attr_list = {}, []
             if aidoc_id:
