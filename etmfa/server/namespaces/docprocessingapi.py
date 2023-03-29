@@ -87,6 +87,7 @@ from etmfa.workflow.default_workflows import DWorkFLows, DEFAULT_WORKFLOWS
 from etmfa.workflow import WorkFlowClient
 from etmfa.workflow.messaging.models.generic_request import DocumentRequest, CompareRequest
 from etmfa.db.models.work_flow_status import WorkFlowStatus
+from .cdc_util import CdcThread
 from flask import jsonify
 
 from etmfa.workflow.wf_manager import WorkFlowManager
@@ -1033,3 +1034,61 @@ class DocumentprocessingAPI(Resource):
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
 
+
+@ns.route('/cdc')
+@ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
+class CdcAPI(Resource):
+    @ns.response(HTTPStatus.OK, 'Success.')
+    @ns.response(HTTPStatus.NOT_FOUND, 'CDC enabling not found.')
+    @api.doc(security='apikey')
+    @authenticate
+    def post(self):
+        try:
+            operation = request.args.get('op')
+            if operation == 'enable_cdc':
+
+                try:
+                    session = db_context.session()
+                    latest_work = session.query(WorkFlowStatus).filter_by(protocol_name='running_cdc',
+                                                                               work_flow_name='CDC',
+                                                                               status='RUNNING').first()
+                    if latest_work :
+                        return {'id': latest_work.work_flow_id, 'status': latest_work.status}
+                    else:
+                        new_work = WorkFlowStatus(work_flow_id = str(uuid.uuid4()),protocol_name = 'running_cdc',work_flow_name= 'CDC', status = 'RUNNING')
+                        session.add(new_work)
+                        session.commit()
+                        CdcThread(new_work.work_flow_id).start()
+                        return {'id': new_work.work_flow_id, 'status': new_work.status}
+                except ValueError as e:
+                    logger.error(SERVER_ERROR.format(e))
+                    return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
+            else:
+                return abort(HTTPStatus.BAD_REQUEST,"invalid operation")
+
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
+
+@ns.route('/cdc_status/<string:id>/')
+@ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
+class CdcAPI(Resource):
+    @ns.response(HTTPStatus.OK, 'Success.')
+    @ns.response(HTTPStatus.NOT_FOUND, 'CDC enabling not found.')
+    @api.doc(security='apikey')
+    @authenticate
+    def get(self,id):
+        try:
+            try:
+                session = db_context.session()
+                latest_work = session.query(WorkFlowStatus).filter_by(work_flow_id=id).first()
+                if latest_work :
+                    return {'id': latest_work.work_flow_id, 'status': latest_work.status,'operation' :latest_work.protocol_name}
+                else:
+                    logger.info("Status id not found")
+                    return abort(HTTPStatus.NOT_FOUND,"Not found")
+            except ValueError as e:
+                return abort(HTTPStatus.BAD_REQUEST,"invalid operation")
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
