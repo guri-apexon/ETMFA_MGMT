@@ -333,7 +333,7 @@ class MetaDataTableHelper():
                                     "confidence":confidence,
                                     "note":note,
                                     'audit_info':audit_info})
-            
+        extended_list=[]  
         for attr_name,curr_data in attr_map.items():
             if attr_name not in SUMMARY_ATTR_REV_MAP:
                 value = curr_data.get("attr_value")
@@ -341,7 +341,7 @@ class MetaDataTableHelper():
                 confidence = curr_data.get("confidence")
                 note = curr_data.get("note")
                 audit_info = curr_data.get("audit_info")
-                result_list.append({'display_name':display_name,
+                extended_list.append({'display_name':display_name,
                         'attr_name': attr_name,
                         'attr_value': value,
                         "confidence":confidence,
@@ -349,7 +349,7 @@ class MetaDataTableHelper():
                         'audit_info':audit_info})
 
 
-        return  result_list           
+        return  result_list,extended_list           
                     
     def get_data(self,session,_id, field_name=None):
         """
@@ -380,15 +380,16 @@ class MetaDataTableHelper():
 
         curr_obj = nested_obj.data    
         if not field_name and _id!=ACCORDIAN_DOC_ID:
-            result_list = self.get_result_list(data, curr_obj.get(MetaDataTableHelper.SUMMARY_EXTENDED,{}))
+            result_list,extended_list = self.get_result_list(data, curr_obj.get(MetaDataTableHelper.SUMMARY_EXTENDED,{}))
             curr_obj.update({'summary':{'_meta_data':result_list}})
+            curr_obj[MetaDataTableHelper.SUMMARY_EXTENDED] = {'_meta_data':extended_list}
             
         if not curr_obj:
             return curr_obj
         self.add_child_info(curr_obj)
         for field in nested_fields:
             curr_obj = curr_obj.get(field,{})
-        curr_obj[MetaDataTableHelper.SUMMARY_EXTENDED] = {'_meta_data':{}}
+        
         return {nested_fields[-1]: curr_obj} if nested_fields else curr_obj
 
 
