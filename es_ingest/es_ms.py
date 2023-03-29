@@ -22,7 +22,7 @@ class ElasticIngestion(ExecutionContext):
         self.user_name=auth_details['user_name']
         self.password=auth_details['password']
         ExecutionContext.__init__(self,config.CONTEXT_MAX_ACTIVE_TIME)
-        self.token_headers=self._get_tokens()
+        self.token_headers=None
 
     def _get_tokens(self):
         token_header = {}
@@ -35,7 +35,7 @@ class ElasticIngestion(ExecutionContext):
             token_header = {'Authorization': f'Bearer {response_token_dict.get("access_token")}'}
             return token_header
         else:
-            raise EsGenericException("Unable to get token  headers")
+            raise EsGenericException(f"Unable to get token  headers {response_token}")
         
     def on_init(self):
         """
@@ -48,6 +48,7 @@ class ElasticIngestion(ExecutionContext):
         """
         return: original response or what should be sent next.
         """
+        self.token_headers=self._get_tokens()
         msg=list(data.values())[0]
         key = 'docId' if 'docId' in msg else 'doc_id'
         doc_id=msg[key]
@@ -57,9 +58,9 @@ class ElasticIngestion(ExecutionContext):
         if response.status_code == HTTPStatus.OK:
             res_json = response.json()
             if res_json['success'] == False:
-                raise EsGenericException(" Failed to get doc id ",doc_id)
+                raise EsGenericException(f" Failed to get doc id {doc_id} and error is {res_json}")
         else:
-            raise EsGenericException(" Failed to get doc id ",doc_id)
+            raise EsGenericException(f"failed to get data  and error response is {response} ")
         return data
 
     def on_release(self):
