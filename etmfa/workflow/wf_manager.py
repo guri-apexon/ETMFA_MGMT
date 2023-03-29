@@ -438,6 +438,8 @@ class WorkFlowController(Thread):
                     service_list.append(sr_info['service_name'])
             work_flow_graph.append({'service_name': TERMINATE_NODE, 'depends': service_list})
             self.wfm.add_work_flow(CustomWorkFlow(msg['work_flow_name'], work_flow_graph))
+            self.wfm.register_work_flow(msg['work_flow_name'], work_flow_graph)
+
             return status, is_valid
         else:
             raise SendExceptionMessages(

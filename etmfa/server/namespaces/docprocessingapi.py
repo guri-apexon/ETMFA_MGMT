@@ -52,6 +52,7 @@ from etmfa.consts import ACCORDIAN_DOC_ID
 from etmfa.workflow.messaging import MsqType
 from etmfa.workflow.messaging.models.triage_request import TriageRequest
 from etmfa.server.api import api
+from etmfa.workflow.db.db_utils import get_workflows_status_by_user
 from etmfa.server.namespaces.serializers import (
     eTMFA_object_get,
     PD_qc_get,
@@ -1009,8 +1010,7 @@ class DocumentprocessingAPI(Resource):
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
 
-
-@ns.route('/get_workflows_status')
+@ns.route('/get_protocol_details')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
     @ns.expect(fetch_workflows_by_userId, validate=True)
@@ -1021,11 +1021,10 @@ class DocumentprocessingAPI(Resource):
     def get(self):
         try:
             args = fetch_workflows_by_userId.parse_args()
-            page_offset = args['page_offset']
+            limit = args['limit']
             user_id = args['userId']
-            workflows = WorkFlowManager(None, None, None, logger, False,
-                                        {"MAX_EXECUTION_WAIT_TIME_HRS": 1}).get_workflows_status_by_userId(user_id,
-                                                                                                           page_offset)
+            page_num = args['page_num']
+            workflows = get_workflows_status_by_user(user_id,limit,page_num)
             if workflows:
                 return {"Message": "Success", "workflows": workflows}
             else:
@@ -1033,3 +1032,4 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
+
