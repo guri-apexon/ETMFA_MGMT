@@ -694,4 +694,5 @@ dipa_view_data.add_argument('dipa_data', type=dict,
 fetch_workflows_by_userId = reqparse.RequestParser()
 fetch_workflows_by_userId.add_argument('userId', type=str, required=True,
                                        help='user id for which workflows will be fetched')
-fetch_workflows_by_userId.add_argument('page_offset', type=str, required=True, help='offset value for pagination')
+fetch_workflows_by_userId.add_argument('limit', type=str, required=True, help='offset value for pagination')
+fetch_workflows_by_userId.add_argument('page_num', type=str, required=True, help='offset value for pagination')
