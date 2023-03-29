@@ -333,6 +333,22 @@ class MetaDataTableHelper():
                                     "confidence":confidence,
                                     "note":note,
                                     'audit_info':audit_info})
+            
+        for attr_name,curr_data in attr_map.items():
+            if attr_name not in SUMMARY_ATTR_REV_MAP:
+                value = curr_data.get("attr_value")
+                display_name=curr_data.get("display_name",display_name)
+                confidence = curr_data.get("confidence")
+                note = curr_data.get("note")
+                audit_info = curr_data.get("audit_info")
+                result_list.append({'display_name':display_name,
+                        'attr_name': attr_name,
+                        'attr_value': value,
+                        "confidence":confidence,
+                        "note":note,
+                        'audit_info':audit_info})
+
+
         return  result_list           
                     
     def get_data(self,session,_id, field_name=None):
