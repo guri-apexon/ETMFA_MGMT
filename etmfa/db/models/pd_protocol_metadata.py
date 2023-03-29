@@ -372,7 +372,7 @@ class MetaDataTableHelper():
         self.add_child_info(curr_obj)
         for field in nested_fields:
             curr_obj = curr_obj.get(field,{})
-        curr_obj[MetaDataTableHelper.SUMMARY_EXTENDED] = {}
+        curr_obj[MetaDataTableHelper.SUMMARY_EXTENDED] = {'_meta_data':{}}
         return {nested_fields[-1]: curr_obj} if nested_fields else curr_obj
 
 
