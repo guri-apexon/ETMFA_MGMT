@@ -327,6 +327,8 @@ class MetaDataTableHelper():
                 audit_info = curr_data.get("audit_info")
             else:
                 value = top_obj.get(attr_name,'')
+            if not audit_info:
+                audit_info["last_updated"] = top_obj.get("lastUpdated")  
             result_list.append({'display_name':display_name,
                                     'attr_name': attr_name,
                                     'attr_value': value,
