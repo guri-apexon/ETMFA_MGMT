@@ -203,7 +203,7 @@ def insert_into_normalized_soa(doc_id, new_table_column_index, new_table_row_ind
                 "ProcessMachineName", "ProcessVersion", roi_id, section, table_link_text, study_cohort, visit_type, visit_timepoint, week_timepoint,\
                 window_timepoint,year_timepoint,footnote_0,footnote_1,footnote_2,footnote_3, footnote_4, footnote_5,\
             footnote_6,footnote_7,footnote_8,footnote_9) VALUES('{uuid.uuid4()}', '{doc_id}', {new_table_column_index}, {new_table_row_index},\
-                \'{table_roi_id}\', '{value}', -1, -1,'','','','','','','','','','','','','','','','','','','','','','','','','','',\
+                '{table_roi_id}\', '{value}', -1, -1,'','','','','','','','','','','','','','','','','','','','','','','','','','',\
                 '','','','','')"""
     return sql_add_data
 

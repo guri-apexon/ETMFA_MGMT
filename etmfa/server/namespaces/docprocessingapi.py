@@ -626,7 +626,7 @@ class DocumentprocessingAPI(Resource):
                 delete_row = delete_normalized_soa_cell_value_by_row(session, table_props)
                 session.commit()
                 if delete_row:
-                    message = "Successfully deleted row ad updated index"
+                    message = "Successfully deleted row and updated index"
             else:
                 abort(INVALID_USER_INPUT, INVALID_USER_INPUT.format(args))
             if message == "":
