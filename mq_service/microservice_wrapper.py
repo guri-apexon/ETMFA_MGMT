@@ -116,10 +116,14 @@ class MicroServiceWrapper(ABC):
                 'output_queue': self.config.OUTPUT_QUEUE_NAME
                 }
 
-    def run(self, es_context):
+    def run(self, es_context,register=False):
+        """
+        for default services there is no need of registeration
+        """
         self.execution_context = es_context(self.config)
-        service_info = self.get_service_interface()
-        self.store.register_service(MsRegistry(**service_info))
+        if register:
+            service_info = self.get_service_interface()
+            self.store.register_service(MsRegistry(**service_info))
         # db connection released as its not used further
         self.store.release_context()
         MSG_BROKER_ADDR = self.config.MESSAGE_BROKER_ADDR
