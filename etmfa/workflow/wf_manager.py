@@ -125,8 +125,11 @@ class WorkFlowManager():
             ms = MsRegistry(
                 service_name=sr_name, input_queue=sr_enum.request, output_queue=sr_enum.complete)
             ms_list.append(ms)
-        self.store.delete_all_services(ms_list)
-        self.store.register_all_services(ms_list)
+        try:
+            self.store.delete_all_services(ms_list)
+            self.store.register_all_services(ms_list)
+        except Exception as e:
+            self.logger.error("issue registering services: "+str(e))
 
     def on_init(self):
         """
