@@ -193,4 +193,3 @@ class ModuleConfig:
 
 EVENT_CONFIG = {"QC_COMPLETED": {
     "qc_complete": True}, "EDITED": {"edited": True}}
-UI_HOST_NAME = 'https://dev-protocoldigitalization-ui.work.iqvia.com'

@@ -3,7 +3,7 @@ import json
 import logging
 from sqlalchemy import and_
 from etmfa.auth import authenticate
-from etmfa.consts.constants import EVENT_CONFIG, UI_HOST_NAME
+from etmfa.consts.constants import EVENT_CONFIG
 from etmfa.db import db_context, insert_into_alert_table
 from etmfa.db.generate_email import send_mail
 from etmfa.db.models.pd_email_templates import PdEmailTemplates
@@ -16,6 +16,7 @@ from flask_restplus import Resource
 from etmfa.consts import Consts as consts
 from etmfa.server.namespaces.serializers import notification_args
 from flask import Response
+from etmfa.server.config import Config 
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -64,7 +65,7 @@ def send_event_based_mail(db: db_context, doc_id: str, event):
         for row in row_data:
             to_mail = row.email
             username = " ".join(row.email.split("@")[0].split("."))
-            doc_link = f"{UI_HOST_NAME}/protocols?protocolId={doc_id}"
+            doc_link = f"{Config.UI_HOST_NAME}/protocols?protocolId={doc_id}"
             protocol_number = row.protocol
             indication = row.indication
             doc_status = row.documentStatus
