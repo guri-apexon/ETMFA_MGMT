@@ -20,6 +20,10 @@ class User(db_context.Model):
     lastUpdated = db_context.Column(db_context.DateTime(
         timezone=True), default=datetime.datetime.utcnow)
     login = db_context.relationship("Login", back_populates="user")
+    new_document_version = db_context.Column(db_context.Boolean, nullable=True)
+    edited = db_context.Column(db_context.Boolean, nullable=True)
+    qc_complete = db_context.Column(db_context.Boolean, nullable=True)
+
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}

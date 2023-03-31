@@ -8,6 +8,7 @@ from datetime import datetime
 from etmfa.db.db import db_context
 from etmfa.db import utils, generate_email, config
 from etmfa.consts import Consts as consts
+from etmfa.db.models.pd_users import User
 from etmfa.db.models.documentcompare import Documentcompare
 from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_protocol_data import Protocoldata
@@ -318,7 +319,7 @@ def document_compare_tuple(session, work_flow_id, flow_name, id1, id2, document_
     return ids_compare_protocol_list if ret_val else []
 
 
-def insert_into_alert_table(finalattributes):
+def insert_into_alert_table(finalattributes, event_dict):
     doc_status = PDProtocolMetadata.query.filter(
         PDProtocolMetadata.id == finalattributes['AiDocId']).first()
     doc_status_flag = doc_status and doc_status.documentStatus in config.VALID_DOCUMENT_STATUS_FOR_ALERT
@@ -353,6 +354,13 @@ def insert_into_alert_table(finalattributes):
             pd_user_protocol_list = PDUserProtocols.query.filter(
                 and_(PDUserProtocols.protocol == finalattributes['ProtocolNo'],
                      PDUserProtocols.follow == True)).all()
+
+            if event_dict.get("qc_complete"):	
+                pd_user_protocol_list = [ii for ii in pd_user_protocol_list if User.query.filter(User.username.in_(	
+                    (ii.userId, "q"+ii.userId, "u"+ii.userId)), User.qc_complete == True).one_or_none()]	
+            if event_dict.get("edited"):	
+                pd_user_protocol_list = [ii for ii in pd_user_protocol_list if User.query.filter(User.username.in_(	
+                    (ii.userId, "q"+ii.userId, "u"+ii.userId)), User.edited == True).one_or_none()]
 
             for pd_user_protocol in pd_user_protocol_list:
                 protocolalert = Protocolalert()

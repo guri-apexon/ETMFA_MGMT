@@ -12,6 +12,10 @@ from etmfa.db import config
 from etmfa.db.__init__ import received_documentprocessing_error_event
 from etmfa.error import ErrorCodes, ManagementException
 from etmfa.server.config import Config
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+
 logger = logging.getLogger(consts.LOGGING_NAME)
 
 
@@ -70,3 +74,24 @@ class SendEmail:
 
 
 
+def send_mail(subject: str, to_mail: str, html_body_part: str) -> dict:
+    """
+    this function send mail with html content attached to email body
+    """
+    try:
+        message = MIMEMultipart("alternative")
+        message['From'] = config.email_settings['EMAILS_FROM_EMAIL']
+        message['To'] = to_mail
+        message['Subject'] = subject
+        part = MIMEText(html_body_part, "html")
+        message.attach(part)
+        with smtplib.SMTP(config.email_settings['SMTP_HOST'], config.email_settings['SMTP_PORT']) as server:
+            server.starttls()
+            server.sendmail(config.email_settings['EMAILS_FROM_EMAIL'], to_mail, message.as_string())
+            server.quit()
+        logger.info(f"mail sent sucess")
+    except Exception as ex:
+        logger.exception(f"Exception occured at send mail function {to_mail}, {subject}")
+        return {"sent":False}
+
+    return {"sent":True}

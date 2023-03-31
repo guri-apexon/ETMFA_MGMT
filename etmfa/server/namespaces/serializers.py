@@ -696,3 +696,8 @@ fetch_workflows_by_userId.add_argument('userId', type=str, required=True,
                                        help='user id for which workflows will be fetched')
 fetch_workflows_by_userId.add_argument('limit', type=str, required=True, help='offset value for pagination')
 fetch_workflows_by_userId.add_argument('page_num', type=str, required=True, help='offset value for pagination')
+
+# notification args
+notification_args = reqparse.RequestParser()
+notification_args.add_argument('doc_id', type=str, required=True, help='doc id')
+notification_args.add_argument('event', type=str, required=True, help='Event to trigger notifications example QC_COMPLETED')
