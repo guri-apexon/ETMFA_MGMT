@@ -392,7 +392,7 @@ def insert_into_alert_table(finalattributes, event_dict):
                 protocolalert.emailSentFlag = False
                 protocolalert.readFlag = False
                 protocolalert.approvalDate = finalattributes['approval_date']
-                protocolalert.email_template_id = finalattributes['email_template_id']
+                protocolalert.email_template_id = finalattributes.get('email_template_id')
                 time_ = datetime.utcnow()
                 protocolalert.timeCreated = time_
                 protocolalert.timeUpdated = time_
