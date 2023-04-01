@@ -1,6 +1,7 @@
 
 from etmfa.auth import authenticate
-from etmfa.db import db_context, send_event_based_mail
+from etmfa.db import db_context 
+from etmfa.db.generate_email import send_event_based_mail
 from etmfa.server.api import api
 from flask_restplus import Resource
 from etmfa.consts import Consts as consts
