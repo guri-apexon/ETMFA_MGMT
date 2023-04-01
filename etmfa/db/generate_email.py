@@ -136,8 +136,10 @@ def send_event_based_mail(db: db_context, doc_id: str, event):
                             PDProtocolMetadata.indication,
                             PDProtocolMetadata.status,
                             PDProtocolMetadata.qcStatus,
+                            PDProtocolMetadata.versionNumber,
                             PDProtocolMetadata.documentStatus,
                             PDUserProtocols.userId,
+                            
                             User.username,
                             User.email).join(PDUserProtocols, and_(PDProtocolMetadata.id == doc_id,
                                                                    PDProtocolMetadata.protocol == PDUserProtocols.protocol)).join(
@@ -153,10 +155,18 @@ def send_event_based_mail(db: db_context, doc_id: str, event):
             doc_status = row.documentStatus
             doc_activity = row.status
             doc_status_activity = row.qcStatus
-            subject = html_record.subject.format(
-                **{"protocol_number": protocol_number, "doc_status_activity": doc_status_activity})
-            html_body = html_record.email_body.format(**{"username": username, "doc_link": doc_link, "protocol_number": row.protocol,
-                                                      "indication": indication, "doc_status": doc_status, "doc_activity": doc_activity, "doc_status_activity": doc_status_activity})
+            version_number = row.versionNumber
+
+            if event_dict.get("qc_complete") or event_dict.get("new_document_version"):
+                subject = html_record.subject.format(
+                    **{"protocol_number": protocol_number, "doc_status_activity": doc_status_activity})
+                html_body = html_record.email_body.format(**{"username": username, "doc_link": doc_link, "protocol_number": row.protocol,
+                                                        "indication": indication, "doc_status": doc_status, "doc_activity": doc_activity, "doc_status_activity": doc_status_activity})
+
+            elif event_dict.get("edited"):
+                subject = html_record.subject
+                html_body = html_record.email_body.format(**{"username": username, "doc_link": doc_link, "protocol_number": row.protocol,"version_number":version_number,
+                                                        "indication": indication})
 
             send_mail(subject, to_mail, html_body)
             logger.info(

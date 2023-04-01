@@ -192,4 +192,4 @@ class ModuleConfig:
 
 
 EVENT_CONFIG = {"QC_COMPLETED": {
-    "qc_complete": True}, "EDITED": {"edited": True}}
+    "qc_complete": True}, "EDITED": {"edited": True}, "NEW_DOCUMENT_VERSION":{"new_document_version":True}}
