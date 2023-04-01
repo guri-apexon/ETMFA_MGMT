@@ -376,8 +376,10 @@ def insert_into_alert_table(finalattributes, event_dict):
                 pd_user_protocol_list = filter_user_with_usernames(pd_user_protocol_list, user_id_list)
                 	
             elif event_dict.get("new_document_version"):
-                user_opted_qc_complete = User.query.filter(User.new_document_version == True).with_entities(User.username,'q'+User.username, 'u'+User.username).all()
-                user_id_list = list(chain.from_iterable(user_opted_qc_complete))	
+                user_id_list = user_id_list = [i[0] for i in User.query.filter(User.new_document_version == True).with_entities(
+                    case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
+                          (User.username.like('q%'), func.replace(User.username, 'q', ''))],
+                         else_=User.username)).all()]	
                 pd_user_protocol_list = filter_user_with_usernames(pd_user_protocol_list, user_id_list)
 
             for pd_user_protocol in pd_user_protocol_list:
