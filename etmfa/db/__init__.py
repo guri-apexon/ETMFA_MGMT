@@ -371,6 +371,11 @@ def insert_into_alert_table(finalattributes, event_dict):
                 user_id_list = list(chain.from_iterable(user_opted_qc_complete))	
                 pd_user_protocol_list = filter_user_with_usernames(pd_user_protocol_list, user_id_list)
                 	
+            elif event_dict.get("new_document_version"):
+                user_opted_qc_complete = User.query.filter(User.new_document_version == True).with_entities(User.username,'q'+User.username, 'u'+User.username).all()
+                user_id_list = list(chain.from_iterable(user_opted_qc_complete))	
+                pd_user_protocol_list = filter_user_with_usernames(pd_user_protocol_list, user_id_list)
+
             for pd_user_protocol in pd_user_protocol_list:
                 protocolalert = Protocolalert()
                 protocolalert.aidocId = finalattributes['AiDocId']
@@ -381,6 +386,7 @@ def insert_into_alert_table(finalattributes, event_dict):
                 protocolalert.emailSentFlag = False
                 protocolalert.readFlag = False
                 protocolalert.approvalDate = finalattributes['approval_date']
+                protocolalert.email_template_id = finalattributes['email_template_id']
                 time_ = datetime.utcnow()
                 protocolalert.timeCreated = time_
                 protocolalert.timeUpdated = time_
