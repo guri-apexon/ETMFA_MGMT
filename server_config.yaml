@@ -23,3 +23,9 @@ AUTH_PD_UI_BACKEND: {'user_name':'ypd_api_dev','password':'Rju1*aS$^v@53aDehkn2r
 
 UNIT_TEST_HEADERS: {"X-API-KEY": "ypd_unit_test:!53*URTa$k1j4t^h2~uSseatnai@nr"}
 
+UI_HOST_NAME: 'https://dev-protocoldigitalization-ui.work.iqvia.com'
+
+EMAILS_ENABLED: "True"
+FROM_EMAIL: "no_reply_protocol_digization@iqvia.com"
+SMTP_HOST: "Qgbl-devmail.work.iqvia.com"
+SMTP_PORT: "25"

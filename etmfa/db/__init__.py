@@ -6,8 +6,9 @@ import os
 import uuid
 from datetime import datetime
 from etmfa.db.db import db_context
-from etmfa.db import utils, generate_email, config
+from etmfa.db import utils, config
 from etmfa.consts import Consts as consts
+from etmfa.db.models.pd_users import User
 from etmfa.db.models.documentcompare import Documentcompare
 from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_protocol_data import Protocoldata
@@ -21,7 +22,7 @@ from etmfa.workflow.messaging.models.processing_status import (FeedbackStatus,
 from etmfa.db.models.work_flow_status import WorkFlowStatus, WorkFlowState
 from pathlib import Path
 from flask import g, abort
-from sqlalchemy import and_, func,or_
+from sqlalchemy import and_, func,or_,case
 from sqlalchemy.sql import text
 from typing import List, Dict
 from etmfa.workflow.messaging.models.queue_names import EtmfaQueues
@@ -39,7 +40,7 @@ from etmfa.db.models.pd_iqvvisitrecord_db import Iqvvisitrecord
 from etmfa.db.models.pd_iqvassessmentvisitrecord_db import Iqvassessmentvisitrecord
 from etmfa.db.models.pd_iqvassessmentrecord_db import Iqvassessmentrecord
 from etmfa.error import GenericMessageException
-
+from itertools import chain
 
 
 logger = logging.getLogger(consts.LOGGING_NAME)
@@ -317,8 +318,14 @@ def document_compare_tuple(session, work_flow_id, flow_name, id1, id2, document_
         session, ids_compare_protocol_list, work_flow_id)
     return ids_compare_protocol_list if ret_val else []
 
+def filter_user_with_usernames(pd_user_instances_list, user_id_list):
+    return_list = []
+    for user_protocol_instance in pd_user_instances_list:
+        if user_protocol_instance.userId.replace('u','').replace('q','') in user_id_list:
+            return_list.append(user_protocol_instance)
+    return return_list
 
-def insert_into_alert_table(finalattributes):
+def insert_into_alert_table(finalattributes, event_dict):
     doc_status = PDProtocolMetadata.query.filter(
         PDProtocolMetadata.id == finalattributes['AiDocId']).first()
     doc_status_flag = doc_status and doc_status.documentStatus in config.VALID_DOCUMENT_STATUS_FOR_ALERT
@@ -347,12 +354,33 @@ def insert_into_alert_table(finalattributes):
                  resource in resources])
         else:
             alert_res = True
-
+        
         if alert_res:
             protocolalert_list = list()
             pd_user_protocol_list = PDUserProtocols.query.filter(
                 and_(PDUserProtocols.protocol == finalattributes['ProtocolNo'],
                      PDUserProtocols.follow == True)).all()
+            
+            if event_dict.get("qc_complete"):
+                user_id_list = [i[0] for i in User.query.filter(User.qc_complete == True).with_entities(
+                    case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
+                          (User.username.like('q%'), func.replace(User.username, 'q', ''))],
+                         else_=User.username)).all()]
+                pd_user_protocol_list = filter_user_with_usernames(pd_user_protocol_list, user_id_list)
+
+            elif event_dict.get("edited"):
+                user_id_list = user_id_list = [i[0] for i in User.query.filter(User.edited == True).with_entities(
+                    case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
+                          (User.username.like('q%'), func.replace(User.username, 'q', ''))],
+                         else_=User.username)).all()]	
+                pd_user_protocol_list = filter_user_with_usernames(pd_user_protocol_list, user_id_list)
+                	
+            elif event_dict.get("new_document_version"):
+                user_id_list = user_id_list = [i[0] for i in User.query.filter(User.new_document_version == True).with_entities(
+                    case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
+                          (User.username.like('q%'), func.replace(User.username, 'q', ''))],
+                         else_=User.username)).all()]	
+                pd_user_protocol_list = filter_user_with_usernames(pd_user_protocol_list, user_id_list)
 
             for pd_user_protocol in pd_user_protocol_list:
                 protocolalert = Protocolalert()
@@ -364,6 +392,7 @@ def insert_into_alert_table(finalattributes):
                 protocolalert.emailSentFlag = False
                 protocolalert.readFlag = False
                 protocolalert.approvalDate = finalattributes['approval_date']
+                protocolalert.email_template_id = finalattributes.get('email_template_id')
                 time_ = datetime.utcnow()
                 protocolalert.timeCreated = time_
                 protocolalert.timeUpdated = time_
@@ -1224,3 +1253,4 @@ def delete_normalized_soa_cell_value_by_row(table_roi_id, table_row_index, study
 
         response = {'message':'error'}
         return response
+

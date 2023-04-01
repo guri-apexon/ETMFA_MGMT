@@ -14,6 +14,7 @@ from .loggingconfig import initialize_logger
 from etmfa.server.namespaces.docprocessingapi import ns as docprocessing_namespace
 from etmfa.server.namespaces.healthprocessingapi import ns as health_namespace
 from etmfa.server.namespaces.cptconfigapi import ns as config_namespace
+from etmfa.server.namespaces.pd_email_notification import ns as pd_notifications
 from flask import Blueprint, request, g
 from flask import Flask
 from flask_cors import CORS
