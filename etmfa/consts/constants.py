@@ -189,3 +189,7 @@ class ModuleConfig:
     """Main module config."""
     GENERAL = _GeneralConfig()
     SUMMARY = _SummaryConfig()
+
+
+EVENT_CONFIG = {"QC_COMPLETED": {
+    "qc_complete": True}, "EDITED": {"edited": True}, "NEW_DOCUMENT_VERSION":{"new_document_version":True}}

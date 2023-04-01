@@ -43,7 +43,7 @@ def test_alert_functions(new_app_context, ai_doc_id, protocol_no, protocol_title
 
             db_context.session.commit()
 
-            insert_into_alert_table(finalattributes)
+            insert_into_alert_table(finalattributes,{})
 
             protocolMetadata = db_context.session.query(PDProtocolMetadata).filter(
                 and_(PDProtocolMetadata.protocol == protocol_no, PDProtocolMetadata.status == 'ERROR')).all()

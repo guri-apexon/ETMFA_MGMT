@@ -21,7 +21,8 @@ class Protocolalert(db_context.Model):
         timezone=True), default=datetime.datetime.utcnow)
     timeUpdated = db_context.Column(db_context.DateTime(
         timezone=True), default=datetime.datetime.utcnow)
-
+    email_template_id = db_context.Column(db_context.String(100))
+    
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         return obj

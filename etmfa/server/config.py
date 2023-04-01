@@ -35,6 +35,10 @@ class Config(object):
             AUTH_DETAILS = cfg["AUTH_DETAILS"]
             UNIT_TEST_HEADERS = cfg["UNIT_TEST_HEADERS"]
             WORK_FLOW_RUNNER=cfg['ENABLE_WORK_FLOW_RUNNER']
+            UI_HOST_NAME = cfg["UI_HOST_NAME"]
+            FROM_EMAIL = cfg["FROM_EMAIL"]
+            SMTP_HOST = cfg["SMTP_HOST"]
+            SMTP_PORT = cfg["SMTP_PORT"]
 
     except Exception as exp:
         logging.error("Loading Defaults due to exception when reading yaml from server_config {0}", exp)
