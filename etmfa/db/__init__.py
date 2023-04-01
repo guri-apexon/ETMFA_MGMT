@@ -22,7 +22,7 @@ from etmfa.workflow.messaging.models.processing_status import (FeedbackStatus,
 from etmfa.db.models.work_flow_status import WorkFlowStatus, WorkFlowState
 from pathlib import Path
 from flask import g, abort
-from sqlalchemy import and_, func,or_
+from sqlalchemy import and_, func,or_,case
 from sqlalchemy.sql import text
 from typing import List, Dict
 from etmfa.workflow.messaging.models.queue_names import EtmfaQueues
@@ -321,7 +321,7 @@ def document_compare_tuple(session, work_flow_id, flow_name, id1, id2, document_
 def filter_user_with_usernames(pd_user_instances_list, user_id_list):
     return_list = []
     for user_protocol_instance in pd_user_instances_list:
-        if user_protocol_instance.userId in user_id_list or f'u{user_protocol_instance.userId}' in user_id_list or f'q{user_protocol_instance.userId}' in user_id_list:
+        if user_protocol_instance.userId.replace('u','').replace('q','') in user_id_list:
             return_list.append(user_protocol_instance)
     return return_list
 
@@ -362,13 +362,17 @@ def insert_into_alert_table(finalattributes, event_dict):
                      PDUserProtocols.follow == True)).all()
             
             if event_dict.get("qc_complete"):
-                user_opted_qc_complete = User.query.filter(User.qc_complete == True).with_entities(User.username,'q'+User.username, 'u'+User.username).all()
-                user_id_list = list(chain.from_iterable(user_opted_qc_complete))
+                user_id_list = [i[0] for i in User.query.filter(User.qc_complete == True).with_entities(
+                    case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
+                          (User.username.like('q%'), func.replace(User.username, 'q', ''))],
+                         else_=User.username)).all()]
                 pd_user_protocol_list = filter_user_with_usernames(pd_user_protocol_list, user_id_list)
 
             elif event_dict.get("edited"):
-                user_opted_qc_complete = User.query.filter(User.edited == True).with_entities(User.username,'q'+User.username, 'u'+User.username).all()
-                user_id_list = list(chain.from_iterable(user_opted_qc_complete))	
+                user_id_list = user_id_list = [i[0] for i in User.query.filter(User.edited == True).with_entities(
+                    case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
+                          (User.username.like('q%'), func.replace(User.username, 'q', ''))],
+                         else_=User.username)).all()]	
                 pd_user_protocol_list = filter_user_with_usernames(pd_user_protocol_list, user_id_list)
                 	
             for pd_user_protocol in pd_user_protocol_list:
@@ -381,6 +385,7 @@ def insert_into_alert_table(finalattributes, event_dict):
                 protocolalert.emailSentFlag = False
                 protocolalert.readFlag = False
                 protocolalert.approvalDate = finalattributes['approval_date']
+                protocolalert.email_template_id = finalattributes['email_template_id']
                 time_ = datetime.utcnow()
                 protocolalert.timeCreated = time_
                 protocolalert.timeUpdated = time_

@@ -128,7 +128,7 @@ def send_event_based_mail(db: db_context, doc_id: str, event):
         protocol_meta_data = db.query(PDProtocolMetadata).filter(
             PDProtocolMetadata.id == doc_id).first()
         notification_record = {'AiDocId': doc_id, 'ProtocolNo': protocol_meta_data.protocol,
-            'ProtocolTitle': protocol_meta_data.protocolTitle, 'approval_date': str(datetime.today().date()).replace('-','')}
+            'ProtocolTitle': protocol_meta_data.protocolTitle, 'approval_date': str(datetime.today().date()).replace('-',''), "email_template_id":html_record.id}
 
         insert_into_alert_table(notification_record,event_dict)
         row_data = db.query(PDUserProtocols.id, PDProtocolMetadata.protocol,
