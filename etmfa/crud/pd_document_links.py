@@ -1,7 +1,9 @@
 import pandas as pd
 import psycopg2
 from etmfa_core.aidoc.io.load_xml_db_ext import GetIQVDocumentFromDB_headers
+from flask import Response as JSONResponse
 import logging
+from http import HTTPStatus as status
 from etmfa.consts import Consts as consts
 from etmfa.workflow.db import engine
 
@@ -20,12 +22,18 @@ def get_document_links(aidoc_id: str, link_levels: int, toc: int):
 
     connection = None
     if abs(toc) > 1:
-        return {'message': 'TOC required 0 or 1'}
+        response = JSONResponse('TOC required 0 or 1', mimetype='text/html')
+        response.status_code = status.PARTIAL_CONTENT
+        return response
     try:
         connection = engine.raw_connection()
         iqv_doc_headers = GetIQVDocumentFromDB_headers(connection, aidoc_id)
         if iqv_doc_headers is None:
-            return {'message': 'This document is not available in our database'}
+            response = JSONResponse(
+                'This document is not available in our database',
+                mimetype='text/html')
+            response.status_code = status.NOT_FOUND
+            return response
     except (Exception, psycopg2.Error) as error:
         logger.exception(f"Failed to get connection to postgresql : {error}")
     finally:
@@ -110,4 +118,5 @@ def get_document_links(aidoc_id: str, link_levels: int, toc: int):
 
     except Exception as error:
         logger.exception(f"doc id {aidoc_id} having issue : {error}")
-        return {"message": "Docid having some issue or check missing parameter"}
+        return JSONResponse(status_code=status.PARTIAL_CONTENT,
+                            content={"message": "Docid having some issue"})
