@@ -123,7 +123,7 @@ class SectionDataAPI(Resource):
         aidoc_id = args.get('aidoc_id', '')
         link_level = args.get('link_level', 1)
         link_id = args.get('link_id', '')
-        user_id = args.get('userId', '')
+        user_id = args.get('user_id', '')
         protocol = args.get('protocol', '')
         section_data = get_section_data(aidoc_id=aidoc_id,
                                         link_level=link_level, link_id=link_id,
@@ -147,7 +147,7 @@ class SectionDataConfigAPI(Resource):
         toc = args.get('toc', '')
         link_id = args.get('link_id', '')
         section_text = args.get('section_text', '')
-        user_id = args.get('userId', '')
+        user_id = args.get('user_id', '')
         protocol = args.get('protocol', '')
         config_variables = args.get('config_variables', '')
         try:
