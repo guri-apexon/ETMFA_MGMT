@@ -81,3 +81,26 @@ def initialize_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=Cons
         logger.addHandler(consoleHandler)
     if add_filter:
         logger.addFilter(ContextFilter())
+
+
+def initialize_api_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=Consts.LOGGING_API,add_filter=True):
+    if not os.path.exists(DB_DIR):
+        os.makedirs(DB_DIR)
+
+    logger = logging.getLogger(module_name)
+    logger.setLevel(logging.DEBUG)
+
+    elkHandler = AsynchronousLogstashHandler(LOGSTASH_HOST,
+                                             LOGSTASH_PORT,
+                                             database_path=DB_FILE)
+    elkHandler.setLevel(logging.INFO)
+    logger.addHandler(elkHandler)
+
+    if debug:
+        consoleHandler = logging.StreamHandler()
+        consoleHandler.setLevel(logging.DEBUG)
+        consoleFormatter = logging.Formatter('%(asctime)s %(levelname)s PD [%(request_type)s-%(api_endpoint)s] [%(message)s]')
+        consoleHandler.setFormatter(consoleFormatter)
+        logger.addHandler(consoleHandler)
+    # if add_filter:
+    #     logger.addFilter(ContextFilter())

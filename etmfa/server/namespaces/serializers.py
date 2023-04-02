@@ -642,6 +642,7 @@ section_header_args = reqparse.RequestParser()
 section_header_args.add_argument('aidoc_id', type=str, required=True, help='doc id')
 section_header_args.add_argument('link_level', type=int, required=True, help='Link leven in between 1 to 6')
 section_header_args.add_argument('toc', type=int, required=True, help='doc section id')
+section_header_args.add_argument('user_id', type=str, required=False, help='user id')
 
 # to get enriched data
 enriched_data_args = reqparse.RequestParser()
