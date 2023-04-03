@@ -143,7 +143,7 @@ class SectionDataConfigAPI(Resource):
         """Get the source protocol document"""
         args = section_data_config_args.parse_args()
         aidoc_id = args.get('aidoc_id', '')
-        link_level = args.get('link_level', '') or 1
+        link_level = args.get('link_level', 1)
         toc = args.get('toc', '')
         link_id = args.get('link_id', '')
         section_text = args.get('section_text', '')
@@ -155,6 +155,7 @@ class SectionDataConfigAPI(Resource):
                 return {"message": "Not valid parameter, please provide for toc or link_id/section text, not both"}
 
             if toc:
+                link_level = link_level or 1
                 section_header = crud.get_document_links(aidoc_id, link_level,
                                                          int(toc))
                 # Terms values based on given configuration values
