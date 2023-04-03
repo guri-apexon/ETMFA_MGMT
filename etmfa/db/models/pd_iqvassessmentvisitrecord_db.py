@@ -115,7 +115,7 @@ class Iqvassessmentvisitrecord():
 
 
             
-    def get_normalized_soa(self) -> dict:
+    def get_normalized_soa(self, footnote) -> dict:
         """
         Get normalizedsoa records for soa table mapping
         """
@@ -135,13 +135,14 @@ class Iqvassessmentvisitrecord():
                             resource_dict = {key: value for key, value in record.__dict__.items()}
                             resource_dict.pop("_sa_instance_state")
                             if resource_dict.get("table_roi_id") == roi_id:
-                                for note in footnotes:
-                                    if note in resource_dict:
-                                        if len(resource_dict.get(note)) != 0:
-                                            footnote_list.append(resource_dict.get(note))
-                                        resource_dict.pop(note)
-                                    continue
-                                resource_dict.update({"footnotes":footnote_list})
+                                if footnote:
+                                    for note in footnotes:
+                                        if note in resource_dict:
+                                            if resource_dict.get(note):
+                                                footnote_list.append(resource_dict.get(note))
+                                            resource_dict.pop(note)
+                                        continue
+                                    resource_dict.update({"footnotes":footnote_list})
                                 fieldsvalue_list = []
                                 fieldsvalue_list.append(resource_dict.get("day_timepoint")) if len(resource_dict.get("day_timepoint")) != 0 else ''
                                 fieldsvalue_list.append(resource_dict.get("week_timepoint")) if len(resource_dict.get("week_timepoint")) != 0 else ''

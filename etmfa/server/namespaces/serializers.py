@@ -561,6 +561,7 @@ protocol_soa_input = reqparse.RequestParser()
 protocol_soa_input.add_argument('id', type=str, required=True, help=PROTOCOL_UNIQUE_ID)
 protocol_soa_input.add_argument('sourceSystem', type=str, required=False, help=SOURCE_SYSYTEM)
 protocol_soa_input.add_argument('operationValue', type=str, required=True, help='Operation value')
+protocol_soa_input.add_argument('footnotes', type=inputs.boolean, required=False, help="Footnotes")
 
 protocol_soa_get = api.model('Protocol Normalized SOA',
                              {
@@ -654,17 +655,18 @@ section_data_args = reqparse.RequestParser()
 section_data_args.add_argument('aidoc_id', type=str, required=True, help='doc id')
 section_data_args.add_argument('link_level', type=int, required=False, help='Link leven in between 1 to 6')
 section_data_args.add_argument('link_id', type=str, required=False, help='doc section id')
-section_data_args.add_argument('userId', type=str, required=True, help='user id')
+section_data_args.add_argument('user_id', type=str, required=False, help='user id')
 section_data_args.add_argument('protocol', type=str, required=False, help='protocol number')
 
 # To get section config data
 section_data_config_args = reqparse.RequestParser()
 section_data_config_args.add_argument('aidoc_id', type=str, required=True, help='doc id')
 section_data_config_args.add_argument('link_level', type=int, required=False, help='Link leven in between 1 to 6')
+section_data_config_args.add_argument('toc', type=str, required=False, help='toc 0 or 1 to get section headers')
 section_data_config_args.add_argument('link_id', type=str, required=False, help='doc section id')
 section_data_config_args.add_argument('section_text', type=str, required=False,
                                       help='doc section text, table, appendix')
-section_data_config_args.add_argument('userId', type=str, required=True, help='user id')
+section_data_config_args.add_argument('user_id', type=str, required=False, help='user id')
 section_data_config_args.add_argument('protocol', type=str, required=False, help='protocol number')
 section_data_config_args.add_argument('config_variables', type=str, required=False,
                                       help='Variables: time_points, clinical_terms, preferred_terms, references, properties, redaction_attributes')
