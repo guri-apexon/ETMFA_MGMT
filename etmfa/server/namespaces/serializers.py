@@ -561,6 +561,7 @@ protocol_soa_input = reqparse.RequestParser()
 protocol_soa_input.add_argument('id', type=str, required=True, help=PROTOCOL_UNIQUE_ID)
 protocol_soa_input.add_argument('sourceSystem', type=str, required=False, help=SOURCE_SYSYTEM)
 protocol_soa_input.add_argument('operationValue', type=str, required=True, help='Operation value')
+protocol_soa_input.add_argument('footnotes', type=inputs.boolean, required=False, help="Footnotes")
 
 protocol_soa_get = api.model('Protocol Normalized SOA',
                              {

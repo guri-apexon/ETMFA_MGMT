@@ -1004,7 +1004,7 @@ def get_protocols_by_date_time_range(version_date="", approval_date="", start_da
 
     return resource
 
-def get_normalized_soa_table(aidoc_id) -> dict:
+def get_normalized_soa_table(aidoc_id, footnote) -> dict:
     """
     Get protocol Normalized SOA for table mapping
 	"""
@@ -1022,7 +1022,7 @@ def get_normalized_soa_table(aidoc_id) -> dict:
             raise GenericMessageException("roi set is None.")
         roi_list = list(roi_set)
         study_procedures = assessment_obj.get_assessment_text()
-        norm_dict = assessmentvisit_obj.get_normalized_soa()
+        norm_dict = assessmentvisit_obj.get_normalized_soa(footnote)
         study_visits = visits_obj.get_visit_records()        
         
         for roi_id in roi_list:
