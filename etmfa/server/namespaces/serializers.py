@@ -704,3 +704,4 @@ fetch_workflows_by_userId.add_argument('page_num', type=str, required=True, help
 notification_args = reqparse.RequestParser()
 notification_args.add_argument('doc_id', type=str, required=True, help='doc id')
 notification_args.add_argument('event', type=str, required=True, help='Event to trigger notifications example QC_COMPLETED')
+notification_args.add_argument('send_mail', type=inputs.boolean, default=False, required=False, help="sending mail default false if need to send mail for event true required")
