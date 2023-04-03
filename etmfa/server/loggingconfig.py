@@ -84,6 +84,9 @@ def initialize_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=Cons
 
 
 def initialize_api_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=Consts.LOGGING_API,add_filter=True):
+    """
+    API logger configuration created to track API metrics with separate logger format
+    """
     if not os.path.exists(DB_DIR):
         os.makedirs(DB_DIR)
 
@@ -102,5 +105,3 @@ def initialize_api_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=
         consoleFormatter = logging.Formatter('%(asctime)s %(levelname)s PD [%(request_type)s-%(api_endpoint)s] [%(message)s]')
         consoleHandler.setFormatter(consoleFormatter)
         logger.addHandler(consoleHandler)
-    # if add_filter:
-    #     logger.addFilter(ContextFilter())

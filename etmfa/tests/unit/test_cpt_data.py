@@ -26,10 +26,10 @@ def test_document_header(new_app_context, doc_id, link_level, toc, status_code, 
         assert get_cpt.status_code == status_code
         
 
-@pytest.mark.parametrize("doc_id, user_id, results", [
-    ("0aaeec59-5e7b-42a5-8ac9-de3f9c35690d", "1156301", 1),
-    ("0aaeec59-5e7b-42a5-8ac9-de3f9c35690d", "1156301", 2)])
-def test_user_metrics(new_app_context, doc_id, user_id, results):
+@pytest.mark.parametrize("doc_id, user_id, results, comments", [
+    ("0aaeec59-5e7b-42a5-8ac9-de3f9c35690d", "1156301", 1, "To create user metrics with count 1"),
+    ("0aaeec59-5e7b-42a5-8ac9-de3f9c35690d", "1156301", 2, "To update existing user metrics with count 2")])
+def test_user_metrics(new_app_context, doc_id, user_id, results, comments):
         _, app_context = new_app_context
         with app_context:
             create_or_update_user_metrics(user_id=user_id, aidoc_id=doc_id)
@@ -41,7 +41,7 @@ def test_user_metrics(new_app_context, doc_id, user_id, results):
             user_metrics = db_context.session.query(UserMetrics).filter(
                     UserMetrics.userid.in_(user_filter),
                     UserMetrics.aidoc_id == doc_id,
-                    UserMetrics.userrole == user.user_type,
+                    UserMetrics.user_type == user.user_type,
                     UserMetrics.document_version == protocol_obj.versionNumber).first()
             assert user_metrics.protocol == protocol_obj.protocol
             assert user_metrics.viewed_count == str(results)

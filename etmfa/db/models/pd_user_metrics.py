@@ -10,6 +10,7 @@ class UserMetrics(db_context.Model):
     protocol = db_context.Column(db_context.String(100), nullable=False)
     userrole = db_context.Column(db_context.String(100), nullable=True)
     viewed_count = db_context.Column(db_context.String(100), nullable=True)
+    user_type = db_context.Column(db_context.String(100), nullable=True)
     timecreated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.utcnow)
     accesstime = db_context.Column(db_context.DateTime(timezone=True), default=datetime.utcnow)
     isactive = db_context.Column(db_context.Boolean(), default=True, nullable=False)
