@@ -395,7 +395,7 @@ SVT-Rollback:
     VM_FROM_EMAIL: $VM_FROM_EMAIL
     VM_SMTP_HOST: $SVT_VM_SMTP_HOST
     VM_SMTP_PORT: $VM_SMTP_PORT
-   VERIFICATION_URL: "http://ca2spdml15q:9001/pd/api/health"
+    VERIFICATION_URL: "http://ca2spdml15q:9001/pd/api/health"
  before_script:
    - . $VE_PATH
  script:
