@@ -556,14 +556,14 @@ class DocumentprocessingAPI(Resource):
         try:
             cleaned_inputs = utils.clean_inputs(aidoc_id=args['id'])
             aidoc_id = cleaned_inputs.get('aidoc_id', '')
-
+            footnote = args.get('footnotes', False)
             if not aidoc_id:
                 logger.error(f"Invalid user inputs received: {args}")
                 return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
             if args['operationValue'] == 'normalizedSOA':
                 resource = get_normalized_soa_details(aidoc_id=aidoc_id)
             elif args['operationValue'] == 'SOATable':
-                resource = get_normalized_soa_table(aidoc_id=aidoc_id)
+                resource = get_normalized_soa_table(aidoc_id=aidoc_id, footnote=footnote)
             else:
                 return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
             if len(resource) == 0:
