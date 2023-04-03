@@ -68,8 +68,7 @@ def create_or_update_user_metrics(user_id: str, aidoc_id: str):
                 for obj in user_metrics:
                     obj.isactive = False
                     db_context.session.add(obj)
-                    db_context.session.commit()
-                    db_context.session.refresh(obj)
+                db_context.session.commit()
             except Exception as ex:
                 db_context.session.rollback()
                 return ex
