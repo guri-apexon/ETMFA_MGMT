@@ -23,7 +23,7 @@ def test_document_object(new_app_context, user_id, protocol, doc_id, status_code
                                           json={"aidoc_id": doc_id,
                                                 "link_level": link_level,
                                                 "link_id": link_id,
-                                                "userId": user_id,
+                                                "user_id": user_id,
                                                 "protocol": protocol},
                                           headers=Config.UNIT_TEST_HEADERS)
 
