@@ -51,7 +51,7 @@ def test_user_metrics(new_app_context, doc_id, user_id, results, comments):
                 user_metrics = db_context.session.query(UserMetrics).filter(
                     UserMetrics.userid.in_(user_filter),
                     UserMetrics.aidoc_id == doc_id,
-                    UserMetrics.userrole == user.user_type,
+                    UserMetrics.user_type == user.user_type,
                     UserMetrics.document_version == protocol_obj.versionNumber).first()
 
                 db_context.session.delete(user_metrics)
