@@ -123,7 +123,7 @@ class SectionDataAPI(Resource):
         aidoc_id = args.get('aidoc_id', '')
         link_level = args.get('link_level', 1)
         link_id = args.get('link_id', '')
-        user_id = args.get('userId', '')
+        user_id = args.get('user_id', '')
         protocol = args.get('protocol', '')
         section_data = get_section_data(aidoc_id=aidoc_id,
                                         link_level=link_level, link_id=link_id,
@@ -144,28 +144,47 @@ class SectionDataConfigAPI(Resource):
         args = section_data_config_args.parse_args()
         aidoc_id = args.get('aidoc_id', '')
         link_level = args.get('link_level', 1)
+        toc = args.get('toc', '')
         link_id = args.get('link_id', '')
         section_text = args.get('section_text', '')
-        user_id = args.get('userId', '')
+        user_id = args.get('user_id', '')
         protocol = args.get('protocol', '')
         config_variables = args.get('config_variables', '')
         try:
-            link_id, link_level, link_dict = crud.link_id_link_level_based_on_section_text(
-                db, aidoc_id, section_text, link_id, link_level)
+            if toc and (link_id or section_text):
+                return {"message": "Not valid parameter, please provide for toc or link_id/section text, not both"}
 
-            section_res = get_section_data(aidoc_id=aidoc_id, link_level=link_level,
-                                           link_id=link_id, user_id=user_id,
-                                           protocol=protocol)
+            if toc:
+                link_level = link_level or 1
+                section_header = crud.get_document_links(aidoc_id, link_level,
+                                                         int(toc))
+                # Terms values based on given configuration values
+                terms_values = crud.get_document_terms_data(db, aidoc_id,
+                                                            link_id,
+                                                            config_variables,
+                                                            {})
+                return [section_header, terms_values]
+            else:
+                link_id, link_level, link_dict = crud.link_id_link_level_based_on_section_text(
+                    db, aidoc_id, section_text, link_id, link_level)
 
-            # Terms values based on given configuration values
-            terms_values = crud.get_document_terms_data(db, aidoc_id, link_id,
-                                                        config_variables, link_dict)
+                section_res = get_section_data(aidoc_id=aidoc_id,
+                                               link_level=link_level,
+                                               link_id=link_id, user_id=user_id,
+                                               protocol=protocol)
 
-            # enriched data from existing end point
-            enriched_data = get_enriched_data(aidoc_id=aidoc_id, link_id=link_id)
-            logger.info(f"config api process completed")
+                # Terms values based on given configuration values
+                terms_values = crud.get_document_terms_data(db, aidoc_id,
+                                                            link_id,
+                                                            config_variables,
+                                                            link_dict)
 
-            return [section_res, terms_values, enriched_data]
+                # enriched data from existing end point
+                enriched_data = get_enriched_data(aidoc_id=aidoc_id,
+                                                  link_id=link_id)
+                logger.info(f"config api process completed")
+
+                return [section_res, terms_values, enriched_data]
         except Exception as e:
             logger.exception(f"exception occurred in config api for doc_id {aidoc_id} and link_id {link_id} and exception is {e}")
             return abort(404, f"Exception to fetch configuration data {str(e)}")
