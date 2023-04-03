@@ -1,3 +1,4 @@
+import json
 import re
 import logging
 import pandas as pd
@@ -232,7 +233,7 @@ class SOAResponse:
                         if ((int(float(tabIndex['TableIndex'])) == int(float(tabseq))) and append==1):
                             resulttable=resulttable.reset_index(drop=True)
                             resultreturn['Table']=resulttable.to_html(escape=False)
-                            resultreturn['TableProperties'] = resulttable_redact.to_json(orient="records")
+                            resultreturn['TableProperties'] = return_table_formated_data(resulttable_redact.to_json(orient="records"))
                             resultreturn.update(tabIndex)
                             resultreturn['Header']=keep_header
                             result.append(resultreturn)
@@ -243,3 +244,32 @@ class SOAResponse:
         except Exception as e :
             logger.error("Error SOA :Reconstruction of table failed with error : {}".format(e))
             return ({}, 0)
+
+
+
+def return_table_formated_data(data):
+    table_properties_formater = []
+    for item in eval(data):
+        column_list = []
+        roi_id = ''
+        for k,v in item.items():
+            if isinstance(v,dict):
+                roi_id = v.get("roi_id",{}).get('row_roi_id')
+                column_list.append({
+                          "col_indx": len(column_list),
+                          "op_type": None,
+                          "cell_id": v.get("roi_id",{}).get("datacell_roi_id",""),
+                          "value": v.get('content')
+                        })
+            else:
+                roi_id = ''
+                column_list.append({
+                          "col_indx": len(column_list),
+                          "op_type": None,
+                          "cell_id": "",
+                          "value": ""
+                        })
+
+        new_dict = {"row_indx": len(table_properties_formater), "roi_id": roi_id, "op_type": None, "columns":column_list}
+        table_properties_formater.append(new_dict)
+    return json.dumps(table_properties_formater)
