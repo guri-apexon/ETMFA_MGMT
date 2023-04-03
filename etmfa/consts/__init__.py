@@ -8,7 +8,7 @@ from .constants import DUPLICATION_ERROR,ACCORDIAN_DOC_ID
 class Consts():
     LOGGING_NAME = 'mgmt'
     LOGGING_WF= 'work_flow_manager'
-
+    LOGGING_API = 'api'
 
 class Globals:
     THREAD_LOCAL = threading.local()

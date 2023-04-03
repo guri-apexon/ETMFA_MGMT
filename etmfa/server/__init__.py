@@ -8,7 +8,7 @@ from etmfa.db import init_db
 # messaging
 from etmfa.server.api import api, specs_url
 from etmfa.server.config import Config, app_config
-from .loggingconfig import initialize_logger
+from .loggingconfig import initialize_logger, initialize_api_logger
 
 # api
 from etmfa.server.namespaces.docprocessingapi import ns as docprocessing_namespace
@@ -23,7 +23,8 @@ from werkzeug.contrib.fixers import ProxyFix
 from etmfa_core.postgres_db_schema import create_schemas
 from es_ingest import ElasticIngestionRunner
 from etmfa.workflow import  WorkFlowClient,WorkFlowRunner
-
+from etmfa.consts import Consts as consts
+from ..utilities.user_metrics import create_or_update_user_metrics
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 app = Flask(__name__, instance_relative_config=True, instance_path=dir_path)
@@ -31,6 +32,28 @@ app.config.from_object(app_config['development'])
 app.config['RESTPLUS_MASK_SWAGGER'] = False
 app.config['ERROR_404_HELP'] = False
 CORS(app)
+
+api_logger = logging.getLogger(consts.LOGGING_API)
+
+
+@app.after_request
+def after_request_callback(response):
+    """ TO get user and API metrics """
+    extra_val = {'request_type': f"{request.method}",
+                 'api_endpoint': f"{request.path}"}
+    if response.status_code != 200:
+        api_logger.error(msg="API Metrics exception",
+                         extra=extra_val)
+    else:
+        api_logger.info(msg="API Metrics",
+                        extra=extra_val)
+
+    if request.path == '/pd/api/cpt_data/':
+        user_id = request.args.get('user_id')
+        aidoc_id = request.args.get('aidoc_id')
+        # User metric protocol parameter
+        create_or_update_user_metrics(user_id, aidoc_id)
+    return response
 
 
 def load_app_config(config_name):
@@ -60,6 +83,7 @@ def create_app(config_name, ssl_enabled=False):
         start_es_runner()
     # register centralized logger
     initialize_logger(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'])
+    initialize_api_logger(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'])
 
     if config_name == 'test':
         logger.info(
