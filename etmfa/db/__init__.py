@@ -383,20 +383,23 @@ def insert_into_alert_table(finalattributes, event_dict):
                 pd_user_protocol_list = filter_user_with_usernames(pd_user_protocol_list, user_id_list)
 
             for pd_user_protocol in pd_user_protocol_list:
-                protocolalert = Protocolalert()
-                protocolalert.aidocId = finalattributes['AiDocId']
-                protocolalert.protocol = finalattributes['ProtocolNo']
-                protocolalert.protocolTitle = finalattributes['ProtocolTitle']
-                protocolalert.id = pd_user_protocol.id
-                protocolalert.isActive = True
-                protocolalert.emailSentFlag = False
-                protocolalert.readFlag = False
-                protocolalert.approvalDate = finalattributes['approval_date']
-                protocolalert.email_template_id = finalattributes.get('email_template_id')
-                time_ = datetime.utcnow()
-                protocolalert.timeCreated = time_
-                protocolalert.timeUpdated = time_
-                protocolalert_list.append(protocolalert)
+                protocolalert_instance = db_context.session.query(Protocolalert).filter_by(id=pd_user_protocol.id, aidocId=finalattributes['AiDocId'], protocol=finalattributes[
+                    'ProtocolNo'], email_template_id=finalattributes.get('email_template_id')).update({'timeUpdated':datetime.utcnow()})
+                if not protocolalert_instance:
+                    protocolalert = Protocolalert()
+                    protocolalert.aidocId = finalattributes['AiDocId']
+                    protocolalert.protocol = finalattributes['ProtocolNo']
+                    protocolalert.protocolTitle = finalattributes['ProtocolTitle']
+                    protocolalert.id = pd_user_protocol.id
+                    protocolalert.isActive = True
+                    protocolalert.emailSentFlag = False
+                    protocolalert.readFlag = False
+                    protocolalert.approvalDate = finalattributes['approval_date']
+                    protocolalert.email_template_id = finalattributes.get('email_template_id')
+                    time_ = datetime.utcnow()
+                    protocolalert.timeCreated = time_
+                    protocolalert.timeUpdated = time_
+                    protocolalert_list.append(protocolalert)
 
             db_context.session.add_all(protocolalert_list)
             db_context.session.commit()
