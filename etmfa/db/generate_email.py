@@ -96,7 +96,6 @@ def send_mail(subject: str, to_mail: str, html_body_part: str) -> dict:
         part = MIMEText(html_body_part, "html")
         message.attach(part)
         with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as server:
-            server.starttls()
             server.sendmail(Config.FROM_EMAIL, to_mail, message.as_string())
             server.quit()
         logger.info(f"mail sent sucess")
