@@ -51,14 +51,15 @@ def get_section_data(aidoc_id, link_level, link_id, user_id, protocol):
     """
     Separate function to get section data, using doc and section id
     """
-    iqv_document = crud.get_document_object(aidoc_id, link_level, link_id)
+    iqv_document, imagebinaries = crud.get_document_object(aidoc_id, link_level,
+                                                           link_id)
     if iqv_document is None:
         logger.info(f"Doc_id {aidoc_id} does not exists")
         message = json.dumps(
             {'message': "This document is not available in our database"})
         return Response(message, status=404, mimetype='application/json')
     protocol_view_redaction = ProtocolViewRedaction(user_id, protocol)
-    finalized_iqvxml = PrepareUpdateData(iqv_document,
+    finalized_iqvxml = PrepareUpdateData(iqv_document, imagebinaries,
                                          protocol_view_redaction.profile_details,
                                          protocol_view_redaction.entity_profile_genre)
     finalization_req_dict, _ = finalized_iqvxml.prepare_msg()

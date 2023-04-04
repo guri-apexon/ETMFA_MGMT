@@ -88,27 +88,23 @@ class SOAResponse:
                                                                     table_indexes)
                                                            else False for prop in table.Properties])):
                     dictTableMeta=dict()
+                    # As per etmfa core repo changes, we are able to get foonote records
+                    dictTableMeta['AttachmentList'] = list()
+                    for prop in table.footnote_records:
+                        footnote_val = {
+                            'TableId': prop.table_roi_id,
+                            'AttachmentIndex': prop.DocumentSequenceIndex,
+                            'key': prop.footnote_indicator,
+                            'AttachmentId': prop.id,
+                            'Text': prop.footnote_text
+                        }
+                        dictTableMeta['AttachmentList'].append(footnote_val)
+
                     for prop in table.Properties:
-                        if (prop.key in poi) or ((prop.key).startswith('Footnote')):
-                            dictTableMeta[prop.key]=('' if prop.value=='nan' else prop.value)
-                        elif prop.key.startswith('AttachmentId'):
-                            if 'AttachmentList' not in dictTableMeta:
-                                dictTableMeta['AttachmentList'] = list()
-                                dictTableMeta['entities'] = list()
-                            dictTableMeta['AttachmentList'].append('' if prop.value == 'nan' else eval(prop.value))
-                            dictTableMeta['AttachmentList'][-1]['qc_change_type'] = ''
+                        if prop.key in poi:
+                            dictTableMeta[prop.key] = (
+                                '' if prop.value == 'nan' else prop.value)
 
-                            _, redaction_entities = utils.get_redaction_entities(
-                                level_roi=table.Attachments[int(dictTableMeta['AttachmentList'][-1]['AttachmentIndex'])])
-
-                            _, nlp_entities_list_aligned = utils.align_redaction_with_subtext(
-                                dictTableMeta['AttachmentList'][-1]['Text'], redaction_entities)
-
-                            dictTableMeta['AttachmentList'][-1]['entities'] = nlp_entities_list_aligned
-                            if len(nlp_entities_list_aligned) > 0:
-                                redacted_txt = '{} {}'.format(dictTableMeta['AttachmentList'][-1]['Key'], dictTableMeta['AttachmentList'][-1]['Text'])
-                                redacted_txt = utils.redact_text(text=redacted_txt, text_redaction_entity=nlp_entities_list_aligned, redact_profile_entities=self.profile_details, redact_flg=self.entity_profile_genre)
-                                dictTableMeta['FootnoteText_{}'.format(len(dictTableMeta['AttachmentList']) - 1)] = redacted_txt
                     for row in table.ChildBoxes:
                         for column in row.ChildBoxes:
                             for textblock in column.ChildBoxes:

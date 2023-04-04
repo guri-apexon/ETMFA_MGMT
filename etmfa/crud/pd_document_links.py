@@ -5,7 +5,7 @@ from flask import Response as JSONResponse
 import logging
 from http import HTTPStatus as status
 from etmfa.consts import Consts as consts
-from etmfa.workflow.db import engine
+from etmfa.db.db import db_context
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -26,7 +26,7 @@ def get_document_links(aidoc_id: str, link_levels: int, toc: int):
         response.status_code = status.PARTIAL_CONTENT
         return response
     try:
-        connection = engine.raw_connection()
+        connection = db_context.engine.raw_connection()
         iqv_doc_headers = GetIQVDocumentFromDB_headers(connection, aidoc_id)
         if iqv_doc_headers is None:
             response = JSONResponse(
