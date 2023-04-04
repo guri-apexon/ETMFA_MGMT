@@ -384,8 +384,7 @@ def insert_into_alert_table(finalattributes, event_dict):
 
             for pd_user_protocol in pd_user_protocol_list:
                 protocolalert_instance = db_context.session.query(Protocolalert).filter_by(id=pd_user_protocol.id, aidocId=finalattributes['AiDocId'], protocol=finalattributes[
-                    'ProtocolNo'], protocolTitle=finalattributes['ProtocolTitle'], email_template_id=finalattributes.get('email_template_id'),
-                    approvalDate=finalattributes['approval_date']).update({'timeUpdated':datetime.utcnow()})
+                    'ProtocolNo'], email_template_id=finalattributes.get('email_template_id')).update({'timeUpdated':datetime.utcnow()})
                 if not protocolalert_instance:
                     protocolalert = Protocolalert()
                     protocolalert.aidocId = finalattributes['AiDocId']
