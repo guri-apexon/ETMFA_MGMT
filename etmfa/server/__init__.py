@@ -48,7 +48,9 @@ def after_request_callback(response):
         api_logger.info(msg="API Metrics",
                         extra=extra_val)
 
-    if request.path == '/pd/api/cpt_data/':
+    if request.path in ('/pd/api/cpt_data/',
+                        '/pd/api/cpt_data/get_section_data_configurable_parameter') and str(
+            request.args.get('toc', '')) == '1':
         user_id = request.args.get('user_id')
         aidoc_id = request.args.get('aidoc_id')
         # User metric protocol parameter

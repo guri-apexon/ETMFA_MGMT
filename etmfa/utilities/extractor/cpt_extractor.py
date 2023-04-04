@@ -8,14 +8,19 @@ from etmfa.utilities import data_extractor_utils as utils
 from etmfa.utilities.table_extractor import SOAResponse as soa
 from etmfa.consts.constants import ModuleConfig
 from etmfa.consts import Consts as consts
+import base64
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
 
 class CPTExtractor:
-    def __init__(self, iqv_document: IQVDocument, profile_details: dict, entity_profile_genre: list, response_type:str = "split", table_response_type:str = "html"):
+    def __init__(self, iqv_document: IQVDocument, imgagebinaries: dict,
+                 profile_details: dict, entity_profile_genre: list,
+                 response_type: str = "split",
+                 table_response_type: str = "html"):
         
         self.iqv_document = iqv_document
+        self.imagebinaries = imgagebinaries
         self.response_type = response_type
         self.table_response_type = table_response_type
         self.table_index_tag = ModuleConfig.GENERAL.std_tags_dict[ModuleConfig.GENERAL.TABLE_INDEX_KEY]
@@ -53,6 +58,7 @@ class CPTExtractor:
             master_dict = dict()
             master_font_style = master_roi_dict.get('font_style', '')
             master_dict['para_master_roi_id'] = master_roi.id
+            master_dict['image_content'] = ''
             # For header identification
             master_dict['font_heading_flg'] = ('heading' in master_font_style.lower())
             # Collect tags
@@ -67,8 +73,11 @@ class CPTExtractor:
             all_child_list = []
             for child_idx, level_roi in enumerate(master_roi.ChildBoxes):
                 master_dict['para_child_roi_id'] = level_roi.id
-                master_dict['para_child_roi_text'] = ' '.join(level_roi.strTexts)
-                master_dict['para_child_font_details'] = {'IsBold': level_roi.fontInfo.Bold, 'font_size': level_roi.fontInfo.Size}
+                master_dict['para_child_roi_text'] = ' '.join(level_roi.Value)
+                master_dict['para_child_font_details'] = {
+                    'IsBold': level_roi.fontInfo.Bold,
+                    'font_size': level_roi.fontInfo.Size,
+                    **level_roi.fontInfo.__dict__}
                 # Prep for subtext redaction
                 len_redaction_entities, redaction_entities = utils.get_redaction_entities(level_roi=level_roi)
                 # Added para level redaction entities with length
@@ -78,33 +87,6 @@ class CPTExtractor:
                 childbox_entity_set = set(range(0, len_redaction_entities))
                 subtext_matched_entity_set = set()
 
-                for subtext_idx, iqv_subtext in enumerate(level_roi.IQVSubTextList):
-                    # redaction section
-                    subtext_redaction_entities = []
-                    redacted_text = iqv_subtext.strText
-                    if len_redaction_entities:
-                        matched_entity_set, subtext_redaction_entities = utils.align_redaction_with_subtext(text=iqv_subtext.strText, redaction_entities=redaction_entities)
-                                                                                                            # redact_profile_entities= self.entity_profile_genre, redact_flg=True)
-                        redacted_text = utils.redact_text(text = redacted_text,
-                                                          text_redaction_entity = subtext_redaction_entities,
-                                                          redact_profile_entities=self.entity_profile_genre,
-                                                          redact_flg=True
-                                                          )
-                        subtext_matched_entity_set.update(matched_entity_set)
-                        logger.debug(f"*** iqv_subtext[{child_idx}, {subtext_idx}]: {iqv_subtext.strText}")
-                        logger.debug(f"subtext_redaction_entity: {subtext_redaction_entities}")
-
-                    iqv_subtext_dict=dict()
-                    roi_id = {'para': master_roi.id, 'childbox': level_roi.id, 'subtext': iqv_subtext.id}
-                    iqv_subtext_dict['para_subtext_roi_id'] = iqv_subtext.id
-                    iqv_subtext_dict['para_subtext_text'] = redacted_text #iqv_subtext.strText
-                    iqv_subtext_dict['para_subtext_font_details'] = dict({'IsBold': iqv_subtext.fontInfo.Bold, 'font_size': iqv_subtext.fontInfo.Size,
-                                                                     'font_style': master_font_style, 'entity': subtext_redaction_entities, 'roi_id': roi_id},
-                                                                         **iqv_subtext.fontInfo.__dict__)
-
-                    iqv_subtext_dict.update(master_dict)
-                    all_child_list.append(iqv_subtext_dict)
-
                 tot_matching_master_childbox_redaction_entity += len(childbox_entity_set.intersection(subtext_matched_entity_set))
                 # Debug report
                 debug_notfound_entity = (childbox_entity_set - subtext_matched_entity_set)
@@ -112,10 +94,32 @@ class CPTExtractor:
                     logger.debug(f"Debug report: [{master_roi.id}] [{level_roi.id}]: Missing entity idx: {debug_notfound_entity} \
                         level_roi text: {level_roi.GetFullText()} ; redaction_entities: {redaction_entities}")
 
+            if self.imagebinaries.get(master_roi.id):
+                imagebinary_list = self.imagebinaries[master_roi.id]
+                for imagebinary in imagebinary_list:
+                    master_dict['image_type'] = "image"
+                    image_dict = dict()
+                    roi_id = {'para': master_roi.id, 'childbox': level_roi.id,
+                              'subtext': ""}
+                    master_dict['para_subtext_text'] = master_roi.Value
+                    master_dict[
+                        'image_content'] = f"data:image/{imagebinary.image_format};base64," + base64.b64encode(
+                        imagebinary.img).decode(
+                        'utf-8') if imagebinary.img else ""  # iqv_subtext.strText
+                    image_dict['para_subtext_font_details'] = dict(
+                        {'IsBold': level_roi.fontInfo.Bold,
+                         'font_size': level_roi.fontInfo.Size,
+                         'font_style': master_font_style, 'entity': "",
+                         'roi_id': roi_id},
+                        **level_roi.fontInfo.__dict__)
+
+                    image_dict.update(master_dict)
+                    all_child_list.append(image_dict)
+
             # Handling roi not having IQVSubTextList
             roi_id = {'para': master_roi.id, 'childbox': '', 'subtext': ''}
             if len(all_child_list) == 0:
-                master_roi_fulltext = master_roi.GetFullText()
+                master_roi_fulltext = master_roi.Value
 
                 len_redaction_entities, len_matched_redaction_entities, master_redaction_entities = utils.get_matched_redact_entity_roi(master_roi)
                 tot_master_childbox_redaction_entity += len_redaction_entities
@@ -130,8 +134,11 @@ class CPTExtractor:
                 iqv_subtext_dict = dict()
                 iqv_subtext_dict['para_subtext_roi_id'] = ''
                 iqv_subtext_dict['para_subtext_text'] = (master_roi_fulltext if master_roi_fulltext != 'None' else '')
-                iqv_subtext_dict['para_subtext_font_details'] = dict({'IsBold': False, 'font_size': -1,
-                                                                      'font_style': master_font_style, 'entity': master_redaction_entities, 'roi_id': roi_id})
+                iqv_subtext_dict['para_subtext_font_details'] = dict(
+                    {'IsBold': False, 'font_size': -1,
+                     'font_style': master_font_style,
+                     'entity': master_redaction_entities, 'roi_id': roi_id},
+                    **level_roi.fontInfo.__dict__)
 
                 iqv_subtext_dict.update(master_dict)
                 all_child_list.append(iqv_subtext_dict)
@@ -139,7 +146,7 @@ class CPTExtractor:
             if master_font_style and all_child_list:
                 len_redaction_entities, len_matched_redaction_entities, master_redaction_entities = utils.get_matched_redact_entity_roi(master_roi)
                 combined_dict = all_child_list[0]
-                master_roi_fulltext = master_roi.GetFullText()
+                master_roi_fulltext = master_roi.Value
                 if len(master_redaction_entities):
                     master_roi_fulltext = utils.redact_text(text=master_roi_fulltext,
                                                       text_redaction_entity=master_redaction_entities,
@@ -196,7 +203,10 @@ class CPTExtractor:
         cpt_df['type'] = raw_cpt_df['type']
         cpt_df['table_index'] = raw_cpt_df['table_index']
         cpt_df['para_text'] = raw_cpt_df['para_subtext_text']
-        cpt_df['content'] = np.where(raw_cpt_df['type'].isin(['header', 'text']), raw_cpt_df['para_subtext_text'], raw_cpt_df['table_content'])
+        cpt_df['content'] = np.where(raw_cpt_df['type'] == "image",
+                                     raw_cpt_df['image_content'], (np.where(
+                raw_cpt_df['type'].isin(['header', 'text']),
+                raw_cpt_df['para_subtext_text'], raw_cpt_df['table_content'])))
         cpt_df['font_info'] = raw_cpt_df['para_subtext_font_details']
         # Default CPT_section
         cpt_df['CPT_section'] = cpt_df['CPT_section'].apply(lambda section_name: ModuleConfig.GENERAL.UNMAPPED_SECTION_NAME if section_name == '' else section_name)
@@ -267,8 +277,11 @@ class CPTExtractor:
             raw_cpt_df['table_content'] = raw_cpt_df['table_index'].apply(lambda col: table_index_dict.get(col, ''))
             del table_list
             # Identify type of contents
-            type_conditions = [raw_cpt_df['table_index'] > 0, (raw_cpt_df[self.hdr_tag_name] != '') | (raw_cpt_df['font_heading_flg'])]
-            type_choices = ['table', 'header']
+            type_conditions = [raw_cpt_df['table_index'] > 0,
+                               (raw_cpt_df[self.hdr_tag_name] != '') | (
+                               raw_cpt_df['font_heading_flg']),
+                               raw_cpt_df['image_content'] > ""]
+            type_choices = ['table', 'header', "image"]
             raw_cpt_df['type'] = np.select(type_conditions, type_choices, default='text')
             display_df, search_df = self.build_display_search(raw_cpt_df)
 
