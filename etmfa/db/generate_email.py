@@ -12,7 +12,6 @@ from etmfa.consts import Consts as consts
 from etmfa.db import config
 from etmfa.db.__init__ import received_documentprocessing_error_event
 from etmfa.error import ErrorCodes, ManagementException
-from etmfa.server.config import Config
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -108,7 +107,7 @@ def send_mail(subject: str, to_mail: str, html_body_part: str) -> dict:
     return {"sent":True}
 
 
-def send_event_based_mail(db: db_context, doc_id: str, event):
+def send_event_based_mail(db: db_context, doc_id: str, event, send_mail_flag):
     """
     send email based on event and update email sent time and sent flag in protocol alert table 
     :param db: DB instance
@@ -131,7 +130,8 @@ def send_event_based_mail(db: db_context, doc_id: str, event):
             'ProtocolTitle': protocol_meta_data.protocolTitle, 'approval_date': str(datetime.today().date()).replace('-',''), "email_template_id":html_record.id}
 
         insert_into_alert_table(notification_record,event_dict)
-        row_data = db.query(PDUserProtocols.id, PDProtocolMetadata.protocol,
+        if send_mail_flag:
+            row_data = db.query(PDUserProtocols.id, PDProtocolMetadata.protocol,
                             PDProtocolMetadata.protocolTitle,
                             PDProtocolMetadata.indication,
                             PDProtocolMetadata.status,
@@ -146,6 +146,9 @@ def send_event_based_mail(db: db_context, doc_id: str, event):
             User, User.username.in_(('q' + PDUserProtocols.userId, 'u' + PDUserProtocols.userId,
                                      PDUserProtocols.userId))).filter_by(**event_dict).all()
 
+        else:
+            row_data = []
+            
         for row in row_data:
             to_mail = row.email
             username = " ".join(row.email.split("@")[0].split("."))
@@ -182,3 +185,23 @@ def send_event_based_mail(db: db_context, doc_id: str, event):
             f"exception occurend {event} mail send for doc_id {doc_id}")
         return False
     return True
+
+
+def send_mail_on_edited_event(db: db_context):
+    """
+        created function for tiggering email for EDITED event
+    """
+    
+    doc_ids = [doc_record[0] for doc_record in db.query(Protocolalert).filter(
+        Protocolalert.emailSentFlag == False,
+        Protocolalert.email_template_id == '3',
+        Protocolalert.timeUpdated >= datetime.today().date(),
+    ).with_entities(Protocolalert.aidocId).all()]
+    
+    for doc in doc_ids:
+        try:
+            response = send_event_based_mail(db, doc, "EDITED", True)
+            logger.info(f"mail sent {response} for doc id {doc}")
+        except Exception as ex:
+            logger.error(f"error occured {doc} as {str(ex)}")
+    return {"message":"mail sent success"}
