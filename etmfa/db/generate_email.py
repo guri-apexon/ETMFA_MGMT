@@ -12,7 +12,6 @@ from etmfa.consts import Consts as consts
 from etmfa.db import config
 from etmfa.db.__init__ import received_documentprocessing_error_event
 from etmfa.error import ErrorCodes, ManagementException
-from etmfa.server.config import Config
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
