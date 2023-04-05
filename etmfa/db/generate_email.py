@@ -198,10 +198,10 @@ def send_mail_on_edited_event(db: db_context):
         Protocolalert.timeUpdated >= datetime.today().date(),
     ).with_entities(Protocolalert.aidocId).all()]
     
-    for doc in doc_ids:
+    for doc in set(doc_ids):
         try:
             response = send_event_based_mail(db, doc, "EDITED", True)
             logger.info(f"mail sent {response} for doc id {doc}")
         except Exception as ex:
             logger.error(f"error occured {doc} as {str(ex)}")
-    return {"message":"mail sent success"}
+    return {"message":"Email process has been completed successfully"}
