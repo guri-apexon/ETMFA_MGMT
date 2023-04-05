@@ -163,7 +163,8 @@ def send_event_based_mail(db: db_context, doc_id: str, event, send_mail_flag):
                 subject = html_record.subject.format(
                     **{"protocol_number": protocol_number, "doc_status_activity": doc_status_activity})
                 html_body = html_record.email_body.format(**{"username": username, "doc_link": doc_link, "protocol_number": row.protocol,
-                                                        "indication": indication, "doc_status": doc_status, "doc_activity": doc_activity, "doc_status_activity": doc_status_activity})
+                                                        "indication": indication, "doc_status": doc_status, "doc_activity": doc_activity, "doc_status_activity": doc_status_activity,
+                                                        "version_number":version_number})
 
             elif event_dict.get("edited"):
                 subject = html_record.subject
