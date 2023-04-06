@@ -19,6 +19,7 @@ class ServiceWorkflows(SchemaBase):
    __tablename__ = 'tblServiceWorkFlow'
    work_flow_name = Column(String, primary_key=True)
    graph = Column(JSONB)
+   is_default =Column(Boolean,default=False)
 
 class WorkFlowState(Enum):
    PENDING="PENDING"
@@ -32,6 +33,7 @@ class WorkFlowState(Enum):
 class WorkFlowStatus(SchemaBase):
    __tablename__ = 'work_flow_status'
    work_flow_id = Column(String, primary_key=True)
+   doc_id = Column(String)
    doc_uid = Column(String,unique=True)
    protocol_name=Column(String,nullable=False)
    work_flow_name = Column(String)
