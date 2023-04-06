@@ -286,10 +286,10 @@ class CPTExtractor:
             display_df, search_df = self.build_display_search(raw_cpt_df)
 
             try:
-                logger.info(f"display section: \n # of rows: {display_df.shape[0]} \n type stats: {Counter(display_df['type'])} \
+                logger.debug(f"display section: \n # of rows: {display_df.shape[0]} \n type stats: {Counter(display_df['type'])} \
                                 \n unique file_section count: {display_df['file_section'].nunique()} \
                                 \n file_section stats: {Counter(display_df['file_section'])} ")
-                logger.info(f"search section: \n # of rows: {search_df.shape[0]} \
+                logger.debug(f"search section: \n # of rows: {search_df.shape[0]} \
                                 \n unique {ModuleConfig.GENERAL.SEARCH_ROLLUP_COLUMN} count: {search_df[ModuleConfig.GENERAL.SEARCH_ROLLUP_COLUMN].nunique()} \
                                 \n rollup {ModuleConfig.GENERAL.SEARCH_ROLLUP_COLUMN} stats: {Counter(search_df[ModuleConfig.GENERAL.SEARCH_ROLLUP_COLUMN])}")
             except Exception as exc:
