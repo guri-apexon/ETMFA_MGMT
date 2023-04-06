@@ -1,18 +1,19 @@
 from abc import abstractmethod, ABC
-from datetime import datetime
+import datetime
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import or_
 from .schemas import SchemaBase, WorkFlowStatus, WorkFlowState
 from ..default_workflows import DWorkFLows
 from . import SessionLocal
 from sqlalchemy import or_, and_, delete, text
-from typing import List
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 from etmfa.workflow.messaging.models import ProcessingStatus, LEGACY_QUEUE_NAMES
 from ...db import db_context
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
 from etmfa.workflow.db import engine
+from etmfa.workflow.db.schemas import ServiceWorkflows
+from sqlalchemy import or_, and_, case, func, literal
+from etmfa.consts.constants import EXCLUDED_WF
 
 
 class DbMixin:
@@ -80,7 +81,7 @@ def check_stale_work_flows_and_remove(max_service_execution_wait_time, logger):
     with SessionLocal() as session:
         data_list = session.query(WorkFlowStatus).filter(or_(WorkFlowStatus.status == WorkFlowState.PENDING.value,
                                                              WorkFlowStatus.status == WorkFlowState.RUNNING.value)).all()
-        curr_time = datetime.utcnow()
+        curr_time = datetime.datetime.utcnow()
         for data in data_list:
             last_time = data.lastUpdated.replace(tzinfo=None)
             diff = curr_time - last_time
@@ -258,3 +259,52 @@ def fetch_workflows_by_userid(userId, page_offset, limit):
         workflow['userUploadedFlag'] = userUploadedFlag
         records.append(dict(workflow))
     return records
+
+
+def segregate_workflows(workflows):
+    default_workflows = {}
+    custom_workflows = {}
+    for workflow in workflows:
+        is_default = workflow.get('is_default')
+        workflow_name = workflow.get('work_flow_name')
+        if is_default:
+            if workflow_name not in EXCLUDED_WF:
+                default_workflows[workflow_name] = workflow['graph']
+        else:
+            if workflow_name not in EXCLUDED_WF :
+                custom_workflows[workflow_name] = workflow['graph']
+    return default_workflows, custom_workflows
+
+
+def get_all_workflows_from_db():
+    """This function fetches all workflows of db from workflow status table"""
+    session = db_context.session()
+    obj = session.query(ServiceWorkflows.work_flow_name, ServiceWorkflows.graph,
+                        ServiceWorkflows.is_default).all()
+    workflows = [i._asdict() for i in obj]
+    return segregate_workflows(workflows)
+
+
+def get_wf_by_doc_id(doc_id, days=None, wf_num=None):
+    """This function queries db to fetch records based on doc_id , number of days & number of work flows"""
+    session = db_context.session()
+    wfs = session.query(WorkFlowStatus.doc_id.label('id'), WorkFlowStatus.work_flow_id.label('wfId'),
+                        WorkFlowStatus.status.label('status'),
+                        WorkFlowStatus.all_services.label('wfAllServices'),
+                        WorkFlowStatus.work_flow_name.label('wfName'),
+                        WorkFlowStatus.errorMessageDetails.label('wfErrorMessageDetails'),
+                        WorkFlowStatus.finished_services.label('wfFinishedServices'),
+                        WorkFlowStatus.percent_complete.label('wfPercentComplete'),
+                        func.to_char(WorkFlowStatus.timeCreated, 'DD/MM/YYYY HH:MI:SSPM').label('timeCreated')). \
+        filter(WorkFlowStatus.doc_id == doc_id)
+    if days:
+        end_date = datetime.datetime.utcnow()
+        start_date = end_date - datetime.timedelta(days=int(days))
+        wfs = wfs.filter(WorkFlowStatus.timeCreated >= start_date,
+                         WorkFlowStatus.timeCreated <=
+                         end_date)
+    if wf_num:
+        wfs = wfs.limit(wf_num)
+    session.close()
+    all_wf_data = [wf._asdict() for wf in wfs.all()]
+    return all_wf_data

@@ -58,7 +58,6 @@ def get_db_and_broker(message_broker_exchange, message_broker_address):
     return pg, br
 
 
-
 class WorkFlowManager():
 
     def __init__(self, message_broker_exchange, message_broker_address, dfs_path, logger, initialize_listener=True,
@@ -129,7 +128,7 @@ class WorkFlowManager():
             self.store.delete_all_services(ms_list)
             self.store.register_all_services(ms_list)
         except Exception as e:
-            self.logger.error("issue registering services: "+str(e))
+            self.logger.error("issue registering services: " + str(e))
 
     def on_init(self):
         """
@@ -212,8 +211,8 @@ class WorkFlowManager():
         message from broker comes here ,as we listening for output queues this is output queue
         get workflow to which it belongs
         """
-        msg_key= 'flow_id' if msg_obj.get('flow_id') else 'id'
-        self.logger.addFilter(ContextFilter(doc_id=msg_obj.get(msg_key,None)))
+        msg_key = 'flow_id' if msg_obj.get('flow_id') else 'id'
+        self.logger.addFilter(ContextFilter(doc_id=msg_obj.get(msg_key, None)))
         self.logger.info(f"message received on {out_queue_name} is: {msg_obj}")
         self._process_msg(out_queue_name, msg_obj)
 
@@ -246,7 +245,6 @@ class WorkFlowManager():
         else:
             for dependency in service_dependency:
                 if dependency not in services:
-                    print("control came")
                     return False, dependency
         return True, dependency
 
@@ -269,13 +267,12 @@ class WorkFlowManager():
 
         return True, {"Status": 200, "Message": "Dependencies Validated Successfully"}
 
-    def validate_workflow(self, workflows):
+    def validate_workflow(self, work_flow_name, workflows):
         dependency_graph = self.get_all_workflows_from_db()
         validation_status, is_valid = None, False
-        print(workflows)
+        if dependency_graph.get(work_flow_name) is not None:
+            return False, {"Status": 400, "Message": "Duplication Error, Workflow already exists"}
         for workflow in workflows:
-            print(workflow["work_flow_name"], workflow['dependency_graph'])
-
             is_valid, validation_status = self.validate_dependency(workflow["work_flow_name"],
                                                                    workflow['dependency_graph'],
                                                                    dependency_graph)
@@ -430,7 +427,7 @@ class WorkFlowController(Thread):
             param = msg['param']
             work_flow_list = param['work_flow_list']
             status = {}
-            is_valid, status = self.wfm.validate_workflow(work_flow_list)
+            is_valid, status = self.wfm.validate_workflow(msg['work_flow_name'], work_flow_list)
             if not is_valid:
                 return status['Message'], is_valid
             work_flow_graph, service_list = [], []
@@ -441,7 +438,8 @@ class WorkFlowController(Thread):
                     service_list.append(sr_info['service_name'])
             work_flow_graph.append({'service_name': TERMINATE_NODE, 'depends': service_list})
             self.wfm.add_work_flow(CustomWorkFlow(msg['work_flow_name'], work_flow_graph))
-            self.wfm.register_work_flow(msg['work_flow_name'], work_flow_graph)
+            if msg['work_flow_name']:
+                self.wfm.register_work_flow(msg['work_flow_name'], work_flow_graph)
 
             return status, is_valid
         else:
