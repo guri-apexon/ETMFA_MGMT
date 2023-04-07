@@ -36,6 +36,26 @@ class PrepareUpdateData:
         """
         db_data = self._prepare_db_data()
         return db_data, self.iqv_document
+    
+    def get_norm_cpt(self,host,port,index) -> dict:
+        """
+        customized reading for mcra attributes
+        """
+        cpt_iqvdata = cpt_extractor.CPTExtractor(self.iqv_document,self.imagebinaries,self.profile_details, self.entity_profile_genre)
+        display_df, search_df, _, _, _ = cpt_iqvdata.get_cpt_iqvdata()
+        display_dict = display_df.to_dict(orient=self.dict_orient_type)
+        db_data, _= ei.ingest_doc_elastic(self.iqv_document, search_df)
+        ei.save_elastic_doc(host,port,index,db_data)
+        try:
+            metadata_fields = dict()
+            for key in ModuleConfig.GENERAL.es_metadata_mapping:
+                metadata_fields[ModuleConfig.GENERAL.es_metadata_mapping[key]] = db_data.get(key, '')
+            metadata_fields['accuracy'] = ''         
+        except Exception as exc:
+            logger.exception(f"Exception received in building metadata_fields step: {exc}")
+        display_dict['metadata']=metadata_fields
+        return display_dict
+
 
     def _prepare_db_data(self):
         """

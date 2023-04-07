@@ -560,9 +560,10 @@ class DocumentprocessingAPI(Resource):
             if not aidoc_id:
                 logger.error(f"Invalid user inputs received: {args}")
                 return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
-            if args['operationValue'] == 'normalizedSOA':
+            operation_value=args['operationValue']  if args.get('operationValue',None) else 'normalizedSOA'
+            if operation_value == 'normalizedSOA':
                 resource = get_normalized_soa_details(aidoc_id=aidoc_id)
-            elif args['operationValue'] == 'SOATable':
+            elif operation_value == 'SOATable':
                 resource = get_normalized_soa_table(aidoc_id=aidoc_id, footnote=footnote)
             else:
                 return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))

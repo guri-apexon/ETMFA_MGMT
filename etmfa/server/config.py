@@ -30,8 +30,6 @@ class Config(object):
             MESSAGE_BROKER_EXCHANGE = cfg["MESSAGE_BROKER_EXCHANGE"]
             LOGSTASH_HOST = cfg["LOGSTASH_HOST"]
             LOGSTASH_PORT = cfg["LOGSTASH_PORT"]
-
-            PD_UI_LINK = cfg["PD_UI_LINK"]
             AUTH_DETAILS = cfg["AUTH_DETAILS"]
             UNIT_TEST_HEADERS = cfg["UNIT_TEST_HEADERS"]
             WORK_FLOW_RUNNER=cfg['ENABLE_WORK_FLOW_RUNNER']

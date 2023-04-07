@@ -12,8 +12,7 @@ from dataclasses import dataclass
 from etmfa.consts import  DUPLICATION_ERROR,ACCORDIAN_DOC_ID
 from etmfa.db.models.meta_accordion_defaults import META_ACCORDION
 import hashlib
-
-
+from etmfa.consts.constants import SUMMARY_FIELDS,SUMMARY_ATTR_REV_MAP
 
     
 class PDProtocolMetadata(db_context.Model):
@@ -183,34 +182,7 @@ class MetaDeleteResponse():
     isDeleted:Boolean
     error:str
 
-SUMMARY_FIELDS = {"Protocol Name": "fileName",
-                         "Protocol Number": "protocol",
-                         "Protocol title": "protocolTitle",
-                         "Protocol Title Short": "shortTitle",
-                         "Is Amendment": "isAmendment",
-                         "Amendment Number": "amendment",
-                         "Trial Phase": "phase",
-                         "Sponsor": "sponsor",
-                         "Sponsor Address": "sponsorAddress",
-                         "Drug": "drug",
-                         "Approval Date": "approvalDate",
-                         "Version Number": "versionNumber",
-                         "Version Date": "versionDate",
-                         "Blinded": "blinded",
-                         "Compound Number": "compoundNumber",
-                         "Control": "control",
-                         "Investigator": "investigator",
-                         "Study Id": "studyId",
-                         "Number of Subjects": "numOfSubjects",
-                         "Participant Age": "participantAge",
-                         "Participant Sex": "participantSex",
-                         "Trial Type randomized":"trialTypeRandomized",
-                         "Molecule Device": "moleculeDevice",
-                         "Document Status": "documentStatus",
-                         "Indication": "indication",
-                         "Draft Version": "draftVersion"
-                         }
-SUMMARY_ATTR_REV_MAP={v:k for k,v in SUMMARY_FIELDS.items()}
+
 
 class SessionManager():
     """
