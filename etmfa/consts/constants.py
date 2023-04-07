@@ -96,6 +96,54 @@ class _SummaryConfig:
         "molecule_device": "Molecule Device"
     }
 
+SUMMARY_KEY_META_FIELDS_MAP = {
+    "protocol_name":"fileName", "protocol_number":"protocol", "protocol_title":"protocolTitle",
+    "protocol_title_short":"shortTitle", "is_amendment":"isAmendment", "amendment_number":"amendment",
+    "trial_phase":"phase", "sponsor":"sponsor", "sponsor_address":"sponsorAddress", "drug":"drug",
+    "approval_date":"approvalDate", "version_number":"versionNumber", "version_date":"versionDate",
+    "blinded":"blinded", "compound_number":"compoundNumber", "control":"control", "investigator":"investigator",
+    "study_id":"studyId", "number_of_subjects":"numOfSubjects", "participant_age":"participantAge",
+    "participant_sex":"participantSex", "exclusion_criteria":"exclusionCriteria",
+    "inclusion_criteria":"inclusionCriteria", "indication":"indication", "primary_objectives":"primaryObjectives",
+    "secondary_objectives":"secondaryObjectives", "study_status":"studyStatus",
+    "study_population":"studyPopulation", "endpoints":"endPoints", "trial_type_randomized":"trialTypeRandomized",
+    "molecule_device":"moleculeDevice"
+}
+
+SUMMARY_TYPES={
+    'versionDate':('date','%Y%m%d'),
+    'approvalDate':('date','%Y%m%d'),
+    'uploadDate':('date','%Y%m%d%H%M%S')
+}
+
+SUMMARY_FIELDS = {"Protocol Name": "fileName",
+                         "Protocol Number": "protocol",
+                         "Protocol title": "protocolTitle",
+                         "Protocol Title Short": "shortTitle",
+                         "Is Amendment": "isAmendment",
+                         "Amendment Number": "amendment",
+                         "Trial Phase": "phase",
+                         "Sponsor": "sponsor",
+                         "Sponsor Address": "sponsorAddress",
+                         "Drug": "drug",
+                         "Approval Date": "approvalDate",
+                         "Version Number": "versionNumber",
+                         "Version Date": "versionDate",
+                         "Blinded": "blinded",
+                         "Compound Number": "compoundNumber",
+                         "Control": "control",
+                         "Investigator": "investigator",
+                         "Study Id": "studyId",
+                         "Number of Subjects": "numOfSubjects",
+                         "Participant Age": "participantAge",
+                         "Participant Sex": "participantSex",
+                         "Trial Type randomized":"trialTypeRandomized",
+                         "Molecule Device": "moleculeDevice",
+                         "Document Status": "documentStatus",
+                         "Indication": "indication",
+                         "Draft Version": "draftVersion"
+                         }
+SUMMARY_ATTR_REV_MAP={v:k for k,v in SUMMARY_FIELDS.items()}
 
 class _GeneralConfig:
     summary_std_tags = _SummaryConfig.summary_std_tags

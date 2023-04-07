@@ -21,8 +21,8 @@ from flask_cors import CORS
 from flask_restplus import Api
 from werkzeug.contrib.fixers import ProxyFix
 from etmfa_core.postgres_db_schema import create_schemas
-from es_ingest import ElasticIngestionRunner
-from etmfa.workflow import WorkFlowClient, WorkFlowRunner
+from microservices import ElasticIngestionRunner,EmailNotificationRunner
+from etmfa.workflow import  WorkFlowClient,WorkFlowRunner
 from etmfa.consts import Consts as consts
 from ..utilities.user_metrics import create_or_update_user_metrics
 
@@ -72,9 +72,11 @@ def start_workflow_runner(logger):
     WorkFlowClient(app.config["ZMQ_PORT"], logger)
 
 
-def start_es_runner():
+def start_runners():
     es = ElasticIngestionRunner()
     es.start()
+    em= EmailNotificationRunner()
+    em.start()
 
 
 def create_app(config_name, ssl_enabled=False):
@@ -84,7 +86,7 @@ def create_app(config_name, ssl_enabled=False):
     logger = logging.getLogger(Consts.LOGGING_NAME)
     if app.config['WORK_FLOW_RUNNER']:
         start_workflow_runner(logger)
-        start_es_runner()
+        start_runners()
     # register centralized logger
     initialize_logger(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'])
     initialize_api_logger(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'])

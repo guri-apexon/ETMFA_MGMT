@@ -1,8 +1,10 @@
 import logging
 from etmfa.consts.constants import ModuleConfig, QcStatus
 from etmfa.utilities.data_extractor_utils import get_redaction_entities, align_redaction_with_subtext
+from etmfa.utilities.elastic_utilities import ingest_elastic
 from datetime import datetime
 from etmfa.consts import Consts as consts
+
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -68,6 +70,11 @@ ling_es_mapping = {
 
 intake_field_list_priority = ["SponsorName", "Indication"]
 
+
+
+def save_elastic_doc(host,port,index,es_sec_dict):
+    if  es_sec_dict:
+        es_save_doc_res = ingest_elastic(host,port,index,es_sec_dict)
 
 def ingest_doc_elastic(iqv_document, search_df):
     """
@@ -189,5 +196,6 @@ def ingest_doc_elastic(iqv_document, search_df):
 
     except Exception as exc:
         logger.exception(f"Exception received in ingest_doc_elastic, intake field extraction:{exc}")
+
 
     return es_sec_dict, summary_entities

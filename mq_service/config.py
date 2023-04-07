@@ -38,8 +38,7 @@ class Config(object):
             MESSAGE_BROKER_EXCHANGE = cfg["MESSAGE_BROKER_EXCHANGE"]
             LOGSTASH_HOST = cfg["LOGSTASH_HOST"]
             LOGSTASH_PORT = cfg["LOGSTASH_PORT"]
-            PD_UI_BACKEND_LINK= cfg["PD_UI_BACKEND_LINK"]
-            AUTH_PD_UI_BACKEND= cfg["AUTH_PD_UI_BACKEND"]
+            ELASTIC_DETAILS=cfg["ELASTIC_DETAILS"]
 
     except Exception as exp:
         logging.error(
