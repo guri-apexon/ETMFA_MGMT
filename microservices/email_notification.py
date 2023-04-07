@@ -1,7 +1,13 @@
-
+from etmfa.db.generate_email import send_event_based_mail
 from mq_service import MicroServiceWrapper, ExecutionContext, Config
 from multiprocessing import Process
-from .common import GenericException
+from etmfa.db import db_context
+
+from etmfa.consts import Consts as consts
+import logging
+
+logger = logging.getLogger(consts.LOGGING_NAME)
+
 
 class EmailNotification(ExecutionContext):
     def __init__(self, config):
@@ -21,6 +27,15 @@ class EmailNotification(ExecutionContext):
         msg = list(msg_data.values())[0]
         key = 'docId' if 'docId' in msg else 'doc_id'
         aidoc_id = msg[key]
+
+        try:
+            session = db_context.session
+            _ = send_event_based_mail(db=session, doc_id=aidoc_id,
+                                      event="NEW_DOCUMENT_VERSION",
+                                      send_mail_flag=True)
+            logger.info(f"for doc id {aidoc_id} event NEW_DOCUMENT_VERSION records create and mail send success")
+        except Exception as ex:
+            logger.exception(f"exception occured at NEW_DOCUMENT_VERSION event for doc_id {aidoc_id} as {str(ex)}")
 
         #dont change return value
         return msg_data
