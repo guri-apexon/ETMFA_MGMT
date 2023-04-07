@@ -8,6 +8,7 @@ from . import SessionLocal
 from sqlalchemy import or_, and_, delete, text
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 from etmfa.workflow.messaging.models import ProcessingStatus, LEGACY_QUEUE_NAMES
+from ..exceptions import SendExceptionMessages
 from ...db import db_context
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
 from etmfa.workflow.db import engine
@@ -17,8 +18,6 @@ from etmfa.consts.constants import EXCLUDED_WF
 
 
 class DbMixin:
-    def __init__(self):
-        pass
 
     def read_by_id(self, table_name, id):
         with SessionLocal() as session:
@@ -128,7 +127,7 @@ def get_work_flow_name_by_id(id):
 
 def get_work_flow_info_by_id(id):
     if not id:
-        raise Exception("cant fetch information for None id ")
+        raise SendExceptionMessages("cant fetch information for None id ")
     data = {}
     with SessionLocal() as session:
         row = session.query(WorkFlowStatus).get(id)
@@ -207,60 +206,6 @@ def update_doc_error_status(id, work_flow_name, error_code, error_reason, error_
             data.isProcessing = False
         session.commit()
 
-
-def get_workflows_status_by_user(user_id, limit, page_num):
-    """fetch workflows from DB based on provided userId"""
-    if limit.lower() == "all":
-        page_offset = limit
-    elif int(page_num) > 1:
-        page_offset = (int(page_num) - 1) * limit
-    else:
-        page_offset = 0
-    page_offset = str(page_offset)
-    workflows = fetch_workflows_by_userid(user_id, page_offset, limit)
-    return workflows
-
-
-def get_user_details(userId, session):
-    """Fetch user details from DB for given UserId """
-    userUploadedFlag, userPrimaryRoleFlag, redactProfile = False, False, None
-    obj = session.query(PDUserProtocols).filter(PDUserProtocols.userId == userId).first()
-    if obj:
-        userUploadedFlag = True
-        redactProfile = obj.redactProfile
-        if obj.userRole.lower() == "primary":
-            userPrimaryRoleFlag = True
-    return userPrimaryRoleFlag, redactProfile, userUploadedFlag
-
-
-def fetch_workflows_by_userid(userId, page_offset, limit):
-    """helper function to fetch workflows from DB based on provided userId"""
-    session = db_context.session()
-    userPrimaryRoleFlag, redactProfile, userUploadedFlag = get_user_details(userId, session)
-    query = """SELECT WF.doc_id, Meta."fileName",WF."documentFilePath", Meta."protocol", Meta."projectId",
-        Meta."sponsor", Meta."indication", Meta."moleculeDevice",Meta."amendment",Meta."versionNumber", 
-        Meta."documentStatus", WF."running_services", 
-        WF."finished_services", Meta."qcStatus", Meta."phase",Meta."protocolTitle",TO_CHAR(Meta."uploadDate"::timestamp,'DD/MM/YYYY HH:MI:SSPM') "uploadDate", 
-        TO_CHAR(WF."lastUpdated"::timestamp, 'DD/MM/YYYY HH:MI:SSPM') "lastUpdated", TO_CHAR(Meta."approvalDate"::timestamp,'DD/MM/YYYY HH:MI:SSPM') "approvalDate",
-        Meta."isActive",Meta."amendmentNumber" FROM public.pd_protocol_metadata as Meta RIGHT JOIN public.work_flow_status 
-        as WF ON Meta.id =WF.doc_id WHERE "userId"='{}' ORDER BY WF."lastUpdated" """.format(userId)
-    if str(page_offset).lower() != "all":
-        query += """ LIMIT {} OFFSET {}""".format(limit, page_offset)
-
-    with session as conn:
-        run_query = text(query)
-        workflows = conn.execute(run_query)
-        conn.close()
-    records = []
-    for workflow in workflows:
-        workflow = dict(workflow)
-        workflow['userPrimaryRoleFlag'] = userPrimaryRoleFlag
-        workflow['redactProfile'] = redactProfile
-        workflow['userUploadedFlag'] = userUploadedFlag
-        records.append(dict(workflow))
-    return records
-
-
 def segregate_workflows(workflows):
     default_workflows = {}
     custom_workflows = {}
@@ -289,14 +234,16 @@ def get_wf_by_doc_id(doc_id, days=None, wf_num=None):
     """This function queries db to fetch records based on doc_id , number of days & number of work flows"""
     session = db_context.session()
     wfs = session.query(WorkFlowStatus.doc_id.label('id'), WorkFlowStatus.work_flow_id.label('wfId'),
-                        WorkFlowStatus.status.label('status'),
+                        WorkFlowStatus.status.label('wfStatus'),
                         WorkFlowStatus.all_services.label('wfAllServices'),
+                        WorkFlowStatus.running_services.label('wfRunningServices'),
                         WorkFlowStatus.work_flow_name.label('wfName'),
                         WorkFlowStatus.errorMessageDetails.label('wfErrorMessageDetails'),
                         WorkFlowStatus.finished_services.label('wfFinishedServices'),
                         WorkFlowStatus.percent_complete.label('wfPercentComplete'),
-                        func.to_char(WorkFlowStatus.timeCreated, 'DD/MM/YYYY HH:MI:SSPM').label('timeCreated')). \
-        filter(WorkFlowStatus.doc_id == doc_id)
+                        func.to_char(WorkFlowStatus.timeCreated, 'DD-Mon-YYYY').label('timeCreated')). \
+        filter(WorkFlowStatus.doc_id == doc_id).order_by(
+                WorkFlowStatus.timeCreated.desc())
     if days:
         end_date = datetime.datetime.utcnow()
         start_date = end_date - datetime.timedelta(days=int(days))

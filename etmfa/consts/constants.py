@@ -40,7 +40,7 @@ LEGACY_QUEUE_NAMES = ['triage', 'digitizer1', 'digitizer2', 'i2e_omop_update', '
 
 # WF to be excluded
 EXCLUDED_WF = ['digitization', 'full_flow']
-
+DEFAULT_WORKFLOW_NAME="Default_Workflow"
 
 @unique
 class QcStatus(Enum):
