@@ -401,9 +401,10 @@ class DocumentprocessingAPI(Resource):
                                                 is_top_1_only=True)
                 aligned_resources = utils.post_process_resource(
                     resources, multiple_records=False)
-                expected_aidoc_id = '' if aligned_resources is None else aligned_resources[
-                    'aidocId']
-                protocol_number_verified = True
+                if aligned_resources:
+                    expected_aidoc_id = '' if aligned_resources is None else aligned_resources[
+                        'id']
+                    protocol_number_verified = True
             else:
                 expected_aidoc_id = aidoc_id
 
