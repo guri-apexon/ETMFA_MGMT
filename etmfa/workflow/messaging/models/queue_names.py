@@ -20,6 +20,7 @@ class EtmfaQueues(Enum):
     META_EXTRACTION = "meta_extraction"
     PB_ANALYZER = "analyzer"
     ES_INGESTION= "es_ingestion"
+    EMAIL_NOTIFICATION= 'email_notification'
 
     def __init__(self, queue_prefix):
         """Construct queue name enum."""

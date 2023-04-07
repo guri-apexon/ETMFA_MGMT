@@ -17,6 +17,7 @@ class DWorkFLows(Enum):
     LM_FLOW = 'lm_flow'
     PB_FLOW = 'pb_flow'
     ES_INGESTION = 'es_ingestion'
+    EMAIL_NOTIFICATION= 'email_notification'
 
 
 DIG_DGRAPH = [{'service_name': EtmfaQueues.TRIAGE.value, 'depends': []},
@@ -25,7 +26,9 @@ DIG_DGRAPH = [{'service_name': EtmfaQueues.TRIAGE.value, 'depends': []},
               {'service_name': EtmfaQueues.DIGITIZER2.value,
                   'depends': [EtmfaQueues.DIGITIZER1.value]},
               {'service_name': EtmfaQueues.EXTRACTION.value,
-                  'depends': [EtmfaQueues.DIGITIZER2.value]}
+                  'depends': [EtmfaQueues.DIGITIZER2.value]},
+              {'service_name': EtmfaQueues.EMAIL_NOTIFICATION.value,
+                  'depends': [EtmfaQueues.EXTRACTION.value]},
               ]
 
 FULL_GRAPH = [{'service_name': EtmfaQueues.TRIAGE.value, 'depends': []},
@@ -49,9 +52,10 @@ FULL_GRAPH = [{'service_name': EtmfaQueues.TRIAGE.value, 'depends': []},
                   'depends': [EtmfaQueues.META_TAGGING.value]},
               {'service_name': EtmfaQueues.PB_ANALYZER.value,
                   'depends': [EtmfaQueues.DIGITIZER2_OMOPUPDATE.value]},
-             {'service_name': EtmfaQueues.ES_INGESTION.value, 'depends': [EtmfaQueues.DIGITIZER2_OMOPUPDATE.value]},
-              {'service_name': TERMINATE_NODE,'depends': [
-                  EtmfaQueues.PB_ANALYZER.value,EtmfaQueues.META_EXTRACTION.value,EtmfaQueues.COMPARE.value,EtmfaQueues.ES_INGESTION.value]}
+              {'service_name': EtmfaQueues.ES_INGESTION.value,
+                  'depends': [EtmfaQueues.DIGITIZER2_OMOPUPDATE.value]},
+              {'service_name': EtmfaQueues.EMAIL_NOTIFICATION.value, 'depends': [
+                  EtmfaQueues.PB_ANALYZER.value, EtmfaQueues.META_EXTRACTION.value, EtmfaQueues.COMPARE.value, EtmfaQueues.ES_INGESTION.value]}
               ]
 
 META_GRPAH = [{'service_name': EtmfaQueues.META_TAGGING.value, 'depends': []},
@@ -59,7 +63,7 @@ META_GRPAH = [{'service_name': EtmfaQueues.META_TAGGING.value, 'depends': []},
                   'depends': [EtmfaQueues.META_TAGGING.value]}
               ]
 
-PB_GRAPH=[{'service_name': EtmfaQueues.PB_ANALYZER.value, 'depends': []}]
+PB_GRAPH = [{'service_name': EtmfaQueues.PB_ANALYZER.value, 'depends': []}]
 
 DOCUMENT_COMPARE_GRAPH = [
     {'service_name': EtmfaQueues.COMPARE.value, 'depends': []},
@@ -69,9 +73,14 @@ NORM_SOA_GRAPH = [
     {'service_name': EtmfaQueues.NORM_SOA.value, 'depends': []},
 ]
 
-ES_INGESTION_GRAPH=[
+ES_INGESTION_GRAPH = [
     {'service_name': EtmfaQueues.ES_INGESTION.value, 'depends': []}
 ]
+
+EMAIL_NOTIFICATION_GRAPH = [
+    {'service_name': EtmfaQueues.EMAIL_NOTIFICATION.value, 'depends': []}
+]
+
 
 LM_GRPAH = [
     {'service_name': EtmfaQueues.DIGITIZER2_OMOP_GENERATE.value, 'depends': []},
@@ -89,7 +98,8 @@ DEFAULT_WORKFLOWS = {
     DWorkFLows.NORM_SOA_FLOW.value: NORM_SOA_GRAPH,
     DWorkFLows.LM_FLOW.value: LM_GRPAH,
     DWorkFLows.PB_FLOW.value: PB_GRAPH,
-    DWorkFLows.ES_INGESTION.value: ES_INGESTION_GRAPH
+    DWorkFLows.ES_INGESTION.value: ES_INGESTION_GRAPH,
+    DWorkFLows.EMAIL_NOTIFICATION.value: EMAIL_NOTIFICATION_GRAPH
 }
 
 

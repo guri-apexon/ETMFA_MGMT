@@ -14,7 +14,7 @@ Get Normalized SOA data
 @pytest.mark.parametrize("aidoc_id, source_system, operation_value, footnotes, expected_status_cd, comments",
                          [("d4153421-2b47-4ec5-b21c-80d907d73227", "unit_test", "SOATable", True, HTTPStatus.OK, "Normal"),
                           ("d4153421-2b47-4ec5-b21c-80d907d73227", "unit_test", "normalizedSOA", False, HTTPStatus.OK, "Normal"),
-                          ("d4153421-2b47-4ec5-b21c-80d907d73227", "unit_test", "", False,  HTTPStatus.NOT_FOUND, "Missing Operation Value"),
+                          ("d4153421-2b47-4ec5-b21c-80d907d73227", "unit_test", "", False,  HTTPStatus.OK, "Missing Operation should take normalizedSOA"),
                           ("", "unit_test", "normalizedSOA", False, HTTPStatus.NOT_FOUND, "Missing aidoc_id"),
                           ("","unit_test", "", False, HTTPStatus.NOT_FOUND, "All missing"),
                           ])
