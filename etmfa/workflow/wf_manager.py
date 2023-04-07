@@ -19,10 +19,11 @@ from .db.db_utils import (create_doc_processing_status,
                           update_doc_finished_status,
                           update_doc_running_status,
                           get_pending_running_work_flows,
-                          check_stale_work_flows_and_remove, fetch_workflows_by_userid
+                          check_stale_work_flows_and_remove
                           )
 from ..consts import Consts
 from etmfa.workflow.loggerconfig import initialize_wf_logger, ContextFilter
+from ..consts.constants import DEFAULT_WORKFLOW_NAME
 
 WF_RUN_WAIT_TIME = 3  # 3 sec
 
@@ -49,8 +50,8 @@ def get_db_and_broker(message_broker_exchange, message_broker_address):
     Initialize database and broker instance
     """
     from etmfa.workflow import PostGresStore, StoreConfig, RabbitMqBroker, RabbitMqInfo
-    sc = StoreConfig(ms_store_name='tblMsRegistry',
-                     wf_store_name='tblServiceWorkFlow')
+    StoreConfig(ms_store_name='tblMsRegistry',
+                wf_store_name='tblServiceWorkFlow')
     broker_config = RabbitMqInfo(
         message_broker_exchange, message_broker_address)
     pg = PostGresStore()
@@ -111,7 +112,7 @@ class WorkFlowManager():
         """
         self.store.delete_all_dependancy_graph(list(DEFAULT_WORKFLOWS.keys()))
         for wf_name, graph in DEFAULT_WORKFLOWS.items():
-            self.register_work_flow(wf_name, graph)
+            self.register_work_flow(wf_name, graph, True)
 
     def _register_default_services(self):
         etmafa_map = {
@@ -216,14 +217,14 @@ class WorkFlowManager():
         self.logger.info(f"message received on {out_queue_name} is: {msg_obj}")
         self._process_msg(out_queue_name, msg_obj)
 
-    def register_work_flow(self, work_flow_name, depend_graph):
+    def register_work_flow(self, work_flow_name, depend_graph, is_default):
         """
         store these graphs to postgres.
 
         """
         DagParser.validate_request(depend_graph)
         swf = ServiceWorkflows(
-            work_flow_name=work_flow_name, graph=depend_graph)
+            work_flow_name=work_flow_name, graph=depend_graph, is_default=is_default)
         self.store.store_dependancy_graph(swf)
 
     def get_all_registered_services(self):
@@ -341,10 +342,6 @@ class WorkFlowManager():
 
             self._handle_skipped_services(skipped_services_msg_obj_map)
 
-    def get_workflows_status_by_userId(self, user_id, page_offset):
-        workflows = fetch_workflows_by_userid(user_id, page_offset)
-        return workflows
-
 
 class WorkFlowClient():
     def __new__(cls, port=None, logger=None):
@@ -437,10 +434,11 @@ class WorkFlowController(Thread):
                 for sr_info in depends_graph:
                     service_list.append(sr_info['service_name'])
             work_flow_graph.append({'service_name': TERMINATE_NODE, 'depends': service_list})
-            self.wfm.add_work_flow(CustomWorkFlow(msg['work_flow_name'], work_flow_graph))
             if msg['work_flow_name']:
-                self.wfm.register_work_flow(msg['work_flow_name'], work_flow_graph)
-
+                self.wfm.register_work_flow(msg['work_flow_name'], work_flow_graph, False)
+                self.wfm.add_work_flow(CustomWorkFlow(msg['work_flow_name'], work_flow_graph))
+            else:
+                self.wfm.add_work_flow(CustomWorkFlow(DEFAULT_WORKFLOW_NAME, work_flow_graph))
             return status, is_valid
         else:
             raise SendExceptionMessages(

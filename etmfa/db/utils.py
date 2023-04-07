@@ -198,6 +198,13 @@ def get_metadata_dict(field_values) -> dict:
     metadata_dict['projectId'] = field_values[4]
     metadata_dict['documentStatus'] = field_values[5]
     metadata_dict['protocol'] = field_values[6]
+    metadata_dict['source'] = field_values[7]
+    metadata_dict['draftVersion'] = field_values[8]
+    metadata_dict['shortTitle'] = field_values[9]
+    metadata_dict['phase'] = field_values[10]
+    metadata_dict['indication'] = field_values[11]
+    metadata_dict['id'] = field_values[12]
+    metadata_dict['blinded'] = ''
     return metadata_dict
 
 
@@ -218,14 +225,13 @@ def apply_contract_rules(top_resource: dict, metadata_fields: list, ignore_filep
 
     _ = indication if pd.isnull(top_resource['indication']) else indication.append(
         top_resource['indication'])
-    
+
     top_resource['indication'] = str(indication)
 
     top_resource['uploadDate'] = '' if pd.isnull(
         top_resource['uploadDate']) else top_resource['uploadDate'].isoformat()
     restricted_top_resource = {key: ('' if value is None else value) for key, value in top_resource.items() if
                                key in latest_protocol_contract_fields}
-
     if not ignore_filepath:  # Used in download API
         restricted_top_resource['documentFilePath'] = metadata_dict['documentFilePath']
     return restricted_top_resource
@@ -243,7 +249,6 @@ def post_process_resource(resources, multiple_records=False) -> dict:
         for idx, resource in enumerate(resources):
             logger.debug(f"\n----- Processing for {idx} resource...")
             resource_dict = resource[0].as_dict()
-
             resource_dict = apply_contract_rules(top_resource=resource_dict, metadata_fields=resource[1:],
                                                  ignore_filepath=True)
             resource_list.append(resource_dict)

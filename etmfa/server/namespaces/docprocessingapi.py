@@ -52,7 +52,7 @@ from etmfa.consts import ACCORDIAN_DOC_ID
 from etmfa.workflow.messaging import MsqType
 from etmfa.workflow.messaging.models.triage_request import TriageRequest
 from etmfa.server.api import api
-from etmfa.workflow.db.db_utils import get_workflows_status_by_user, get_all_workflows_from_db, get_wf_by_doc_id
+from etmfa.workflow.db.db_utils import get_all_workflows_from_db, get_wf_by_doc_id
 from etmfa.server.namespaces.serializers import (
     eTMFA_object_get,
     PD_qc_get,
@@ -81,7 +81,7 @@ from etmfa.server.namespaces.serializers import (
     dipadata_details_get,
     dipadata_details_input,
     metadata_summary_delete,
-    dipa_view_data, fetch_workflows_by_userId, fetch_workflows_by_doc_id
+    dipa_view_data, fetch_workflows_by_doc_id
 )
 from etmfa.workflow.default_workflows import DWorkFLows, DEFAULT_WORKFLOWS
 from etmfa.workflow import WorkFlowClient
@@ -401,9 +401,10 @@ class DocumentprocessingAPI(Resource):
                                                 is_top_1_only=True)
                 aligned_resources = utils.post_process_resource(
                     resources, multiple_records=False)
-                expected_aidoc_id = '' if aligned_resources is None else aligned_resources[
-                    'aidocId']
-                protocol_number_verified = True
+                if aligned_resources:
+                    expected_aidoc_id = '' if aligned_resources is None else aligned_resources[
+                        'id']
+                    protocol_number_verified = True
             else:
                 expected_aidoc_id = aidoc_id
 
@@ -560,11 +561,13 @@ class DocumentprocessingAPI(Resource):
             if not aidoc_id:
                 logger.error(f"Invalid user inputs received: {args}")
                 return abort(HTTPStatus.NOT_FOUND, INVALID_USER_INPUT.format(args))
-            operation_value=args['operationValue']  if args.get('operationValue',None) else 'normalizedSOA'
+            operation_value = args['operationValue'] if args.get(
+                'operationValue', None) else 'normalizedSOA'
             if operation_value == 'normalizedSOA':
                 resource = get_normalized_soa_details(aidoc_id=aidoc_id)
             elif operation_value == 'SOATable':
-                resource = get_normalized_soa_table(aidoc_id=aidoc_id, footnote=footnote)
+                resource = get_normalized_soa_table(
+                    aidoc_id=aidoc_id, footnote=footnote)
             else:
                 return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
             if len(resource) == 0:
@@ -592,10 +595,11 @@ class DocumentprocessingAPI(Resource):
             sub_type = args.get('sub_type').strip()
             table_props = args.get('table_props')
 
-            # For row addition            
+            # For row addition
             if operation == 'add' and sub_type == 'add_row':
                 study_procedure = add_study_procedure(session, table_props)
-                normalized_data = add_normalized_data_for_study_procedure(session, table_props)
+                normalized_data = add_normalized_data_for_study_procedure(
+                    session, table_props)
                 session.commit()
                 if study_procedure and normalized_data:
                     message = "Row added successfully"
@@ -603,28 +607,32 @@ class DocumentprocessingAPI(Resource):
             # For column addition
             elif operation == 'add' and sub_type == 'add_column':
                 study_visit = add_study_visit(session, table_props)
-                normalized_data = add_normalized_data_for_study_visit(session, table_props)
+                normalized_data = add_normalized_data_for_study_visit(
+                    session, table_props)
                 session.commit()
                 if study_visit and normalized_data:
                     message = "Column added successfully"
 
             # For cell value updation
             elif operation == 'update':
-                update_cell = update_normalized_soa_cell_value(session, table_props, sub_type)
+                update_cell = update_normalized_soa_cell_value(
+                    session, table_props, sub_type)
                 session.commit()
                 if update_cell:
                     message = "Updated data"
 
             # For column deletion
             elif operation == 'delete' and sub_type == 'delete_column':
-                delete_column = delete_normalized_soa_cell_value_by_column(session, table_props)
+                delete_column = delete_normalized_soa_cell_value_by_column(
+                    session, table_props)
                 session.commit()
                 if delete_column:
                     message = "Successfully deleted column and updated index"
 
             # For row deletion
             elif operation == 'delete' and sub_type == 'delete_row':
-                delete_row = delete_normalized_soa_cell_value_by_row(session, table_props)
+                delete_row = delete_normalized_soa_cell_value_by_row(
+                    session, table_props)
                 session.commit()
                 if delete_row:
                     message = "Successfully deleted row and updated index"
@@ -729,7 +737,8 @@ class DocumentprocessingAPI(Resource):
                                           "display_name": display_name,
                                           "user_id": user_id})
 
-                data = {'id': aidoc_id, 'fieldName': field_name, 'attributes': attr_list}
+                data = {'id': aidoc_id, 'fieldName': field_name,
+                        'attributes': attr_list}
                 resource = add_metadata_summary(op, **data)
 
                 if len(resource) == 0:
@@ -795,7 +804,8 @@ class DocumentprocessingAPI(Resource):
                                           "display_name": display_name,
                                           "user_id": user_id})
 
-                data = {'id': aidoc_id, 'fieldName': field_name, 'attributes': attr_list}
+                data = {'id': aidoc_id, 'fieldName': field_name,
+                        'attributes': attr_list}
                 resource = update_metadata_summary(field_name, **data)
 
                 if len(resource) == 0:
@@ -836,7 +846,8 @@ class DocumentprocessingAPI(Resource):
                     for attrs in attributes:
                         attr_list.append({'attribute_name': attrs})
 
-                data = {'id': aidoc_id, 'fieldName': field_name, 'attributes': attr_list}
+                data = {'id': aidoc_id, 'fieldName': field_name,
+                        'attributes': attr_list}
 
                 resource = delete_metadata_summary(op, **data)
                 if len(resource) == 0:
@@ -1007,31 +1018,6 @@ class DocumentprocessingAPI(Resource):
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
 
-
-@ns.route('/get_protocol_details')
-@ns.response(500, 'Server error.')
-class DocumentprocessingAPI(Resource):
-    @ns.expect(fetch_workflows_by_userId, validate=True)
-    @ns.response(200, 'Success.')
-    @ns.response(404, 'Document Processing resource not found.')
-    @api.doc(security='apikey')
-    @authenticate
-    def get(self):
-        try:
-            args = fetch_workflows_by_userId.parse_args()
-            limit = args['limit']
-            user_id = args['userId']
-            page_num = args['page_num']
-            workflows = get_workflows_status_by_user(user_id, limit, page_num)
-            if workflows:
-                return {"Message": "Success", "workflows": workflows}
-            else:
-                return {"Message": "No Records in DB for given UserId", "workflows": []}
-        except ValueError as e:
-            logger.error(SERVER_ERROR.format(e))
-            return abort(500, SERVER_ERROR.format(e))
-
-
 @ns.route('/cdc')
 @ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
 class CdcAPI(Resource):
@@ -1080,7 +1066,8 @@ class CdcAPI(Resource):
         try:
             try:
                 session = db_context.session()
-                latest_work = session.query(WorkFlowStatus).filter_by(work_flow_id=id).first()
+                latest_work = session.query(
+                    WorkFlowStatus).filter_by(work_flow_id=id).first()
                 if latest_work:
                     return {'id': latest_work.work_flow_id, 'status': latest_work.status,
                             'operation': latest_work.protocol_name}
