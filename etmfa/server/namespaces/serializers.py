@@ -743,11 +743,9 @@ fetch_workflows_by_userId.add_argument(
 
 # notification args
 notification_args = reqparse.RequestParser()
-notification_args.add_argument(
-    'doc_id', type=str, required=True, help='doc id')
-notification_args.add_argument('event', type=str, required=True,
-                               help='Event to trigger notifications example QC_COMPLETED')
-
+notification_args.add_argument('doc_id', type=str, required=True, help='doc id')
+notification_args.add_argument('event', type=str, required=True, help='Event to trigger notifications example QC_COMPLETED')
+notification_args.add_argument('send_mail', type=inputs.boolean, default=False, required=False, help="sending mail default false if need to send mail for event true required")
 
 fetch_workflows_by_doc_id = reqparse.RequestParser()
 fetch_workflows_by_doc_id.add_argument('doc_id', type=str, required=True,
