@@ -125,6 +125,8 @@ def get_document_terms_data(db: Session, aidoc_id: str,
 
         references_values = [
             {"id": reference_link.id, "source_text": reference_link.source_text,
+             "link_id": reference_link.link_id,
+             "destination_url": reference_link.destination_url,
              "destination_link_id": reference_link.destination_link_id,
              "destination_link_prefix": reference_link.destination_link_prefix,
              "parent_id": reference_link.parent_id,
@@ -193,6 +195,22 @@ def get_preferred_data(db, doc_id: str = "", link_id: str = "", ) -> list:
                                                       config_variables, {})
     return preferred_document_data[0].get("preferred_terms",
                                           []) if preferred_document_data else []
+
+
+def get_references_data(db, doc_id: str = "", link_id: str = "", ) -> list:
+    """
+    Get reference values for the sections as per doc and link id
+    :param db: database object
+    :param doc_id: document id
+    :param link_id: link id of document as section id
+    :returns: Fetch all the link and reference data from db for the sections
+    """
+    config_variables = "references"
+    reference_data = get_document_terms_data(db, doc_id, link_id,
+                                                           config_variables, {})
+    return reference_data[0].get("references",
+                                          []) if reference_data else []
+
 
 
 def link_id_link_level_based_on_section_text(psdb: Session, aidoc_id: str,

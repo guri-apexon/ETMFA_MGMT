@@ -67,9 +67,10 @@ def get_section_data(aidoc_id, link_level, link_id, user_id, protocol):
     enriched_data = get_enriched_data(aidoc_id, link_id)
     # Collect the enriched preferred data based on doc and link ids.
     preferred_data = crud.get_preferred_data(db, aidoc_id, link_id)
+    references_data = crud.get_references_data(db, aidoc_id, link_id)
     section_with_enriched = update_section_data_with_enriched_data(
         section_data=finalization_req_dict, enriched_data=enriched_data,
-        preferred_data=preferred_data)
+        preferred_data=preferred_data, references_data=references_data)
     return section_with_enriched
 
 

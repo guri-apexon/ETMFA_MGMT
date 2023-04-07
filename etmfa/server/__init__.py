@@ -22,7 +22,7 @@ from flask_restplus import Api
 from werkzeug.contrib.fixers import ProxyFix
 from etmfa_core.postgres_db_schema import create_schemas
 from es_ingest import ElasticIngestionRunner
-from etmfa.workflow import  WorkFlowClient,WorkFlowRunner
+from etmfa.workflow import WorkFlowClient, WorkFlowRunner
 from etmfa.consts import Consts as consts
 from ..utilities.user_metrics import create_or_update_user_metrics
 
@@ -50,7 +50,7 @@ def after_request_callback(response):
 
     if request.path in ('/pd/api/cpt_data/',
                         '/pd/api/cpt_data/get_section_data_configurable_parameter') and str(
-            request.args.get('toc', '')) == '1':
+        request.args.get('toc', '')) == '1':
         user_id = request.args.get('user_id')
         aidoc_id = request.args.get('aidoc_id')
         # User metric protocol parameter
@@ -71,9 +71,11 @@ def start_workflow_runner(logger):
     # wf client is singleton class only once connection created.
     WorkFlowClient(app.config["ZMQ_PORT"], logger)
 
+
 def start_es_runner():
-    es=ElasticIngestionRunner()
+    es = ElasticIngestionRunner()
     es.start()
+
 
 def create_app(config_name, ssl_enabled=False):
     # Override 'Development' config when invoking server
@@ -95,7 +97,8 @@ def create_app(config_name, ssl_enabled=False):
     else:
         logger.error(
             f'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')
-        sys.exit(f'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')
+        sys.exit(
+            f'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')
 
     # register database instance
     init_db(app)

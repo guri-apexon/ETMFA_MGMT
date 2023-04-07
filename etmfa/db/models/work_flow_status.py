@@ -16,7 +16,7 @@ class WorkFlowState(Enum):
 class WorkFlowStatus(db_context.Model):
     __tablename__ = 'work_flow_status'
     work_flow_id = db_context.Column(db_context.String, primary_key=True)
-    doc_id= db_context.Column(db_context.String)
+    doc_id = db_context.Column(db_context.String)
     protocol_name = db_context.Column(db_context.String, nullable=False)
     doc_uid = db_context.Column(db_context.String)
     work_flow_name = db_context.Column(db_context.String)
