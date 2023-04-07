@@ -12,7 +12,7 @@ from etmfa.db.models.pd_users import User
 from etmfa.db.models.documentcompare import Documentcompare
 from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_protocol_data import Protocoldata
-from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata,SessionManager
+from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata, SessionManager
 from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
@@ -22,7 +22,7 @@ from etmfa.workflow.messaging.models.processing_status import (FeedbackStatus,
 from etmfa.db.models.work_flow_status import WorkFlowStatus, WorkFlowState
 from pathlib import Path
 from flask import g, abort
-from sqlalchemy import and_, func,or_,case
+from sqlalchemy import and_, func, or_, case
 from sqlalchemy.sql import text
 from typing import List, Dict
 from etmfa.workflow.messaging.models.queue_names import EtmfaQueues
@@ -51,6 +51,8 @@ ERROR_PROCESSING_STATUS = "Error while updating processing status to pd_protocol
 
 FILE_EXTENSION = "*.xml*"
 # Global DB ORM object
+
+
 def init_db(app):
     """ Returns db context"""
 
@@ -64,6 +66,7 @@ def init_db(app):
         db_context.create_all()
         # creates default metadata accordion
         default_accordion()
+
 
 def update_doc_resource_by_id(aidoc_id, resource):
     """
@@ -83,7 +86,7 @@ def update_doc_resource_by_id(aidoc_id, resource):
     return resource
 
 
-def create_doc_processing_status(work_flow_id,doc_id, doc_uid, work_flow_name, doc_file_path, protocol_name):
+def create_doc_processing_status(work_flow_id, doc_id, doc_uid, work_flow_name, doc_file_path, protocol_name):
     session = db_context.session
     status = WorkFlowStatus(
         work_flow_id=work_flow_id, doc_id=doc_id, protocol_name=protocol_name, doc_uid=doc_uid, work_flow_name=work_flow_name, documentFilePath=doc_file_path)
@@ -139,11 +142,13 @@ def check_if_document_processed(doc_uid):
         return True, duplicate_list
     return False, duplicate_list
 
+
 def schema_to_dict(row):
     data = {}
     for column in row.__table__.columns:
         data[column.name] = (getattr(row, column.name))
     return data
+
 
 def add_compare_event(session, compare_protocol_list, id_):
     try:
@@ -176,7 +181,7 @@ def add_compare_event(session, compare_protocol_list, id_):
 
 
 def received_comparecomplete_event(session, compare_dict):
-    if not compare_dict.get('compare_id',None):
+    if not compare_dict.get('compare_id', None):
         return
     resource = session.query(Documentcompare).filter(
         Documentcompare.compareId == compare_dict.get('compare_id', '')).first()
@@ -318,12 +323,14 @@ def document_compare_tuple(session, work_flow_id, flow_name, id1, id2, document_
         session, ids_compare_protocol_list, work_flow_id)
     return ids_compare_protocol_list if ret_val else []
 
+
 def filter_user_with_usernames(pd_user_instances_list, user_id_list):
     return_list = []
     for user_protocol_instance in pd_user_instances_list:
-        if user_protocol_instance.userId.replace('u','').replace('q','') in user_id_list:
+        if user_protocol_instance.userId.replace('u', '').replace('q', '') in user_id_list:
             return_list.append(user_protocol_instance)
     return return_list
+
 
 def insert_into_alert_table(finalattributes, event_dict):
     doc_status = PDProtocolMetadata.query.filter(
@@ -354,37 +361,40 @@ def insert_into_alert_table(finalattributes, event_dict):
                  resource in resources])
         else:
             alert_res = True
-        
+
         if alert_res:
             protocolalert_list = list()
             pd_user_protocol_list = PDUserProtocols.query.filter(
                 and_(PDUserProtocols.protocol == finalattributes['ProtocolNo'],
                      PDUserProtocols.follow == True)).all()
-            
+
             if event_dict.get("qc_complete"):
                 user_id_list = [i[0] for i in User.query.filter(User.qc_complete == True).with_entities(
                     case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
                           (User.username.like('q%'), func.replace(User.username, 'q', ''))],
                          else_=User.username)).all()]
-                pd_user_protocol_list = filter_user_with_usernames(pd_user_protocol_list, user_id_list)
+                pd_user_protocol_list = filter_user_with_usernames(
+                    pd_user_protocol_list, user_id_list)
 
             elif event_dict.get("edited"):
                 user_id_list = user_id_list = [i[0] for i in User.query.filter(User.edited == True).with_entities(
                     case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
                           (User.username.like('q%'), func.replace(User.username, 'q', ''))],
-                         else_=User.username)).all()]	
-                pd_user_protocol_list = filter_user_with_usernames(pd_user_protocol_list, user_id_list)
-                	
+                         else_=User.username)).all()]
+                pd_user_protocol_list = filter_user_with_usernames(
+                    pd_user_protocol_list, user_id_list)
+
             elif event_dict.get("new_document_version"):
                 user_id_list = user_id_list = [i[0] for i in User.query.filter(User.new_document_version == True).with_entities(
                     case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
                           (User.username.like('q%'), func.replace(User.username, 'q', ''))],
-                         else_=User.username)).all()]	
-                pd_user_protocol_list = filter_user_with_usernames(pd_user_protocol_list, user_id_list)
+                         else_=User.username)).all()]
+                pd_user_protocol_list = filter_user_with_usernames(
+                    pd_user_protocol_list, user_id_list)
 
             for pd_user_protocol in pd_user_protocol_list:
                 protocolalert_instance = db_context.session.query(Protocolalert).filter_by(id=pd_user_protocol.id, aidocId=finalattributes['AiDocId'], protocol=finalattributes[
-                    'ProtocolNo'], email_template_id=finalattributes.get('email_template_id')).update({'timeUpdated':datetime.utcnow()})
+                    'ProtocolNo'], email_template_id=finalattributes.get('email_template_id')).update({'timeUpdated': datetime.utcnow()})
                 if not protocolalert_instance:
                     protocolalert = Protocolalert()
                     protocolalert.aidocId = finalattributes['AiDocId']
@@ -395,7 +405,8 @@ def insert_into_alert_table(finalattributes, event_dict):
                     protocolalert.emailSentFlag = False
                     protocolalert.readFlag = False
                     protocolalert.approvalDate = finalattributes['approval_date']
-                    protocolalert.email_template_id = finalattributes.get('email_template_id')
+                    protocolalert.email_template_id = finalattributes.get(
+                        'email_template_id')
                     time_ = datetime.utcnow()
                     protocolalert.timeCreated = time_
                     protocolalert.timeUpdated = time_
@@ -492,7 +503,8 @@ def save_doc_processing(request, _id, doc_path):
     resource.indication = request['indication']
     resource.moleculeDevice = request['moleculeDevice']
     resource.percentComplete = ProcessingStatus.PROCESS_STARTED.value
-    resource.status = 'TRIAGE_STARTED' #hardcoded for compatiblity will be rmeoved w.r.t workflows
+    # hardcoded for compatiblity will be rmeoved w.r.t workflows
+    resource.status = 'TRIAGE_STARTED'
     resource.qcStatus = QcStatus.NOT_STARTED.value
     resource.runId = 0
 
@@ -605,24 +617,25 @@ def get_latest_protocol(protocol_number, version_number="", approval_date="", ai
         if is_top_1_only:
             resource = db_context.session.query(PDProtocolMetadata, PDProtocolMetadata.draftVersion,
                                                 PDProtocolMetadata.amendment, PDProtocolMetadata.uploadDate,
-                                                PDProtocolMetadata.documentFilePath, PDProtocolMetadata.id,
+                                                PDProtocolMetadata.documentFilePath,
                                                 PDProtocolMetadata.projectId, PDProtocolMetadata.documentStatus,
-                                                PDProtocolMetadata.protocol, PDProtocolMetadata.indication,
-                                                PDProtocolMetadata.shortTitle
+                                                PDProtocolMetadata.protocol, PDProtocolMetadata.source,
+                                                PDProtocolMetadata.draftVersion, PDProtocolMetadata.shortTitle,
+                                                PDProtocolMetadata.phase, PDProtocolMetadata.indication, PDProtocolMetadata.id,
                                                 ).filter(text(all_filter)
-                                                                ).order_by(text(order_condition)).first()
+                                                         ).order_by(text(order_condition)).first()
         else:
             resource = db_context.session.query(PDProtocolMetadata, PDProtocolMetadata.draftVersion,
                                                 PDProtocolMetadata.amendment, PDProtocolMetadata.uploadDate,
                                                 PDProtocolMetadata.documentFilePath, PDProtocolMetadata.projectId,
                                                 PDProtocolMetadata.documentStatus, PDProtocolMetadata.protocol,
-                                                PDProtocolMetadata.source, PDProtocolMetadata.indication,
-                                                PDProtocolMetadata.id, PDProtocolMetadata.shortTitle,
+                                                PDProtocolMetadata.source, PDProtocolMetadata.draftVersion, PDProtocolMetadata.shortTitle,
+                                                PDProtocolMetadata.phase, PDProtocolMetadata.indication, PDProtocolMetadata.id,
                                                 func.rank().over(partition_by=PDProtocolMetadata.id,
                                                                  order_by=PDProtocolMetadata.source.desc()).label(
                                                     'rank')
                                                 ).filter(text(all_filter)
-                                                                ).order_by(text(order_condition)).all()
+                                                         ).order_by(text(order_condition)).all()
             resource = utils.filter_qc_status(
                 resources=resource, qc_status=qc_status)
     except Exception as e:
@@ -677,7 +690,8 @@ def update_user_protocols(user_id, project_id, protocol_number):
             db_context.session.commit()
         except Exception as ex:
             db_context.session.rollback()
-            logger.error("Error while writing record to PD_user_protocol file in DB for user id: {},{}".format(user_id, ex))
+            logger.error(
+                "Error while writing record to PD_user_protocol file in DB for user id: {},{}".format(user_id, ex))
     else:
         for record in records:
             record.isActive = True
@@ -691,7 +705,9 @@ def update_user_protocols(user_id, project_id, protocol_number):
                 db_context.session.commit()
             except Exception as ex:
                 db_context.session.rollback()
-                logger.error("Error while updating record to PD_user_protocol file in DB for user id: {},{}".format(user_id, ex))
+                logger.error(
+                    "Error while updating record to PD_user_protocol file in DB for user id: {},{}".format(user_id, ex))
+
 
 def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
     """
@@ -714,16 +730,16 @@ def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
         logger.error(
             f"No active document found in DB [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]")
         logger.error(f"Exception message:\n{e}")
-    
+
     try:
         session = db_context.session()
 
-        helper_obj = MetaDataTableHelper()  
-        protocol_attributes_str = helper_obj.get_data(session,aidoc_id)
+        helper_obj = MetaDataTableHelper()
+        protocol_attributes_str = helper_obj.get_data(session, aidoc_id)
 
         visitrecord_mapper = session.query(IqvassessmentvisitrecordDbMapper).filter(
-            IqvassessmentvisitrecordDbMapper.doc_id == aidoc_id).all()   
-        
+            IqvassessmentvisitrecordDbMapper.doc_id == aidoc_id).all()
+
         if visitrecord_mapper is not None:
             for record in visitrecord_mapper:
                 resource_dict = {key: value for key,
@@ -740,7 +756,7 @@ def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
                 resource_dict.update({"footnotes": footnote_list})
                 norm_soa.append(resource_dict)
             norm_soa_str = json.loads(json.dumps(norm_soa))
-        
+
         norm_dict = {
             'id': aidoc_id, 'protocolAttributes': protocol_attributes_str, 'normalizedSOA': norm_soa_str}
     except Exception as exc:
@@ -748,6 +764,7 @@ def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
             f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
 
     return norm_dict
+
 
 def get_attr_soa_compare(protocol_number, aidoc_id, compare_doc_id) -> dict:
     """
@@ -830,15 +847,14 @@ def update_document_run_no(compare_id, session):
             f"No Document found for [compare_id: {compare_id}].Exception: {str(exc)}")
 
 
-
 def get_normalized_soa_details(aidoc_id) -> dict:
     """
     Get protocol Normalized SOA
     """
     visitrecord_mapper = None
     norm_dict = dict()
-    norm_soa_str= dict()
-    
+    norm_soa_str = dict()
+
     footnotes = ["footnote_0", "footnote_1", "footnote_2", "footnote_3", "footnote_4",
                  "footnote_5", "footnote_6", "footnote_7", "footnote_8", "footnote_9"]
     norm_soa = []
@@ -875,7 +891,6 @@ def get_normalized_soa_details(aidoc_id) -> dict:
     return norm_dict
 
 
-
 def get_metadata_summary(op, aidoc_id, field_name=None) -> dict:
     """
     Get metadata summary fields 
@@ -885,14 +900,14 @@ def get_metadata_summary(op, aidoc_id, field_name=None) -> dict:
         try:
             helper_obj = MetaDataTableHelper()
             if op == 'metadata':
-                metadata = helper_obj.get_data(session,aidoc_id, field_name)
+                metadata = helper_obj.get_data(session, aidoc_id, field_name)
             elif op == 'metaparam':
-                metadata = helper_obj.get_meta_param(session,aidoc_id)
+                metadata = helper_obj.get_meta_param(session, aidoc_id)
             else:
                 raise GenericMessageException("invalid op value.")
-            
+
             response_dict_str = json.loads(json.dumps(metadata, default=str))
-            response_dict["data"] = response_dict_str 
+            response_dict["data"] = response_dict_str
         except Exception as exc:
             logger.exception(
                 f"Exception received while formatting the data [aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
@@ -905,12 +920,14 @@ def add_metadata_summary(op, **data):
     """
     metadata_response = {}
     with SessionManager() as session:
-        try:       
+        try:
             helper_obj = MetaDataTableHelper()
             if op == 'addField':
-                metadata_response = helper_obj.add_field(session,data.get("id"), data.get("fieldName"))
+                metadata_response = helper_obj.add_field(
+                    session, data.get("id"), data.get("fieldName"))
             elif op == 'addAttributes':
-                metadata_response = helper_obj.add_field_data(session,data.get("id"), data.get("fieldName"), data.get("attributes"))
+                metadata_response = helper_obj.add_field_data(session, data.get(
+                    "id"), data.get("fieldName"), data.get("attributes"))
             else:
                 raise GenericMessageException("invalid op value.")
             session.commit()
@@ -928,13 +945,15 @@ def update_metadata_summary(field_name, **data):
     metadata_response = {}
     with SessionManager() as session:
         try:
-            helper_obj = MetaDataTableHelper()   
-            if field_name:     
-                metadata_response = helper_obj.add_update_attribute(session, data.get("id"), data.get("fieldName"), data.get("attributes"))  
+            helper_obj = MetaDataTableHelper()
+            if field_name:
+                metadata_response = helper_obj.add_update_attribute(
+                    session, data.get("id"), data.get("fieldName"), data.get("attributes"))
         except Exception as exc:
             logger.exception(
                 f"Exception received while formatting the data [id: {id}]. Exception: {str(exc)}")
     return metadata_response
+
 
 def delete_metadata_summary(op, **data):
     """
@@ -945,16 +964,17 @@ def delete_metadata_summary(op, **data):
         try:
             helper_obj = MetaDataTableHelper()
             if op == 'deleteAttribute':
-                metadata_response = helper_obj.delete_attribute(session,data.get("id"), data.get("fieldName"), data.get("attributes"))
+                metadata_response = helper_obj.delete_attribute(
+                    session, data.get("id"), data.get("fieldName"), data.get("attributes"))
             elif op == 'deleteField':
-                metadata_response = helper_obj.delete_field(session,data.get("id"), data.get("fieldName"))
+                metadata_response = helper_obj.delete_field(
+                    session, data.get("id"), data.get("fieldName"))
             else:
                 raise GenericMessageException("unknown operation received.")
         except Exception as exc:
             logger.exception(
                 f"Exception received while formatting the data [id: {id}]. Exception: {str(exc)}")
     return metadata_response
-
 
 
 def get_protocols_by_date_time_range(version_date="", approval_date="", start_date="", end_date="",
@@ -970,7 +990,7 @@ def get_protocols_by_date_time_range(version_date="", approval_date="", start_da
 
     try:
         if not qc_status:
-            resource = db_context.session.query( PDProtocolMetadata,
+            resource = db_context.session.query(PDProtocolMetadata,
                                                 PDProtocolMetadata.draftVersion, PDProtocolMetadata.id,
                                                 PDProtocolMetadata.protocol, PDProtocolMetadata.documentFilePath,
                                                 PDProtocolMetadata.projectId, PDProtocolMetadata.uploadDate,
@@ -981,11 +1001,10 @@ def get_protocols_by_date_time_range(version_date="", approval_date="", start_da
                                                 PDProtocolMetadata.approvalDate, PDProtocolMetadata.source,
                                                 PDProtocolMetadata.amendment,
                                                 PDProtocolMetadata.shortTitle,
-                                                PDProtocolMetadata.versionDate,
-                                                PDProtocolMetadata.amendmentNumber
+                                                PDProtocolMetadata.versionDate
                                                 ).filter(text(all_filter)).all()
         else:
-            resource = db_context.session.query(PDProtocolMetadata,PDProtocolMetadata.id,
+            resource = db_context.session.query(PDProtocolMetadata, PDProtocolMetadata.id,
                                                 PDProtocolMetadata.draftVersion,
                                                 PDProtocolMetadata.protocol, PDProtocolMetadata.documentFilePath,
                                                 PDProtocolMetadata.projectId, PDProtocolMetadata.uploadDate,
@@ -996,8 +1015,7 @@ def get_protocols_by_date_time_range(version_date="", approval_date="", start_da
                                                 PDProtocolMetadata.approvalDate, PDProtocolMetadata.source,
                                                 PDProtocolMetadata.amendment,
                                                 PDProtocolMetadata.shortTitle,
-                                                PDProtocolMetadata.versionDate,
-                                                PDProtocolMetadata.amendmentNumber
+                                                PDProtocolMetadata.versionDate
                                                 ).filter(text(all_filter)).all()
 
         resource = utils.filter_qc_status(
@@ -1007,10 +1025,11 @@ def get_protocols_by_date_time_range(version_date="", approval_date="", start_da
 
     return resource
 
+
 def get_normalized_soa_table(aidoc_id, footnote) -> dict:
     """
     Get protocol Normalized SOA for table mapping
-	"""
+        """
     normalizedsoa_list = []
     study_visits = dict()
     normalizedsoa_data = dict()
@@ -1026,8 +1045,8 @@ def get_normalized_soa_table(aidoc_id, footnote) -> dict:
         roi_list = list(roi_set)
         study_procedures = assessment_obj.get_assessment_text()
         norm_dict = assessmentvisit_obj.get_normalized_soa(footnote)
-        study_visits = visits_obj.get_visit_records()        
-        
+        study_visits = visits_obj.get_visit_records()
+
         for roi_id in roi_list:
             normalized_soa = dict()
             normalized_soa["tableId"] = roi_id
@@ -1035,32 +1054,32 @@ def get_normalized_soa_table(aidoc_id, footnote) -> dict:
             normalized_soa["studyProcedure"] = study_procedures.get(roi_id)
             normalized_soa["normalized_SOA"] = norm_dict.get(roi_id)
             normalizedsoa_list.append(normalized_soa)
-        normalizedsoa_data = {"id":aidoc_id,"soa_data":normalizedsoa_list}   
-        
+        normalizedsoa_data = {"id": aidoc_id, "soa_data": normalizedsoa_list}
+
     except Exception as exc:
         logger.exception(
             f"Exception received while formatting the data [aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
     return normalizedsoa_data
 
 
-#dipa view
+# dipa view
 def get_dipaview_details_by_id(doc_id):
     """
     Get dipa view details fields 
     """
-    resource= None
+    resource = None
     response_list = []
     try:
         apply_filter = f"{PDDipaViewdata.__tablename__}.\"doc_id\"=\'{doc_id}\'"
         if doc_id:
             resource = db_context.session.query(
-                                                PDDipaViewdata.id, PDDipaViewdata.doc_id,
-                                                PDDipaViewdata.link_id_1, PDDipaViewdata.link_id_2,
-                                                PDDipaViewdata.link_id_3, PDDipaViewdata.link_id_4,
-                                                PDDipaViewdata.link_id_5, PDDipaViewdata.link_id_6,
-                                                PDDipaViewdata.category                                         
-                                                ).filter(text(apply_filter)).all()
-            
+                PDDipaViewdata.id, PDDipaViewdata.doc_id,
+                PDDipaViewdata.link_id_1, PDDipaViewdata.link_id_2,
+                PDDipaViewdata.link_id_3, PDDipaViewdata.link_id_4,
+                PDDipaViewdata.link_id_5, PDDipaViewdata.link_id_6,
+                PDDipaViewdata.category
+            ).filter(text(apply_filter)).all()
+
             response_list = [i._asdict() for i in resource]
     except Exception as e:
         logger.error(f"Exception message:\n{e}")
@@ -1071,52 +1090,55 @@ def get_dipa_data_by_category(_id, doc_id, category):
     """
     Get dipa data for given doc_id and category
     """
-    resource= None
+    resource = None
     response_list = []
-    
+
     try:
-        apply_filter= f"({PDDipaViewdata.__tablename__}.\"id\"='{_id}' AND \
+        apply_filter = f"({PDDipaViewdata.__tablename__}.\"id\"='{_id}' AND \
             {PDDipaViewdata.__tablename__}.\"doc_id\"='{doc_id}' AND \
-            {PDDipaViewdata.__tablename__}.\"category\" = '{category}')" 
+            {PDDipaViewdata.__tablename__}.\"category\" = '{category}')"
 
         if _id:
             resource = db_context.session.query(
-                                                PDDipaViewdata.id, PDDipaViewdata.doc_id,
-                                                PDDipaViewdata.link_id_1, PDDipaViewdata.link_id_2,
-                                                PDDipaViewdata.link_id_3, PDDipaViewdata.link_id_4,
-                                                PDDipaViewdata.link_id_5, PDDipaViewdata.link_id_6,
-                                                PDDipaViewdata.category, PDDipaViewdata.dipa_data,
-                                                PDDipaViewdata.timeCreated, PDDipaViewdata.timeUpdated                                         
-                                                ).filter(text(apply_filter)).all()
-            
+                PDDipaViewdata.id, PDDipaViewdata.doc_id,
+                PDDipaViewdata.link_id_1, PDDipaViewdata.link_id_2,
+                PDDipaViewdata.link_id_3, PDDipaViewdata.link_id_4,
+                PDDipaViewdata.link_id_5, PDDipaViewdata.link_id_6,
+                PDDipaViewdata.category, PDDipaViewdata.dipa_data,
+                PDDipaViewdata.timeCreated, PDDipaViewdata.timeUpdated
+            ).filter(text(apply_filter)).all()
+
             response_list = [i._asdict() for i in resource]
     except Exception as e:
         logger.error(f"Exception message:\n{e}")
     return response_list
+
 
 def update_normalized_soa_cell_value(table_roi_id, table_row_index, table_column_index, cell_value):
     """
     Update normalized soa cell value.
     """
     response = dict()
-    
+
     try:
         session = db_context.session()
         soa_cell_record = session.query(IqvassessmentvisitrecordUpdateDbMapper).filter(
-            IqvassessmentvisitrecordUpdateDbMapper.table_roi_id == table_roi_id, 
+            IqvassessmentvisitrecordUpdateDbMapper.table_roi_id == table_roi_id,
             IqvassessmentvisitrecordUpdateDbMapper.table_column_index == table_column_index,
             IqvassessmentvisitrecordUpdateDbMapper.table_row_index == table_row_index).all()
-        if len(soa_cell_record) != 0: 
+        if len(soa_cell_record) != 0:
             soa_cell_record[0].indicator_text = cell_value
             try:
                 db_context.session.merge(soa_cell_record[0])
                 db_context.session.commit()
             except Exception as ex:
                 db_context.session.rollback()
-                logger.error("Error while updating record for roi id: {} {}".format(table_roi_id, ex))
+                logger.error(
+                    "Error while updating record for roi id: {} {}".format(table_roi_id, ex))
         else:
-            raise Exception(f"No record found for table_roi_id: {table_roi_id}")
-        
+            raise Exception(
+                f"No record found for table_roi_id: {table_roi_id}")
+
         for data in soa_cell_record:
             response['indicator_text'] = data.indicator_text
             response['table_roi_id'] = data.table_roi_id
@@ -1128,6 +1150,7 @@ def update_normalized_soa_cell_value(table_roi_id, table_row_index, table_column
             f"Exception received while formatting the data [table_roi_id: {table_roi_id},\
                 table_column_index: {table_column_index}, table_row_index: {table_row_index}\
                     cell_value: {cell_value}]. Exception: {str(exc)}")
+
 
 def delete_normalized_soa_cell_value_by_column(table_roi_id, table_column_index, study_visit, row_props):
     """
@@ -1157,8 +1180,6 @@ def delete_normalized_soa_cell_value_by_column(table_roi_id, table_column_index,
             IqvassessmentvisitrecordDeleteDbMapper.table_column_index > table_column_index,
         ).all()
 
-
-
         # print(len(visit_record_list_to_delete),len(assessment_visit_record_list_to_delete))
         # print(len(visit_record_list_to_change_column_index),len(assessment_visit_record_list_to_change_column_index))
 
@@ -1178,10 +1199,11 @@ def delete_normalized_soa_cell_value_by_column(table_roi_id, table_column_index,
             for record in assessment_visit_record_list_to_change_column_index:
                 record.table_column_index = (record.table_column_index - 1)
                 session.commit()
-            response = {'message':'success'}
+            response = {'message': 'success'}
         except Exception as ex:
             session.rollback()
-            logger.error("Error while deleting record for roi id: {} {}".format(table_roi_id, ex))
+            logger.error(
+                "Error while deleting record for roi id: {} {}".format(table_roi_id, ex))
             response = {'message': 'error'}
         return response
     except Exception as exc:
@@ -1190,8 +1212,9 @@ def delete_normalized_soa_cell_value_by_column(table_roi_id, table_column_index,
             f"Exception received while formatting the data [table_roi_id: {table_roi_id},\
                 table_column_index: {table_column_index}, study_visit: {study_visit}\
                     row_props: {row_props}]. Exception: {str(exc)}")
-        response = {'message':'error'}
+        response = {'message': 'error'}
         return response
+
 
 def delete_normalized_soa_cell_value_by_row(table_roi_id, table_row_index, study_visit, column_props):
     """
@@ -1221,7 +1244,6 @@ def delete_normalized_soa_cell_value_by_row(table_roi_id, table_row_index, study
             IqvassessmentvisitrecordDeleteDbMapper.table_row_index > table_row_index,
         ).all()
 
-
         # print(len(assessment_record_list_to_delete),len(assessment_visit_record_list_to_delete))
         # print(len(assessment_record_list_to_change_row_index),len(assessment_visit_record_list_to_change_row_index))
 
@@ -1244,7 +1266,8 @@ def delete_normalized_soa_cell_value_by_row(table_roi_id, table_row_index, study
             response = {'message': 'success'}
         except Exception as ex:
             session.rollback()
-            logger.error("Error while deleting record for roi id: {} {}".format(table_roi_id, ex))
+            logger.error(
+                "Error while deleting record for roi id: {} {}".format(table_roi_id, ex))
             response = {'message': 'error'}
         return response
     except Exception as exc:
@@ -1254,6 +1277,5 @@ def delete_normalized_soa_cell_value_by_row(table_roi_id, table_row_index, study
                 table_row_index: {table_row_index}, study_visit: {study_visit}\
                     column_props: {column_props}]. Exception: {str(exc)}")
 
-        response = {'message':'error'}
+        response = {'message': 'error'}
         return response
-

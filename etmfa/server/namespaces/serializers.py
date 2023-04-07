@@ -253,9 +253,9 @@ latest_protocol_input.add_argument(
     'sourceSystem', type=str, required=False, help=SOURCE_SYSYTEM)
 
 latest_protocol_contract_fields = (
-    'protocol', 'versionNumber', 'sponsor', 'documentStatus', 'aidocId', 'allVersions', 'approvalDate',
-    'draftNumber', 'uploadDate', 'projectId', 'amendmentNumber', 'amendmentFlag', 'protocolShortTitle', 'protocolTitle',
-    'indications', 'trialPhase', 'blinded')
+    'protocol', 'versionNumber', 'sponsor', 'documentStatus', 'id', 'allVersions', 'approvalDate',
+    'draftNumber', 'draftVersion', 'uploadDate', 'projectId', 'amendmentNumber', 'amendmentFlag', 'shortTitle', 'protocolTitle',
+    'indication', 'phase', 'blinded')
 
 latest_protocol_get = api.model(DOCUMENT_PROCESSING_MODEL,
                                 {
@@ -275,6 +275,8 @@ latest_protocol_get = api.model(DOCUMENT_PROCESSING_MODEL,
                                                                   description='Approval date (in YYYYMMDD format) of the latest protocol'),
                                     'draftNumber': fields.String(readOnly=True,
                                                                  description='Draft number of the latest protocol'),
+                                    'draftVersion': fields.String(readOnly=True,
+                                                                  description='Draft version of the latest protocol'),
                                     'uploadDate': fields.String(readOnly=True,
                                                                 description='Upload date in ISO-8601 format'),
                                     'projectId': fields.String(readOnly=True,
@@ -289,8 +291,8 @@ latest_protocol_get = api.model(DOCUMENT_PROCESSING_MODEL,
                                                                    description='Protocol title of the latest protocol'),
                                     'indication': fields.String(readOnly=True,
                                                                 description='Multiple indications of the latest protocol'),
-                                    'trialPhase': fields.String(readOnly=True,
-                                                                description='Trial phase of the latest protocol'),
+                                    'phase': fields.String(readOnly=True,
+                                                           description='Trial phase of the latest protocol'),
                                     'blinded': fields.String(readOnly=True,
                                                              description='Blind strategy of the latest protocol'),
                                 }
@@ -527,8 +529,6 @@ latest_protocol_get_by_date_range = api.model(DOCUMENT_PROCESSING_MODEL,
                                                                             description='Status(QC, QC_COMPLETED) of latest protocol'),
                                                   'id': fields.String(readOnly=True,
                                                                       description='Unique PD ID of the latest protocol'),
-                                                  'allVersions': fields.String(readOnly=True,
-                                                                               description='All the available version details'),
                                                   'versionDate': fields.String(readOnly=True,
                                                                                description='version date inin YYYYMMDD format'),
                                                   'approvalDate': fields.String(readOnly=True,
@@ -539,8 +539,6 @@ latest_protocol_get_by_date_range = api.model(DOCUMENT_PROCESSING_MODEL,
                                                                               description='Upload date in ISO-8601 format'),
                                                   'projectId': fields.String(readOnly=True,
                                                                              description='projectId of the latest protocol'),
-                                                  'amendmentNumber': fields.String(readOnly=True,
-                                                                                   description='Amendment number of the latest protocol'),
                                                   'amendmentFlag': fields.String(readOnly=True,
                                                                                  description='Amendment flag(Y/N) of the latest protocol'),
                                                   'shortTitle': fields.String(readOnly=True,
@@ -549,7 +547,7 @@ latest_protocol_get_by_date_range = api.model(DOCUMENT_PROCESSING_MODEL,
                                                                                  description='Protocol title of the latest protocol'),
                                                   'indication': fields.String(readOnly=True,
                                                                               description='Multiple indications of the latest protocol'),
-                                                  'trialPhase': fields.String(readOnly=True,
+                                                  'phase': fields.String(readOnly=True,
                                                                               description='Trial phase of the latest protocol'),
                                                   'blinded': fields.String(readOnly=True,
                                                                            description='Blind strategy of the latest protocol'),
@@ -574,25 +572,33 @@ protocol_soa_get = api.model('Protocol Normalized SOA',
 
 # for normalized soa: update,delete,create operation
 protocol_soa_post = reqparse.RequestParser()
-protocol_soa_post.add_argument('operation', type=str, required=True, help='Operation to perform')
-protocol_soa_post.add_argument('sub_type', type=str, required=True, help='Sub operation to perform')
-protocol_soa_post.add_argument('table_props', type=dict , required=False, help=SOURCE_SYSYTEM, action='append')
+protocol_soa_post.add_argument(
+    'operation', type=str, required=True, help='Operation to perform')
+protocol_soa_post.add_argument(
+    'sub_type', type=str, required=True, help='Sub operation to perform')
+protocol_soa_post.add_argument(
+    'table_props', type=dict, required=False, help=SOURCE_SYSYTEM, action='append')
 
 
 # for metadata get
 metadata_summary_input = reqparse.RequestParser()
 metadata_summary_input.add_argument('op', type=str, required=True,
                                     help='Operation required to get metadata(provide "metadata" or "metaparam")')
-metadata_summary_input.add_argument('aidocId', type=str, required=False, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
-metadata_summary_input.add_argument('fieldName', type=str, required=False, help=METADATA_FIELDNAME)
+metadata_summary_input.add_argument(
+    'aidocId', type=str, required=False, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
+metadata_summary_input.add_argument(
+    'fieldName', type=str, required=False, help=METADATA_FIELDNAME)
 
 # for metadata create
 metadata_summary_create = reqparse.RequestParser()
 metadata_summary_create.add_argument('op', type=str, required=True,
                                      help='Operation required to create metadata(provide "addField" or "addAttributes")')
-metadata_summary_create.add_argument('aidocId', type=str, required=False, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
-metadata_summary_create.add_argument('fieldName', type=str, required=True, help=METADATA_FIELDNAME)
-metadata_summary_create.add_argument('attributes', type=dict, action='append', required=False, help=METADATA_ATTRIBUTES)
+metadata_summary_create.add_argument(
+    'aidocId', type=str, required=False, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
+metadata_summary_create.add_argument(
+    'fieldName', type=str, required=True, help=METADATA_FIELDNAME)
+metadata_summary_create.add_argument(
+    'attributes', type=dict, action='append', required=False, help=METADATA_ATTRIBUTES)
 metadata_summary_add = api.model('API for external systems and BPO view to create metadata attributes',
                                  {
                                      'isAdded': fields.Boolean(readOnly=True,
@@ -606,9 +612,12 @@ metadata_summary_add = api.model('API for external systems and BPO view to creat
 
 # for metadata update
 metadata_summary = reqparse.RequestParser()
-metadata_summary.add_argument('aidocId', type=str, required=False, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
-metadata_summary.add_argument('fieldName', type=str, required=True, help=METADATA_FIELDNAME)
-metadata_summary.add_argument('attributes', type=dict, action='append', required=True, help=METADATA_ATTRIBUTES)
+metadata_summary.add_argument(
+    'aidocId', type=str, required=False, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
+metadata_summary.add_argument(
+    'fieldName', type=str, required=True, help=METADATA_FIELDNAME)
+metadata_summary.add_argument(
+    'attributes', type=dict, action='append', required=True, help=METADATA_ATTRIBUTES)
 metadata_summary_update = api.model('API for external systems and BPO view to update metadata attributes',
                                     {
                                         'isAdded': fields.Boolean(readOnly=True,
@@ -624,8 +633,10 @@ metadata_summary_update = api.model('API for external systems and BPO view to up
 metadata_detele_summary = reqparse.RequestParser()
 metadata_detele_summary.add_argument('op', type=str, required=True,
                                      help='Operation required to delete metadata(provide "deleteField" or "deleteAttribute")')
-metadata_detele_summary.add_argument('aidocId', type=str, required=False, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
-metadata_detele_summary.add_argument('fieldName', type=str, required=True, help=METADATA_FIELDNAME)
+metadata_detele_summary.add_argument(
+    'aidocId', type=str, required=False, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
+metadata_detele_summary.add_argument(
+    'fieldName', type=str, required=True, help=METADATA_FIELDNAME)
 metadata_detele_summary.add_argument('attributeNames', type=str, action='append', required=False,
                                      help=METADATA_ATTRIBUTES)
 
@@ -640,75 +651,108 @@ metadata_summary_delete = api.model('API for external systems and BPO view to de
 
 # To get section header
 section_header_args = reqparse.RequestParser()
-section_header_args.add_argument('aidoc_id', type=str, required=True, help='doc id')
-section_header_args.add_argument('link_level', type=int, required=True, help='Link leven in between 1 to 6')
-section_header_args.add_argument('toc', type=int, required=True, help='doc section id')
-section_header_args.add_argument('user_id', type=str, required=False, help='user id')
+section_header_args.add_argument(
+    'aidoc_id', type=str, required=True, help='doc id')
+section_header_args.add_argument(
+    'link_level', type=int, required=True, help='Link leven in between 1 to 6')
+section_header_args.add_argument(
+    'toc', type=int, required=True, help='doc section id')
+section_header_args.add_argument(
+    'user_id', type=str, required=False, help='user id')
 
 # to get enriched data
 enriched_data_args = reqparse.RequestParser()
-enriched_data_args.add_argument('aidoc_id', type=str, required=True, help='doc id')
-enriched_data_args.add_argument('link_id', type=str, required=True, help='doc section id')
+enriched_data_args.add_argument(
+    'aidoc_id', type=str, required=True, help='doc id')
+enriched_data_args.add_argument(
+    'link_id', type=str, required=True, help='doc section id')
 
 # to get section data
 section_data_args = reqparse.RequestParser()
-section_data_args.add_argument('aidoc_id', type=str, required=True, help='doc id')
-section_data_args.add_argument('link_level', type=int, required=False, help='Link leven in between 1 to 6')
-section_data_args.add_argument('link_id', type=str, required=False, help='doc section id')
-section_data_args.add_argument('user_id', type=str, required=False, help='user id')
-section_data_args.add_argument('protocol', type=str, required=False, help='protocol number')
+section_data_args.add_argument(
+    'aidoc_id', type=str, required=True, help='doc id')
+section_data_args.add_argument(
+    'link_level', type=int, required=False, help='Link leven in between 1 to 6')
+section_data_args.add_argument(
+    'link_id', type=str, required=False, help='doc section id')
+section_data_args.add_argument(
+    'user_id', type=str, required=False, help='user id')
+section_data_args.add_argument(
+    'protocol', type=str, required=False, help='protocol number')
 
 # To get section config data
 section_data_config_args = reqparse.RequestParser()
-section_data_config_args.add_argument('aidoc_id', type=str, required=True, help='doc id')
-section_data_config_args.add_argument('link_level', type=int, required=False, help='Link leven in between 1 to 6')
-section_data_config_args.add_argument('toc', type=str, required=False, help='toc 0 or 1 to get section headers')
-section_data_config_args.add_argument('link_id', type=str, required=False, help='doc section id')
+section_data_config_args.add_argument(
+    'aidoc_id', type=str, required=True, help='doc id')
+section_data_config_args.add_argument(
+    'link_level', type=int, required=False, help='Link leven in between 1 to 6')
+section_data_config_args.add_argument(
+    'toc', type=str, required=False, help='toc 0 or 1 to get section headers')
+section_data_config_args.add_argument(
+    'link_id', type=str, required=False, help='doc section id')
 section_data_config_args.add_argument('section_text', type=str, required=False,
                                       help='doc section text, table, appendix')
-section_data_config_args.add_argument('user_id', type=str, required=False, help='user id')
-section_data_config_args.add_argument('protocol', type=str, required=False, help='protocol number')
+section_data_config_args.add_argument(
+    'user_id', type=str, required=False, help='user id')
+section_data_config_args.add_argument(
+    'protocol', type=str, required=False, help='protocol number')
 section_data_config_args.add_argument('config_variables', type=str, required=False,
                                       help='Variables: time_points, clinical_terms, preferred_terms, references, properties, redaction_attributes')
 
 # for dipadata get
 dipadata_details_get = reqparse.RequestParser()
-dipadata_details_get.add_argument('doc_id', type=str, required=True, help='Unique protocol document id')
+dipadata_details_get.add_argument(
+    'doc_id', type=str, required=True, help='Unique protocol document id')
 
 dipadata_details_input = reqparse.RequestParser()
 dipadata_details_input.add_argument('id', type=str, required=False,
                                     help='The unique identifier (UUID) of a document processing job.')
-dipadata_details_input.add_argument('doc_id', type=str, required=True, help='Unique protocol document id')
-dipadata_details_input.add_argument('category', type=str, required=False, help='Dipadata Category')
+dipadata_details_input.add_argument(
+    'doc_id', type=str, required=True, help='Unique protocol document id')
+dipadata_details_input.add_argument(
+    'category', type=str, required=False, help='Dipadata Category')
 
 # for Upsert DIPA View Data
 dipa_view_data = reqparse.RequestParser()
-dipa_view_data.add_argument('id', type=str, required=True, help='unique db id for dipa view data')
-dipa_view_data.add_argument('doc_id', type=str, required=False, help='unqiue id of document')
-dipa_view_data.add_argument('link_id_1', type=str, required=False, help='link level id 1')
-dipa_view_data.add_argument('link_id_2', type=str, required=False, help='link level id 2')
-dipa_view_data.add_argument('link_id_3', type=str, required=False, help='link level id 3')
-dipa_view_data.add_argument('link_id_4', type=str, required=False, help='link level id 4')
-dipa_view_data.add_argument('link_id_5', type=str, required=False, help='link level id 5')
-dipa_view_data.add_argument('link_id_6', type=str, required=False, help='link level id 6')
+dipa_view_data.add_argument(
+    'id', type=str, required=True, help='unique db id for dipa view data')
+dipa_view_data.add_argument(
+    'doc_id', type=str, required=False, help='unqiue id of document')
+dipa_view_data.add_argument('link_id_1', type=str,
+                            required=False, help='link level id 1')
+dipa_view_data.add_argument('link_id_2', type=str,
+                            required=False, help='link level id 2')
+dipa_view_data.add_argument('link_id_3', type=str,
+                            required=False, help='link level id 3')
+dipa_view_data.add_argument('link_id_4', type=str,
+                            required=False, help='link level id 4')
+dipa_view_data.add_argument('link_id_5', type=str,
+                            required=False, help='link level id 5')
+dipa_view_data.add_argument('link_id_6', type=str,
+                            required=False, help='link level id 6')
 dipa_view_data.add_argument('dipa_data', type=dict,
                             help='contains json data to be stored against dipa data column')
 
 fetch_workflows_by_userId = reqparse.RequestParser()
 fetch_workflows_by_userId.add_argument('userId', type=str, required=True,
                                        help='user id for which workflows will be fetched')
-fetch_workflows_by_userId.add_argument('limit', type=str, required=True, help='offset value for pagination')
-fetch_workflows_by_userId.add_argument('page_num', type=str, required=True, help='offset value for pagination')
+fetch_workflows_by_userId.add_argument(
+    'limit', type=str, required=True, help='offset value for pagination')
+fetch_workflows_by_userId.add_argument(
+    'page_num', type=str, required=True, help='offset value for pagination')
 
 # notification args
 notification_args = reqparse.RequestParser()
-notification_args.add_argument('doc_id', type=str, required=True, help='doc id')
-notification_args.add_argument('event', type=str, required=True, help='Event to trigger notifications example QC_COMPLETED')
-notification_args.add_argument('send_mail', type=inputs.boolean, default=False, required=False, help="sending mail default false if need to send mail for event true required")
+notification_args.add_argument(
+    'doc_id', type=str, required=True, help='doc id')
+notification_args.add_argument('event', type=str, required=True,
+                               help='Event to trigger notifications example QC_COMPLETED')
 
-fetch_workflows_by_doc_id= reqparse.RequestParser()
+
+fetch_workflows_by_doc_id = reqparse.RequestParser()
 fetch_workflows_by_doc_id.add_argument('doc_id', type=str, required=True,
                                        help='doc_id id for which workflows will be fetched')
-fetch_workflows_by_doc_id.add_argument('days', type=str, required=False, help='number of days')
+fetch_workflows_by_doc_id.add_argument(
+    'days', type=str, required=False, help='number of days')
 fetch_workflows_by_doc_id.add_argument('wf_num', type=str, required=False,
                                        help='number of workflows to be fetched')
