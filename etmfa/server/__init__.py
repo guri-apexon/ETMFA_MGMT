@@ -50,7 +50,7 @@ def after_request_callback(response):
 
     if request.path in ('/pd/api/cpt_data/',
                         '/pd/api/cpt_data/get_section_data_configurable_parameter') and str(
-        request.args.get('toc', '')) == '1':
+        request.args.get('toc', '')) == '1' and not request.method == "OPTIONS":
         user_id = request.args.get('user_id')
         aidoc_id = request.args.get('aidoc_id')
         # User metric protocol parameter
