@@ -99,7 +99,7 @@ class CPTExtractor:
                 for imagebinary in imagebinary_list:
                     master_dict['image_type'] = "image"
                     image_dict = dict()
-                    roi_id = {'para': master_roi.id, 'childbox': level_roi.id,
+                    roi_id = {'para': master_roi.id, 'childbox': master_roi.id,
                               'subtext': ""}
                     master_dict['para_subtext_text'] = master_roi.Value
                     master_dict[
@@ -107,11 +107,11 @@ class CPTExtractor:
                         imagebinary.img).decode(
                         'utf-8') if imagebinary.img else ""  # iqv_subtext.strText
                     image_dict['para_subtext_font_details'] = dict(
-                        {'IsBold': level_roi.fontInfo.Bold,
-                         'font_size': level_roi.fontInfo.Size,
+                        {'IsBold': master_roi.fontInfo.Bold,
+                         'font_size': master_roi.fontInfo.Size,
                          'font_style': master_font_style, 'entity': "",
                          'roi_id': roi_id},
-                        **level_roi.fontInfo.__dict__)
+                        **master_roi.fontInfo.__dict__)
 
                     image_dict.update(master_dict)
                     all_child_list.append(image_dict)
@@ -138,7 +138,7 @@ class CPTExtractor:
                     {'IsBold': False, 'font_size': -1,
                      'font_style': master_font_style,
                      'entity': master_redaction_entities, 'roi_id': roi_id},
-                    **level_roi.fontInfo.__dict__)
+                    **master_roi.fontInfo.__dict__)
 
                 iqv_subtext_dict.update(master_dict)
                 all_child_list.append(iqv_subtext_dict)
