@@ -15,15 +15,17 @@ def create_or_update_user_metrics(user_id: str, aidoc_id: str):
             User.username.in_(user_filter)).first()
         protocol_obj = db_context.session.query(PDProtocolMetadata).filter(
             PDProtocolMetadata.id == aidoc_id).first()
-        user_protocol = db_context.session.query(PDUserProtocols).filter(
-            PDUserProtocols.userId.in_(user_filter),
-            PDUserProtocols.protocol == protocol_obj.protocol).first()
-        user_role = user_protocol.userRole if user_protocol else ''
         if user and protocol_obj:
+            user_protocol = db_context.session.query(
+                PDUserProtocols).filter(
+                PDUserProtocols.userId.in_(user_filter),
+                PDUserProtocols.protocol == protocol_obj.protocol).first()
+            user_role = user_protocol.userRole if user_protocol else ''
             user_metrics = db_context.session.query(UserMetrics).filter(
                 UserMetrics.userid.in_(user_filter),
                 UserMetrics.aidoc_id == aidoc_id,
                 UserMetrics.user_type == user.user_type,
+                UserMetrics.userrole == user_role,
                 UserMetrics.document_version == protocol_obj.versionNumber).first()
             if user_metrics:
                 viewed_count = int(user_metrics.viewed_count)
