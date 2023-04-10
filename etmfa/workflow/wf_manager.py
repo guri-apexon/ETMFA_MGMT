@@ -149,7 +149,11 @@ class WorkFlowManager():
         self.out_queue_service_map, self.service_queue_tuple_map = self._get_services_map(
             services_info)
         queues_to_monitor = list(self.out_queue_service_map.keys())
-        queues_to_monitor.append(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value)
+        if self.extra_config['WORK_FLOW_RUNNER']:
+            queues_to_monitor.append(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value)
+        else:
+            error_queue=EtmfaQueues(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value).queue_prefix
+            queues_to_monitor.append(error_queue)
         self.logger.info(f"Monitoring queues :{queues_to_monitor}")
         self.broker.add_queues_to_monitor(queues_to_monitor)
 
@@ -480,7 +484,10 @@ class WorkFlowRunner(Process):
         self.message_broker_address = config['MESSAGE_BROKER_ADDR']
         self.dfs_path = config['DFS_UPLOAD_FOLDER']
         self.debug = config["DEBUG"]
-        self.extra_config = {'MAX_EXECUTION_WAIT_TIME_HRS': config.get('MAX_EXECUTION_WAIT_TIME_HRS', 24)}
+        self.extra_config = {'MAX_EXECUTION_WAIT_TIME_HRS': config.get('MAX_EXECUTION_WAIT_TIME_HRS', 24),
+                             'WORK_FLOW_RUNNER':config.get("WORK_FLOW_RUNNER",True)
+                             }
+
         self.logger = None
         Process.__init__(self)
         self.daemon = True
