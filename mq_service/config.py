@@ -39,8 +39,6 @@ class Config(object):
             LOGSTASH_HOST = cfg["LOGSTASH_HOST"]
             LOGSTASH_PORT = cfg["LOGSTASH_PORT"]
             ELASTIC_DETAILS=cfg["ELASTIC_DETAILS"]
-            MANAGEMENT_SERVICE_URL=cfg["MANAGEMENT_SERVICE_URL"]
-            MGMT_CRED_HEADERS = cfg["MGMT_CRED_HEADERS"]
 
     except Exception as exp:
         logging.error(
