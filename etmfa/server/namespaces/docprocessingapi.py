@@ -379,6 +379,7 @@ class DocumentprocessingAPI(Resource):
         """Get the digitized file contents"""
         resource = None
         protocol_number_verified = False
+        expected_aidoc_id = ''
         args = latest_protocol_contents_input.parse_args()
 
         try:
