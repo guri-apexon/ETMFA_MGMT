@@ -685,11 +685,11 @@ section_data_config_args = reqparse.RequestParser()
 section_data_config_args.add_argument(
     'aidoc_id', type=str, required=True, help='doc id')
 section_data_config_args.add_argument(
-    'link_level', type=int, required=False, help='Link leven in between 1 to 6')
+    'link_level', type=int, required=False,default=1, help='Link leven in between 1 to 6')
 section_data_config_args.add_argument(
     'toc', type=str, required=False, help='toc 0 or 1 to get section headers')
 section_data_config_args.add_argument(
-    'link_id', type=str, required=False, help='doc section id')
+    'link_id', type=str, required=False, default="", help='doc section id')
 section_data_config_args.add_argument('section_text', type=str, required=False,
                                       help='doc section text, table, appendix')
 section_data_config_args.add_argument(
@@ -743,9 +743,10 @@ fetch_workflows_by_userId.add_argument(
 
 # notification args
 notification_args = reqparse.RequestParser()
-notification_args.add_argument('doc_id', type=str, required=True, help='doc id')
-notification_args.add_argument('event', type=str, required=True, help='Event to trigger notifications example QC_COMPLETED')
-notification_args.add_argument('send_mail', type=inputs.boolean, default=False, required=False, help="sending mail default false if need to send mail for event true required")
+notification_args.add_argument(
+    'doc_id', type=str, required=True, help='doc id')
+notification_args.add_argument('event', type=str, required=True,
+                               help='Event to trigger notifications example QC_COMPLETED')
 
 fetch_workflows_by_doc_id = reqparse.RequestParser()
 fetch_workflows_by_doc_id.add_argument('doc_id', type=str, required=True,
