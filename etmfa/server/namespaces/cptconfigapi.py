@@ -174,6 +174,12 @@ class SectionDataConfigAPI(Resource):
                                                link_level=link_level,
                                                link_id=link_id, user_id=user_id,
                                                protocol=protocol)
+                
+                if isinstance(section_res, Response):                      
+                    if section_res.status_code == 404:
+                        message = json.dumps(
+                            {'message': "This document is not available in our database"})
+                        return Response(message, status=404, mimetype='application/json')
 
                 # Terms values based on given configuration values
                 terms_values = crud.get_document_terms_data(db, aidoc_id,
