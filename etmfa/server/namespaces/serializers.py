@@ -685,11 +685,11 @@ section_data_config_args = reqparse.RequestParser()
 section_data_config_args.add_argument(
     'aidoc_id', type=str, required=True, help='doc id')
 section_data_config_args.add_argument(
-    'link_level', type=int, required=False, help='Link leven in between 1 to 6')
+    'link_level', type=int, required=False,default=1, help='Link leven in between 1 to 6')
 section_data_config_args.add_argument(
     'toc', type=str, required=False, help='toc 0 or 1 to get section headers')
 section_data_config_args.add_argument(
-    'link_id', type=str, required=False, help='doc section id')
+    'link_id', type=str, required=False, default="", help='doc section id')
 section_data_config_args.add_argument('section_text', type=str, required=False,
                                       help='doc section text, table, appendix')
 section_data_config_args.add_argument(
