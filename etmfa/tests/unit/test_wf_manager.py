@@ -12,7 +12,7 @@ from etmfa.workflow.db.schemas import WorkFlowStatus
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("test")
 
-def test_wf_manager_registeration():
+def test_wf_manager_run():
     work_flow_id='12490569623511'
     work_flow_name='full_flow'
     protocol_name=''
@@ -32,5 +32,8 @@ def test_wf_manager_registeration():
     ms_runner.wait_for_microservices_to_finish()
     mixin.delete_by_key(PDProtocolMetadata,PDProtocolMetadata.id,work_flow_id)
     mixin.delete_by_key(WorkFlowStatus,WorkFlowStatus.work_flow_id,work_flow_id)
-    
+
+
+
+
     
