@@ -1025,7 +1025,6 @@ def get_protocols_by_date_time_range(version_date="", approval_date="", start_da
 
     return resource
 
-
 def get_normalized_soa_table(aidoc_id, footnote) -> dict:
     """
     Get protocol Normalized SOA for table mapping
