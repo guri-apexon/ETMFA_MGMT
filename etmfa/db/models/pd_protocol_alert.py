@@ -22,6 +22,7 @@ class Protocolalert(db_context.Model):
     timeUpdated = db_context.Column(db_context.DateTime(
         timezone=True), default=datetime.datetime.utcnow)
     email_template_id = db_context.Column(db_context.String(100))
+    notification_delete = db_context.Column(db_context.Boolean(), default=False)
     
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}
