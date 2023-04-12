@@ -72,6 +72,9 @@ class FakeGeneric(ExecutionContext):
         self.config = config
         logger.info("fake generic is running")
         super().__init__(config.CONTEXT_MAX_ACTIVE_TIME)
+        
+    def on_adapt_msg(self,msg):
+        return msg
 
     def on_init(self):
         return True
@@ -134,35 +137,42 @@ class ThreadWrapper(threading.Thread):
         logger.info('exit from thread wrapper')
 
 
-def run_all_microservices():
+class RunMicroservices():
+    def __init__(self):
+        self.th_list = []
 
-    services_list = [{'service_name': 'triage', 'input_queue_name': EtmfaQueues.TRIAGE.request,
-                       'output_queue_name': EtmfaQueues.TRIAGE.complete, 'fun': FakeTriage},
-                     {'service_name': 'digitizer1', 'input_queue_name': EtmfaQueues.DIGITIZER1.request,
-                         'output_queue_name': EtmfaQueues.DIGITIZER1.complete, 'fun': FakeDigGeneric},
-                     {'service_name': 'digitizer2', 'input_queue_name': EtmfaQueues.DIGITIZER2.request,
-                         'output_queue_name': EtmfaQueues.DIGITIZER2.complete, 'fun': FakeDigGeneric},
-                     {'service_name': 'extraction', 'input_queue_name': EtmfaQueues.EXTRACTION.request,
-                      'output_queue_name': EtmfaQueues.EXTRACTION.complete, 'fun': FakeDigGeneric},
-                    {'service_name': 'digitizer2_omopgenerate', 'input_queue_name': EtmfaQueues.DIGITIZER2_OMOP_GENERATE.request,
-                      'output_queue_name': EtmfaQueues.DIGITIZER2_OMOP_GENERATE.complete, 'fun': FakeDigGeneric},
-                     {'service_name': 'digitizer2_omopupdate', 'input_queue_name': EtmfaQueues.DIGITIZER2_OMOPUPDATE.request,
-                      'output_queue_name': EtmfaQueues.DIGITIZER2_OMOPUPDATE.complete, 'fun': FakeDigGeneric},
-                      {'service_name': 'i2e_omop_update', 'input_queue_name': EtmfaQueues.I2E_OMOP_UPDATE.request,
-                      'output_queue_name': EtmfaQueues.I2E_OMOP_UPDATE.complete, 'fun': FakeDigGeneric},
-                      {'service_name': 'analyzer', 'input_queue_name': EtmfaQueues.PB_ANALYZER.request,
-                      'output_queue_name': EtmfaQueues.PB_ANALYZER.complete, 'fun': FakeDigGeneric},
-                      {'service_name': 'meta_tagging', 'input_queue_name': EtmfaQueues.META_TAGGING.request,
-                      'output_queue_name': EtmfaQueues.META_TAGGING.complete, 'fun': FakeGeneric}
-                     ]
-    th_list = []
-    for vals in services_list:
-        cc_config = Config(
-            vals['service_name'],input_queue_name=vals['input_queue_name'],output_queue_name= vals['output_queue_name'])
-        cc_config.ERROR_QUEUE_NAME='documentprocessing_error_dummy'
-        th = ThreadWrapper(MicroServiceWrapper,vals['fun'],cc_config)
-        th_list.append(th)
-    wait_threads_to_finish(th_list)
-    print('out of thread')
+    def run(self):
+        services_list = [{'service_name': 'triage', 'input_queue_name': EtmfaQueues.TRIAGE.request,
+                          'output_queue_name': EtmfaQueues.TRIAGE.complete, 'fun': FakeTriage},
+                         {'service_name': 'digitizer1', 'input_queue_name': EtmfaQueues.DIGITIZER1.request,
+                          'output_queue_name': EtmfaQueues.DIGITIZER1.complete, 'fun': FakeDigGeneric},
+                         {'service_name': 'digitizer2', 'input_queue_name': EtmfaQueues.DIGITIZER2.request,
+                          'output_queue_name': EtmfaQueues.DIGITIZER2.complete, 'fun': FakeDigGeneric},
+                         {'service_name': 'extraction', 'input_queue_name': EtmfaQueues.EXTRACTION.request,
+                         'output_queue_name': EtmfaQueues.EXTRACTION.complete, 'fun': FakeDigGeneric},
+                         {'service_name': 'digitizer2_omopgenerate', 'input_queue_name': EtmfaQueues.DIGITIZER2_OMOP_GENERATE.request,
+                         'output_queue_name': EtmfaQueues.DIGITIZER2_OMOP_GENERATE.complete, 'fun': FakeDigGeneric},
+                         {'service_name': 'digitizer2_omopupdate', 'input_queue_name': EtmfaQueues.DIGITIZER2_OMOPUPDATE.request,
+                         'output_queue_name': EtmfaQueues.DIGITIZER2_OMOPUPDATE.complete, 'fun': FakeDigGeneric},
+                         {'service_name': 'i2e_omop_update', 'input_queue_name': EtmfaQueues.I2E_OMOP_UPDATE.request,
+                         'output_queue_name': EtmfaQueues.I2E_OMOP_UPDATE.complete, 'fun': FakeDigGeneric},
+                         {'service_name': 'analyzer', 'input_queue_name': EtmfaQueues.PB_ANALYZER.request,
+                         'output_queue_name': EtmfaQueues.PB_ANALYZER.complete, 'fun': FakeDigGeneric},
+                         {'service_name': 'meta_tagging', 'input_queue_name': EtmfaQueues.META_TAGGING.request,
+                         'output_queue_name': EtmfaQueues.META_TAGGING.complete, 'fun': FakeGeneric}
+                         ]
+
+        for vals in services_list:
+            cc_config = Config(
+                vals['service_name'], input_queue_name=vals['input_queue_name'], output_queue_name=vals['output_queue_name'])
+            cc_config.ERROR_QUEUE_NAME = 'documentprocessing_error_dummy'
+            th = ThreadWrapper(MicroServiceWrapper, vals['fun'], cc_config)
+            while (not (th.ms_instance and th.ms_instance.is_listener_ready)):
+                time.sleep(2)
+            self.th_list.append(th)
+
+    def wait_for_microservices_to_finish(self):
+        wait_threads_to_finish(self.th_list)
+        print('out of thread')
 
 

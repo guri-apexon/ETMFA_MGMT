@@ -190,7 +190,6 @@ class WorkFlow():
                 raise SendExceptionMessages(f'id {flow_id} already being processed  ')
             self.channels[flow_id] = Channel(
                 self.work_flow_name, flow_id, self.node_graph)
-            self.logger.info('added to channel')
 
     def delete_channel(self, flow_id):
         """"

@@ -72,7 +72,7 @@ class WorkFlowManager():
         if not extra_config:
             extra_config = {}
         self.extra_config = extra_config
-        self.max_service_execution_wait_time = extra_config['MAX_EXECUTION_WAIT_TIME_HRS']
+        self.max_service_execution_wait_time = extra_config.get('MAX_EXECUTION_WAIT_TIME_HRS',24)
 
         self.store, self.broker = get_db_and_broker(
             message_broker_exchange, message_broker_address)
@@ -93,10 +93,6 @@ class WorkFlowManager():
             for flow_name, _ in wf.channels.items():
                 running_flows.append(flow_name)
         return running_flows
-
-    def clear_running_work_flows(self):
-        for wf_name, wf in self.work_flows.items():
-            wf.channels = {}
 
     def _get_services_map(self, services_info: List[MsRegistry]):
         out_queue_service_map, service_queue_tuple_map = {}, {}
@@ -149,7 +145,8 @@ class WorkFlowManager():
         self.out_queue_service_map, self.service_queue_tuple_map = self._get_services_map(
             services_info)
         queues_to_monitor = list(self.out_queue_service_map.keys())
-        if self.extra_config['WORK_FLOW_RUNNER']:
+        queues_to_monitor = [q for q in queues_to_monitor if q]
+        if self.extra_config.get('WORK_FLOW_RUNNER',False):
             queues_to_monitor.append(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value)
         else:
             error_queue=EtmfaQueues(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value).queue_prefix
