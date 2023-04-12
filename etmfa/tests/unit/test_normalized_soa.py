@@ -36,7 +36,7 @@ def test_normalized_soa(new_app_context, aidoc_id, source_system, operation_valu
 # Update, Create, Delete Operations for normalized soa
 @pytest.mark.parametrize("update_request, expected_status_cd, comments",
                          [
-                            ({"operation": "update", "sub_type": "update_cell", "table_props": {"doc_id":"", "table_roi_id": "ed04448a-9c17-4a64-8741-36a6934956cc", "table_row_index": "11", "table_column_index": "3", "value": "Continuous", "timepoint": "" } }, HTTPStatus.OK, "Normal"),
+                            ({"operation": "update", "sub_type": "update_cell", "table_props": {"doc_id":"f8f535b1-33e6-4b9b-9d97-9c864fdcc9ee", "table_roi_id": "f2a79f10-ea7f-4da9-bdec-ea0cdbc58213", "table_row_index": "35", "table_column_index": "11", "value": "Continuous", "timepoint": "" } }, HTTPStatus.OK, "Normal"),
                             ({}, HTTPStatus.BAD_REQUEST, "Missing dictionary data"),
                             ({ "operation": "update", "sub_type": "update_study_procedure", "table_props": { "doc_id": "", "table_roi_id": "8715826c-6480-4162-9e83-f54ddf479d70", "table_row_index": "6", "table_column_index": "", "timepoint": "", "value": "Hepatitis and HIV screen" } }, HTTPStatus.OK, "Normal"),
                             ({ "operation": "update", "sub_type": "update_study_visit", "table_props": { "doc_id": "", "table_roi_id": "5af15495-9d79-4887-a396-29c2dc230c45", "table_row_index": "", "table_column_index": "2", "timepoint": "day_timepoint", "value": "1" } }, HTTPStatus.OK, "Normal"),
@@ -54,7 +54,7 @@ def test_normalized_soa_operations(new_app_context, update_request, expected_sta
     
     with client:
         logger.debug(f"test_normalized_soa_update: Processing for unit test type.{comments}")
-        response = client.post("/pd/api/v1/documents/protocol_normalized_soa_operations", json = update_request, headers = Config.UNIT_TEST_HEADERS)
+        response = client.post("/pd/api/v1/documents/protocol_normalized_soa", json = update_request, headers = Config.UNIT_TEST_HEADERS)
         if expected_status_cd == response.status_code:
             assert response.status_code == expected_status_cd
 

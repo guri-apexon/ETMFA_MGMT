@@ -74,6 +74,8 @@ class ElasticIngestion(ExecutionContext):
                                              protocol_view_redaction.entity_profile_genre)
         mcra_dict = finalized_iqvxml.get_norm_cpt(
             self.elastic_host, self.elastic_port, self.elastic_index)
+        mcra_dict['columns'] = ["section_level", "CPT_section", "type", "content", "font_info",
+                                "level_1_CPT_section", "file_section", "file_section_num", "file_section_level", "seq_num"]
         protocol_data_str = str(json.dumps(mcra_dict))
         mapped_meta_fields = {SUMMARY_KEY_META_FIELDS_MAP.get(mkey, mkey): (mval, _SummaryConfig.summary_key_list.get(mkey, mkey))
                               for mkey, mval in mcra_dict['metadata'].items()}

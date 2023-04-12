@@ -714,24 +714,19 @@ dipadata_details_input.add_argument(
 
 # for Upsert DIPA View Data
 dipa_view_data = reqparse.RequestParser()
-dipa_view_data.add_argument(
-    'id', type=str, required=True, help='unique db id for dipa view data')
-dipa_view_data.add_argument(
-    'doc_id', type=str, required=False, help='unqiue id of document')
-dipa_view_data.add_argument('link_id_1', type=str,
-                            required=False, help='link level id 1')
-dipa_view_data.add_argument('link_id_2', type=str,
-                            required=False, help='link level id 2')
-dipa_view_data.add_argument('link_id_3', type=str,
-                            required=False, help='link level id 3')
-dipa_view_data.add_argument('link_id_4', type=str,
-                            required=False, help='link level id 4')
-dipa_view_data.add_argument('link_id_5', type=str,
-                            required=False, help='link level id 5')
-dipa_view_data.add_argument('link_id_6', type=str,
-                            required=False, help='link level id 6')
+dipa_view_data.add_argument('id', type=str, required=True, help='unique db id for dipa view data')
+dipa_view_data.add_argument('doc_id', type=str, required=False, help='unqiue id of document')
+dipa_view_data.add_argument('link_id_1', type=str, required=False, help='link level id 1')
+dipa_view_data.add_argument('link_id_2', type=str, required=False, help='link level id 2')
+dipa_view_data.add_argument('link_id_3', type=str, required=False, help='link level id 3')
+dipa_view_data.add_argument('link_id_4', type=str, required=False, help='link level id 4')
+dipa_view_data.add_argument('link_id_5', type=str, required=False, help='link level id 5')
+dipa_view_data.add_argument('link_id_6', type=str, required=False, help='link level id 6')
+dipa_view_data.add_argument('userId', type=str, required=True, help='id of user updating the Data')
+dipa_view_data.add_argument('userName', type=str, required=True, help='id of user updating the Data')
 dipa_view_data.add_argument('dipa_data', type=dict,
                             help='contains json data to be stored against dipa data column')
+
 
 fetch_workflows_by_userId = reqparse.RequestParser()
 fetch_workflows_by_userId.add_argument('userId', type=str, required=True,
