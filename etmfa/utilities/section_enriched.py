@@ -34,7 +34,8 @@ def update_section_data_with_enriched_data(section_data: dict,
             link_id_level4 = font_info.get("link_id_level4")
             link_id_level5 = font_info.get("link_id_level5")
             link_id_level6 = font_info.get("link_id_level6")
-            sub_section.update({'clinical_terms': {}, 'preferred_terms': {}, 'reference_df': {}})
+            sub_section.update({'clinical_terms': {}, 'preferred_terms': {},
+                                'link_and_reference': {}})
             if content:
                 roi_id = font_info.get("roi_id")
                 para_id = roi_id.get("para")

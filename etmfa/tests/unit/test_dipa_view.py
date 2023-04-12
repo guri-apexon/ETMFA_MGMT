@@ -1,7 +1,6 @@
 import json
 import logging
 from http import HTTPStatus
-
 import pytest
 from etmfa.consts import Consts as consts
 from etmfa.server.config import Config
@@ -46,17 +45,18 @@ def test_get_dipadata_by_category(new_app_context, category, doc_id, id, expecte
 
 
 @pytest.mark.parametrize(
-    "id, doc_id, link_id_1, link_id_2, link_id_3, link_id_4, link_id_5, link_id_6, category, dipa_data, expected_status_cd, comments",
+    "id, doc_id, link_id_1, link_id_2, link_id_3, link_id_4, link_id_5, link_id_6, category, dipa_data, "
+    "userName,userId,expected_status_cd, comments",
     [("06d9b878-48b6-4106-820e-249511919fd0", "f79ee831-1a2d-4253-9b78-7c1abff51a1a", "", "", "", "", "", "", "",
-      "", HTTPStatus.OK, "Normal")
+      "", "Test User", "1155000", HTTPStatus.OK, "Normal")
      ])
 def test_update_dipa_data(new_app_context, id, doc_id, category, link_id_1, link_id_2, link_id_3, link_id_4, link_id_5,
-                          link_id_6, dipa_data, expected_status_cd, comments):
+                          link_id_6, dipa_data, userName, userId, expected_status_cd, comments):
     new_app, _ = new_app_context
     client = new_app.test_client()
     input_dict = {"id": id, "doc_id": doc_id, "link_id_1": link_id_1, "link_id_2": link_id_2, "link_id_3": link_id_3,
                   "link_id_4": link_id_4, "link_id_5": link_id_5, "link_id_6": link_id_6, "category": category,
-                  "dipa_data": dipa_data}
+                  "dipa_data": dipa_data,"userName":userName,"userId":userId}
     with client:
         logger.debug(
             f"test_update_dipa_data: Processing for unit test type [{comments}]: [{id}, {doc_id}, {link_id_1}, {link_id_2}, {link_id_3}, {link_id_4}, {link_id_5},{link_id_6}, {category}, {dipa_data}]")
