@@ -1,18 +1,22 @@
 
-from etmfa.workflow.wf_manager import WorkFlowManager
+from etmfa.workflow.wf_manager import WorkFlowManager,WorkFlowClient,WorkFlowThreadRunner
 from etmfa.workflow.db.db_utils import create_doc_processing_status
 from etmfa.server.config import Config
-import logging
 from etmfa.consts import Consts as consts
 from .pseudo_ms_utils import RunMicroservices
-from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
-from etmfa.workflow.messaging.models import TriageRequest
 from etmfa.workflow.db.db_utils import DbMixin
 from etmfa.workflow.db.schemas import WorkFlowStatus
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("test")
+import time
+
 
 def test_wf_manager_run():
+    import logging
+    from etmfa.workflow.messaging.models import TriageRequest
+    from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("test")
+    
+    
     work_flow_id='12490569623511'
     work_flow_name='full_flow'
     protocol_name=''
@@ -34,6 +38,24 @@ def test_wf_manager_run():
     mixin.delete_by_key(WorkFlowStatus,WorkFlowStatus.work_flow_id,work_flow_id)
 
 
-
+def test_client_and_controller():
+    conf = {"ZMQ_PORT": Config.ZMQ_PORT,
+            "MESSAGE_BROKER_EXCHANGE": Config.MESSAGE_BROKER_EXCHANGE,
+            "LOGSTASH_HOST": Config.LOGSTASH_HOST,
+            "LOGSTASH_PORT": Config.LOGSTASH_PORT,
+            "MESSAGE_BROKER_ADDR": Config.MESSAGE_BROKER_ADDR,
+            "DFS_UPLOAD_FOLDER": Config.DFS_UPLOAD_FOLDER,
+            "DEBUG": False
+            }
+    runner = WorkFlowThreadRunner(conf)
+    runner.start_process()
+    while(not runner.wfc):
+        time.sleep(3)
+    runner.wfc.wfm.wait_until_listener_ready()
+    cid='123456'
+    wf_client = WorkFlowClient(Config.ZMQ_PORT)
+    wf_client.send_msg("dummy_flow", cid,
+                            cid, {"id":cid,"doc_id":cid})
+    print('got reply')
 
     

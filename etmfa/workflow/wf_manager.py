@@ -468,12 +468,8 @@ class WorkFlowController(Thread):
                 self.logger.error(str(e))
 
 
-class WorkFlowRunner(Process):
+class WorkFlowsHandler():
     def __init__(self, config):
-        """
-        workflow runner runs controller in separate process
-        controller reads messages
-        """
         self.port = config["ZMQ_PORT"]
         self.message_broker_exchange = config["MESSAGE_BROKER_EXCHANGE"]
         self.log_stash_host = config["LOGSTASH_HOST"]
@@ -481,11 +477,32 @@ class WorkFlowRunner(Process):
         self.message_broker_address = config['MESSAGE_BROKER_ADDR']
         self.dfs_path = config['DFS_UPLOAD_FOLDER']
         self.debug = config["DEBUG"]
+        self.wfc = None
         self.extra_config = {'MAX_EXECUTION_WAIT_TIME_HRS': config.get('MAX_EXECUTION_WAIT_TIME_HRS', 24),
-                             'WORK_FLOW_RUNNER':config.get("WORK_FLOW_RUNNER",True)
+                             'WORK_FLOW_RUNNER': config.get("WORK_FLOW_RUNNER", True)
                              }
-
         self.logger = None
+
+    def run_controller(self):
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(Consts.LOGGING_WF)
+        # register workflow logger
+        initialize_wf_logger(self.log_stash_host, self.log_stash_port)
+        self.logger.info("Running workflow Runner")
+        self.wfc = WorkFlowController(
+            self.message_broker_exchange, self.message_broker_address, self.dfs_path, self.logger, self.extra_config)
+
+        mqr = MqReceiver(self.port, self.wfc.on_msg)
+        mqr.run()
+
+
+class WorkFlowRunner(Process, WorkFlowsHandler):
+    def __init__(self, config):
+        """
+        workflow runner runs controller in separate process
+        controller reads messages
+        """
+        WorkFlowsHandler.__init__(self,config)
         Process.__init__(self)
         self.daemon = True
 
@@ -493,13 +510,17 @@ class WorkFlowRunner(Process):
         self.start()
 
     def run(self):
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(Consts.LOGGING_WF)
-        # register workflow logger
-        initialize_wf_logger(self.log_stash_host, self.log_stash_port)
-        self.logger.info("Running workflow Runner")
-        wfc = WorkFlowController(
-            self.message_broker_exchange, self.message_broker_address, self.dfs_path, self.logger, self.extra_config)
+        self.run_controller()
 
-        mqr = MqReceiver(self.port, wfc.on_msg)
-        mqr.run()
+class WorkFlowThreadRunner(Thread, WorkFlowsHandler):
+    def __init__(self, config):
+        WorkFlowsHandler.__init__(self,config)
+        Thread.__init__(self)
+        self.daemon = True
+
+    def start_process(self):
+        self.start()
+
+    def run(self):
+        self.run_controller()
+
