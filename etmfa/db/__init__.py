@@ -799,7 +799,6 @@ def get_attr_soa_compare(protocol_number, aidoc_id, compare_doc_id) -> dict:
 
     return resource_dict
 
-
 def update_compare_run(compare_id, session):
     """
         update the compareRun i.e, how many times compare process runs for particular combination.
