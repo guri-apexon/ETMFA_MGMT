@@ -22,17 +22,12 @@ class CdcThread(Thread):
         engine = db_context.get_engine(app)
         session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         try:
-            pattern = r'^postgresql\+psycopg2:\/\/(?P<username>[^:]+):(?P<password>[^@]+)@(?P<host>[^:]+):(?P<port>\d+)\/(?P<database>[^\/]+)$'
-            match = re.match(pattern, Config.SQLALCHEMY_DATABASE_URI)
-            username = match.group('username')
-            password = match.group('password')
-            host = match.group('host')
-            port = match.group('port')
-            database = match.group('database')
+            db_url = Config.SQLALCHEMY_DATABASE_URI
+
             with session_local() as session:
                 latest_work = session.query(WorkFlowStatus).filter_by(work_flow_id=self.w_id).first()
                 try:
-                    run_cdc('audit', username, password, host, port, database)
+                    run_cdc('audit',db_url)
                     latest_work.status = "COMPLETED"
                     session.commit()
                     session.close()

@@ -1025,7 +1025,6 @@ def get_protocols_by_date_time_range(version_date="", approval_date="", start_da
 
     return resource
 
-
 def get_normalized_soa_table(aidoc_id, footnote) -> dict:
     """
     Get protocol Normalized SOA for table mapping
@@ -1105,7 +1104,9 @@ def get_dipa_data_by_category(_id, doc_id, category):
                 PDDipaViewdata.link_id_3, PDDipaViewdata.link_id_4,
                 PDDipaViewdata.link_id_5, PDDipaViewdata.link_id_6,
                 PDDipaViewdata.category, PDDipaViewdata.dipa_data,
-                PDDipaViewdata.timeCreated, PDDipaViewdata.timeUpdated
+                PDDipaViewdata.timeCreated, PDDipaViewdata.timeUpdated,
+                PDDipaViewdata.lastEditedBy,PDDipaViewdata.editorUserId,
+                PDDipaViewdata.editCount
             ).filter(text(apply_filter)).all()
 
             response_list = [i._asdict() for i in resource]

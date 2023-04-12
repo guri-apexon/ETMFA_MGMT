@@ -989,11 +989,12 @@ class DocumentprocessingAPI(Resource):
         link4 = args.get('link_id_4')
         link5 = args.get('link_id_5')
         link6 = args.get('link_id_6')
+        user_id = args.get('userId')
+        user_name = args.get('userName')
         try:
             result = pd_dipa_view_data.DipaViewHelper.upsert(_id, doc_id, link1, link2, link3, link4, link5,
-                                                             link6,
+                                                             link6, user_id=user_id, user_name=user_name,
                                                              dipa_view_data=args['dipa_data'])
-
             if result is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(args))
             else:
@@ -1001,7 +1002,6 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
-
 
 @ns.route('/get_all_workflows')
 @ns.response(500, 'Server error.')
@@ -1097,6 +1097,65 @@ class DocumentprocessingAPI(Resource):
             wf_num = args['wf_num']
             result = get_wf_by_doc_id(doc_id, days, wf_num)
             return {"Status": "200", "wfData": result}
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(500, SERVER_ERROR.format(e))
+
+
+@ns.route('/cdc')
+@ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
+class CdcAPI(Resource):
+    @ns.response(HTTPStatus.OK, 'Success.')
+    @ns.response(HTTPStatus.NOT_FOUND, 'CDC enabling not found.')
+    @api.doc(security='apikey')
+    @authenticate
+    def post(self):
+        try:
+            operation = request.args.get('op')
+            if operation == 'enable_cdc':
+
+                try:
+                    session = db_context.session()
+                    latest_work = session.query(WorkFlowStatus).filter_by(protocol_name='running_cdc',
+                                                                               work_flow_name='CDC',
+                                                                               status='RUNNING').first()
+                    if latest_work :
+                        return {'id': latest_work.work_flow_id, 'status': latest_work.status}
+                    else:
+                        new_work = WorkFlowStatus(work_flow_id = str(uuid.uuid4()),protocol_name = 'running_cdc',work_flow_name= 'CDC', status = 'RUNNING')
+                        session.add(new_work)
+                        session.commit()
+                        CdcThread(new_work.work_flow_id).start()
+                        return {'id': new_work.work_flow_id, 'status': new_work.status}
+                except ValueError as e:
+                    logger.error(SERVER_ERROR.format(e))
+                    return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
+            else:
+                return abort(HTTPStatus.BAD_REQUEST,"invalid operation")
+
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
+
+@ns.route('/cdc_status/<string:id>/')
+@ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
+class CdcAPI(Resource):
+    @ns.response(HTTPStatus.OK, 'Success.')
+    @ns.response(HTTPStatus.NOT_FOUND, 'CDC enabling not found.')
+    @api.doc(security='apikey')
+    @authenticate
+    def get(self,id):
+        try:
+            try:
+                session = db_context.session()
+                latest_work = session.query(WorkFlowStatus).filter_by(work_flow_id=id).first()
+                if latest_work :
+                    return {'id': latest_work.work_flow_id, 'status': latest_work.status,'operation' :latest_work.protocol_name}
+                else:
+                    logger.info("Status id not found")
+                    return abort(HTTPStatus.NOT_FOUND,"Not found")
+            except ValueError as e:
+                return abort(HTTPStatus.BAD_REQUEST,"invalid operation")
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
