@@ -1105,7 +1105,9 @@ def get_dipa_data_by_category(_id, doc_id, category):
                 PDDipaViewdata.link_id_3, PDDipaViewdata.link_id_4,
                 PDDipaViewdata.link_id_5, PDDipaViewdata.link_id_6,
                 PDDipaViewdata.category, PDDipaViewdata.dipa_data,
-                PDDipaViewdata.timeCreated, PDDipaViewdata.timeUpdated
+                PDDipaViewdata.timeCreated, PDDipaViewdata.timeUpdated,
+                PDDipaViewdata.lastEditedBy,PDDipaViewdata.editorUserId,
+                PDDipaViewdata.editCount
             ).filter(text(apply_filter)).all()
 
             response_list = [i._asdict() for i in resource]

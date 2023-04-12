@@ -989,11 +989,12 @@ class DocumentprocessingAPI(Resource):
         link4 = args.get('link_id_4')
         link5 = args.get('link_id_5')
         link6 = args.get('link_id_6')
+        user_id = args.get('userId')
+        user_name = args.get('userName')
         try:
             result = pd_dipa_view_data.DipaViewHelper.upsert(_id, doc_id, link1, link2, link3, link4, link5,
-                                                             link6,
+                                                             link6, user_id=user_id, user_name=user_name,
                                                              dipa_view_data=args['dipa_data'])
-
             if result is None:
                 return abort(404, DOCUMENT_NOT_FOUND.format(args))
             else:
@@ -1001,7 +1002,6 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
-
 
 @ns.route('/get_all_workflows')
 @ns.response(500, 'Server error.')
