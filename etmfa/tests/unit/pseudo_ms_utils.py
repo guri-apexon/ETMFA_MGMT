@@ -161,7 +161,7 @@ DEFAULT_SERVICES_LIST = [{'service_name': 'triage', 'input_queue_name': EtmfaQue
 
 
 class RunMicroservices():
-    def __init__(self, services_list):
+    def __init__(self, services_list=[]):
         self.th_list = []
         self.services_list = services_list if services_list else DEFAULT_SERVICES_LIST
 
