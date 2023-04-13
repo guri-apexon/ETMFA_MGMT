@@ -2,13 +2,10 @@
 from etmfa.workflow.wf_manager import WorkFlowManager,WorkFlowClient,WorkFlowThreadRunner
 from etmfa.workflow.db.db_utils import create_doc_processing_status
 from etmfa.server.config import Config
-from etmfa.consts import Consts as consts
 from .pseudo_ms_utils import RunMicroservices
 from etmfa.workflow.db.db_utils import DbMixin
 from etmfa.workflow.db.schemas import WorkFlowStatus
 from etmfa.workflow.messaging import MsqType
-from etmfa.workflow.messaging.models import EtmfaQueues
-from .pseudo_ms_utils import MockGeneric
 import time
 
 
@@ -55,7 +52,7 @@ def test_client_and_controller():
         time.sleep(3)
     runner.wfc.wfm.wait_until_listener_ready()
     cid='12x8976'
-    work_flow_name='custom_test_eg'
+    work_flow_name=''
     wf_client = WorkFlowClient(Config.ZMQ_PORT)
     work_flow_list = [
         {
