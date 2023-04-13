@@ -11,7 +11,7 @@ from etmfa.consts import Consts as consts
 
 logger = logging.getLogger(consts.LOGGING_WF)
 
-class FakeTriage(ExecutionContext):
+class MockTriage(ExecutionContext):
     def __init__(self, config):
         self.config = config
         super().__init__(config.CONTEXT_MAX_ACTIVE_TIME)
@@ -43,10 +43,10 @@ class FakeTriage(ExecutionContext):
         return True
 
 
-class FakeDigGeneric(ExecutionContext):
+class MockDigGeneric(ExecutionContext):
     def __init__(self, config):
         self.config = config
-        logger.info("fake dig is running")
+        logger.info("mock dig is running")
         super().__init__(config.CONTEXT_MAX_ACTIVE_TIME)
 
     def on_init(self):
@@ -57,7 +57,6 @@ class FakeDigGeneric(ExecutionContext):
         return {"flow_name": "full_flow", "flow_id": msg['id'], "services_param": [service_msg]}
 
     def on_callback(self, msg):
-        print(f'got message on generic dig - {msg}')
         msg = list(msg.values())[0]
         curr_msg = {'flow_name': 'full_flow', 'flow_id': msg['flow_id'], 'id': msg['id'], 'doc_id': msg['id'],
                     'FeedbackRunId': 0, 'IQVXMLPath': 'tmp.xml', 'OMOPPath': 'tmp_omop.xml',
@@ -68,10 +67,10 @@ class FakeDigGeneric(ExecutionContext):
         return True
 
 
-class FakeGeneric(ExecutionContext):
+class MockGeneric(ExecutionContext):
     def __init__(self, config):
         self.config = config
-        logger.info("fake generic is running")
+        logger.info("mock generic is running")
         super().__init__(config.CONTEXT_MAX_ACTIVE_TIME)
 
     def on_adapt_msg(self, msg):
@@ -86,10 +85,10 @@ class FakeGeneric(ExecutionContext):
     def on_release(self):
         return True
 
-class FakeError(ExecutionContext):
+class MockError(ExecutionContext):
     def __init__(self, config):
         self.config = config
-        logger.info("fake generic is running")
+        logger.info("mock generic is running")
         super().__init__(config.CONTEXT_MAX_ACTIVE_TIME)
 
     def on_adapt_msg(self, msg):
@@ -158,23 +157,23 @@ class ThreadWrapper(threading.Thread):
 
 
 DEFAULT_SERVICES_LIST = [{'service_name': 'triage', 'input_queue_name': EtmfaQueues.TRIAGE.request,
-                          'output_queue_name': EtmfaQueues.TRIAGE.complete, 'fun': FakeTriage},
+                          'output_queue_name': EtmfaQueues.TRIAGE.complete, 'fun': MockTriage},
                          {'service_name': 'digitizer1', 'input_queue_name': EtmfaQueues.DIGITIZER1.request,
-                          'output_queue_name': EtmfaQueues.DIGITIZER1.complete, 'fun': FakeDigGeneric},
+                          'output_queue_name': EtmfaQueues.DIGITIZER1.complete, 'fun': MockDigGeneric},
                          {'service_name': 'digitizer2', 'input_queue_name': EtmfaQueues.DIGITIZER2.request,
-                          'output_queue_name': EtmfaQueues.DIGITIZER2.complete, 'fun': FakeDigGeneric},
+                          'output_queue_name': EtmfaQueues.DIGITIZER2.complete, 'fun': MockDigGeneric},
                          {'service_name': 'extraction', 'input_queue_name': EtmfaQueues.EXTRACTION.request,
-                          'output_queue_name': EtmfaQueues.EXTRACTION.complete, 'fun': FakeDigGeneric},
+                          'output_queue_name': EtmfaQueues.EXTRACTION.complete, 'fun': MockDigGeneric},
                          {'service_name': 'digitizer2_omopgenerate', 'input_queue_name': EtmfaQueues.DIGITIZER2_OMOP_GENERATE.request,
-                          'output_queue_name': EtmfaQueues.DIGITIZER2_OMOP_GENERATE.complete, 'fun': FakeDigGeneric},
+                          'output_queue_name': EtmfaQueues.DIGITIZER2_OMOP_GENERATE.complete, 'fun': MockDigGeneric},
                          {'service_name': 'digitizer2_omopupdate', 'input_queue_name': EtmfaQueues.DIGITIZER2_OMOPUPDATE.request,
-                          'output_queue_name': EtmfaQueues.DIGITIZER2_OMOPUPDATE.complete, 'fun': FakeDigGeneric},
+                          'output_queue_name': EtmfaQueues.DIGITIZER2_OMOPUPDATE.complete, 'fun': MockDigGeneric},
                          {'service_name': 'i2e_omop_update', 'input_queue_name': EtmfaQueues.I2E_OMOP_UPDATE.request,
-                          'output_queue_name': EtmfaQueues.I2E_OMOP_UPDATE.complete, 'fun': FakeDigGeneric},
+                          'output_queue_name': EtmfaQueues.I2E_OMOP_UPDATE.complete, 'fun': MockDigGeneric},
                          {'service_name': 'analyzer', 'input_queue_name': EtmfaQueues.PB_ANALYZER.request,
-                          'output_queue_name': EtmfaQueues.PB_ANALYZER.complete, 'fun': FakeDigGeneric},
+                          'output_queue_name': EtmfaQueues.PB_ANALYZER.complete, 'fun': MockDigGeneric},
                          {'service_name': 'meta_tagging', 'input_queue_name': EtmfaQueues.META_TAGGING.request,
-                          'output_queue_name': EtmfaQueues.META_TAGGING.complete, 'fun': FakeError}
+                          'output_queue_name': EtmfaQueues.META_TAGGING.complete, 'fun': MockError}
                          ]
 
 
