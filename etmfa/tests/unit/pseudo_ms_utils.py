@@ -86,7 +86,25 @@ class FakeGeneric(ExecutionContext):
     def on_release(self):
         return True
 
+class FakeError(ExecutionContext):
+    def __init__(self, config):
+        self.config = config
+        logger.info("fake generic is running")
+        super().__init__(config.CONTEXT_MAX_ACTIVE_TIME)
 
+    def on_adapt_msg(self, msg):
+        return msg
+
+    def on_init(self):
+        return True
+
+    def on_callback(self, msg):
+        time.sleep(10)
+        val=val/0
+        return msg
+
+    def on_release(self):
+        return True
 def wait_threads_to_finish(th_list, min_count=1):
     """
     wait for all threads to finish
@@ -156,7 +174,7 @@ DEFAULT_SERVICES_LIST = [{'service_name': 'triage', 'input_queue_name': EtmfaQue
                          {'service_name': 'analyzer', 'input_queue_name': EtmfaQueues.PB_ANALYZER.request,
                           'output_queue_name': EtmfaQueues.PB_ANALYZER.complete, 'fun': FakeDigGeneric},
                          {'service_name': 'meta_tagging', 'input_queue_name': EtmfaQueues.META_TAGGING.request,
-                          'output_queue_name': EtmfaQueues.META_TAGGING.complete, 'fun': FakeGeneric}
+                          'output_queue_name': EtmfaQueues.META_TAGGING.complete, 'fun': FakeError}
                          ]
 
 
