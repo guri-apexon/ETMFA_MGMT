@@ -452,6 +452,7 @@ class WorkFlowController(Thread):
     def run(self):
         self.wfm.wait_until_listener_ready()
         last_pending_services_check_time = time.time()
+        is_start=True
         stale_work_flow_check_time_sec = max(1, self.remove_time_for_stale_workflows / 12) * 3600
         while (True):
             try:
@@ -459,8 +460,9 @@ class WorkFlowController(Thread):
                 self._process_msg()
                 curr_time = time.time()
                 diff = curr_time - last_pending_services_check_time
-                if diff > stale_work_flow_check_time_sec:
+                if diff > stale_work_flow_check_time_sec or is_start:
                     self.logger.info('checking stale workflows')
+                    is_start=False
                     stale_ids = check_stale_work_flows_and_remove(self.remove_time_for_stale_workflows, self.logger)
                     if stale_ids:
                         self.wfm.delete_channel_ids(stale_ids)

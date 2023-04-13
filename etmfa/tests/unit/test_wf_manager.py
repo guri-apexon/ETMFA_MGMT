@@ -68,7 +68,7 @@ def test_client_and_controller():
                                                                             "doc_id": cid},
                                                     MsqType.ADD_CUSTOM_WORKFLOW.value)
     wf_client.send_msg(work_flow_name,cid,"",{"work_flow_id":cid,"doc_id":cid})
-    time.sleep(10)
+    time.sleep(30)
     
 
     
