@@ -489,7 +489,6 @@ class WorkFlowsHandler():
         self.logger = None
 
     def run_controller(self):
-        logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(Consts.LOGGING_WF)
         # register workflow logger
         initialize_wf_logger(self.log_stash_host, self.log_stash_port)

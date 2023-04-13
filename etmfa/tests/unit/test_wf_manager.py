@@ -13,9 +13,7 @@ def test_wf_manager_run():
     import logging
     from etmfa.workflow.messaging.models import TriageRequest
     from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
-    logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("test")
-
     work_flow_id='12490569623511'
     work_flow_name='full_flow'
     protocol_name=''
