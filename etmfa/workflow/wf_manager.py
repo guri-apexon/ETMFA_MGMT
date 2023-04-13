@@ -72,7 +72,7 @@ class WorkFlowManager():
         if not extra_config:
             extra_config = {}
         self.extra_config = extra_config
-        self.max_service_execution_wait_time = extra_config['MAX_EXECUTION_WAIT_TIME_HRS']
+        self.max_service_execution_wait_time = extra_config.get('MAX_EXECUTION_WAIT_TIME_HRS',24)
 
         self.store, self.broker = get_db_and_broker(
             message_broker_exchange, message_broker_address)
@@ -93,10 +93,6 @@ class WorkFlowManager():
             for flow_name, _ in wf.channels.items():
                 running_flows.append(flow_name)
         return running_flows
-
-    def clear_running_work_flows(self):
-        for wf_name, wf in self.work_flows.items():
-            wf.channels = {}
 
     def _get_services_map(self, services_info: List[MsRegistry]):
         out_queue_service_map, service_queue_tuple_map = {}, {}
@@ -149,7 +145,12 @@ class WorkFlowManager():
         self.out_queue_service_map, self.service_queue_tuple_map = self._get_services_map(
             services_info)
         queues_to_monitor = list(self.out_queue_service_map.keys())
-        queues_to_monitor.append(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value)
+        queues_to_monitor=[ q  for q in queues_to_monitor if q]
+        if self.extra_config.get('WORK_FLOW_RUNNER',False):
+            queues_to_monitor.append(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value)
+        else:
+            error_queue=EtmfaQueues(EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value).queue_prefix
+            queues_to_monitor.append(error_queue)
         self.logger.info(f"Monitoring queues :{queues_to_monitor}")
         self.broker.add_queues_to_monitor(queues_to_monitor)
 
@@ -227,6 +228,9 @@ class WorkFlowManager():
             work_flow_name=work_flow_name, graph=depend_graph, is_default=is_default)
         self.store.store_dependancy_graph(swf)
 
+    def delete_work_flow(self, work_flow_name):
+        self.store.delete_dependancy_graph(work_flow_name)
+        
     def get_all_registered_services(self):
         return self.store.get_all_registered_services()
 
@@ -448,6 +452,7 @@ class WorkFlowController(Thread):
     def run(self):
         self.wfm.wait_until_listener_ready()
         last_pending_services_check_time = time.time()
+        is_start=True
         stale_work_flow_check_time_sec = max(1, self.remove_time_for_stale_workflows / 12) * 3600
         while (True):
             try:
@@ -455,8 +460,9 @@ class WorkFlowController(Thread):
                 self._process_msg()
                 curr_time = time.time()
                 diff = curr_time - last_pending_services_check_time
-                if diff > stale_work_flow_check_time_sec:
+                if diff > stale_work_flow_check_time_sec or is_start:
                     self.logger.info('checking stale workflows')
+                    is_start=False
                     stale_ids = check_stale_work_flows_and_remove(self.remove_time_for_stale_workflows, self.logger)
                     if stale_ids:
                         self.wfm.delete_channel_ids(stale_ids)
@@ -467,12 +473,8 @@ class WorkFlowController(Thread):
                 self.logger.error(str(e))
 
 
-class WorkFlowRunner(Process):
+class WorkFlowsHandler():
     def __init__(self, config):
-        """
-        workflow runner runs controller in separate process
-        controller reads messages
-        """
         self.port = config["ZMQ_PORT"]
         self.message_broker_exchange = config["MESSAGE_BROKER_EXCHANGE"]
         self.log_stash_host = config["LOGSTASH_HOST"]
@@ -480,8 +482,32 @@ class WorkFlowRunner(Process):
         self.message_broker_address = config['MESSAGE_BROKER_ADDR']
         self.dfs_path = config['DFS_UPLOAD_FOLDER']
         self.debug = config["DEBUG"]
-        self.extra_config = {'MAX_EXECUTION_WAIT_TIME_HRS': config.get('MAX_EXECUTION_WAIT_TIME_HRS', 24)}
+        self.wfc = None
+        self.extra_config = {'MAX_EXECUTION_WAIT_TIME_HRS': config.get('MAX_EXECUTION_WAIT_TIME_HRS', 24),
+                             'WORK_FLOW_RUNNER': config.get("WORK_FLOW_RUNNER", True)
+                             }
         self.logger = None
+
+    def run_controller(self):
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(Consts.LOGGING_WF)
+        # register workflow logger
+        initialize_wf_logger(self.log_stash_host, self.log_stash_port)
+        self.logger.info("Running workflow Runner")
+        self.wfc = WorkFlowController(
+            self.message_broker_exchange, self.message_broker_address, self.dfs_path, self.logger, self.extra_config)
+
+        mqr = MqReceiver(self.port, self.wfc.on_msg)
+        mqr.run()
+
+
+class WorkFlowRunner(Process, WorkFlowsHandler):
+    def __init__(self, config):
+        """
+        workflow runner runs controller in separate process
+        controller reads messages
+        """
+        WorkFlowsHandler.__init__(self,config)
         Process.__init__(self)
         self.daemon = True
 
@@ -489,13 +515,17 @@ class WorkFlowRunner(Process):
         self.start()
 
     def run(self):
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(Consts.LOGGING_WF)
-        # register workflow logger
-        initialize_wf_logger(self.log_stash_host, self.log_stash_port)
-        self.logger.info("Running workflow Runner")
-        wfc = WorkFlowController(
-            self.message_broker_exchange, self.message_broker_address, self.dfs_path, self.logger, self.extra_config)
+        self.run_controller()
 
-        mqr = MqReceiver(self.port, wfc.on_msg)
-        mqr.run()
+class WorkFlowThreadRunner(Thread, WorkFlowsHandler):
+    def __init__(self, config):
+        WorkFlowsHandler.__init__(self,config)
+        Thread.__init__(self)
+        self.daemon = True
+
+    def start_process(self):
+        self.start()
+
+    def run(self):
+        self.run_controller()
+

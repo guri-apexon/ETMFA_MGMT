@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from .db.schemas import  MsRegistry
 from .db.db_utils import Store
 from .service_msg_schema import CompositeServiceMessage, ServiceMessage
-from .message_broker import initialize_msg_listeners
+from .message_broker import MessageListenerRunner
 
 
 class ContextData(BaseModel):
@@ -109,13 +109,17 @@ class MicroServiceWrapper(ABC):
         self.config = config
         self.store = Store()
         self.execution_context = None
+        self.msg_listener=None
 
     def get_service_interface(self):
         return {'service_name': self.config.SERVICE_NAME,
                 'input_queue': self.config.INPUT_QUEUE_NAME,
                 'output_queue': self.config.OUTPUT_QUEUE_NAME
                 }
-
+    
+    def is_listener_ready(self):
+        return self.msg_listener.is_ready
+    
     def run(self, es_context,register=False):
         """
         for default services there is no need of registeration
@@ -128,5 +132,6 @@ class MicroServiceWrapper(ABC):
         self.store.release_context()
         MSG_BROKER_ADDR = self.config.MESSAGE_BROKER_ADDR
         EXCHANGE_NAME = self.config.MESSAGE_BROKER_EXCHANGE
-        initialize_msg_listeners(MSG_BROKER_ADDR, self.config.SERVICE_NAME, self.config.INPUT_QUEUE_NAME,
+        self.msg_listener=MessageListenerRunner()
+        self.msg_listener.run(MSG_BROKER_ADDR, self.config.SERVICE_NAME, self.config.INPUT_QUEUE_NAME,
                                  self.config.OUTPUT_QUEUE_NAME, self.config.ERROR_QUEUE_NAME, EXCHANGE_NAME, self.execution_context)

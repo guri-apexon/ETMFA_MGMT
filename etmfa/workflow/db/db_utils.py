@@ -96,9 +96,9 @@ def check_stale_work_flows_and_remove(max_service_execution_wait_time, logger):
     return stale_ids
 
 
-def create_doc_processing_status(work_flow_id, doc_id, doc_uid, work_flow_name, doc_file_path):
+def create_doc_processing_status(work_flow_id, doc_id, doc_uid, work_flow_name, doc_file_path,protocol_name):
     status = WorkFlowStatus(
-        work_flow_id=work_flow_id, doc_id=doc_id, doc_uid=doc_uid, work_flow_name=work_flow_name,
+        work_flow_id=work_flow_id, doc_id=doc_id, doc_uid=doc_uid, work_flow_name=work_flow_name,protocol_name=protocol_name,
         documentFilePath=doc_file_path)
     with SessionLocal() as session:
         try:
