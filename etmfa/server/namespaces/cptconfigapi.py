@@ -88,7 +88,7 @@ class SectionHeaderAPI(Resource):
         aidoc_id = args.get('aidoc_id', '')
         link_level = args.get('link_level', 1)
         toc = args.get('toc', 0)
-        headers_dict = crud.get_document_links(aidoc_id, link_level, toc)
+        headers_dict = crud.get_document_links(db, aidoc_id, link_level, toc)
         return headers_dict
 
 
@@ -158,8 +158,8 @@ class SectionDataConfigAPI(Resource):
 
             if toc:
                 link_level = link_level or 1
-                section_header = crud.get_document_links(aidoc_id, link_level,
-                                                         int(toc))
+                section_header = crud.get_document_links(db, aidoc_id,
+                                                         link_level, int(toc))
                 # Terms values based on given configuration values
                 terms_values = crud.get_document_terms_data(db, aidoc_id,
                                                             link_id,
