@@ -228,6 +228,9 @@ class WorkFlowManager():
             work_flow_name=work_flow_name, graph=depend_graph, is_default=is_default)
         self.store.store_dependancy_graph(swf)
 
+    def delete_work_flow(self, work_flow_name):
+        self.store.delete_dependancy_graph(work_flow_name)
+        
     def get_all_registered_services(self):
         return self.store.get_all_registered_services()
 

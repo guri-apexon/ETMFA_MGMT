@@ -6,6 +6,9 @@ from etmfa.consts import Consts as consts
 from .pseudo_ms_utils import RunMicroservices
 from etmfa.workflow.db.db_utils import DbMixin
 from etmfa.workflow.db.schemas import WorkFlowStatus
+from etmfa.workflow.messaging import MsqType
+from etmfa.workflow.messaging.models import EtmfaQueues
+from .pseudo_ms_utils import FakeGeneric
 import time
 
 
@@ -51,10 +54,21 @@ def test_client_and_controller():
     while(not runner.wfc):
         time.sleep(3)
     runner.wfc.wfm.wait_until_listener_ready()
-    cid='123456'
+    cid='12x8976'
+    work_flow_name='custom_test_eg'
     wf_client = WorkFlowClient(Config.ZMQ_PORT)
-    wf_client.send_msg("dummy_flow", cid,
-                            cid, {"id":cid,"doc_id":cid})
-    print('got reply')
+    work_flow_list = [
+        {
+            "work_flow_name": "meta_extraction",
+            "dependency_graph": [
+                {"service_name": "meta_tagging", "depends": []}
+            ]
+        }]
+    wf_client.send_msg(work_flow_name, cid, "", {"work_flow_list": work_flow_list,
+                                                                            "doc_id": cid},
+                                                    MsqType.ADD_CUSTOM_WORKFLOW.value)
+    wf_client.send_msg(work_flow_name,cid,"",{"work_flow_id":cid,"doc_id":cid})
+    time.sleep(10)
+    
 
     
