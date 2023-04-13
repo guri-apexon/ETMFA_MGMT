@@ -5,15 +5,18 @@ from flask import Response as JSONResponse
 import logging
 from http import HTTPStatus as status
 from etmfa.consts import Consts as consts
+from etmfa.crud.pd_document_config_terms import get_section_audit_info
 from etmfa.db.db import db_context
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
 
-def get_document_links(aidoc_id: str, link_levels: int, toc: int):
+def get_document_links(db: Session, aidoc_id: str, link_levels: int, toc: int):
     """
     Get document links for the requested aidoc_id with link_level
 
+    :param db: db instance
     :param aidoc_id: document id 
     :param link_levels: link level of document
     :param toc: table of content list with parent child relationship
@@ -61,8 +64,9 @@ def get_document_links(aidoc_id: str, link_levels: int, toc: int):
         df['qc_change_type'] = ''
         df['sequence'] = [i for i in range(df.shape[0])]
         df['section_locked'] = False
-        df['audit_info'] = [{'last_reviewed_date': '', 'last_reviewed_by': '',
-                            'total_no_review': ''} for _ in range(df.shape[0])]
+        df['audit_info'] = get_section_audit_info(psdb=db, aidoc_id=aidoc_id,
+                                                  link_ids=df['link_id'],
+                                                  link_levels=df['LinkLevel'])
 
         headers = df.to_dict(orient='records')
         if toc == 0:

@@ -1,6 +1,7 @@
-from etmfa_core.postgres_db_schema import NlpEntityDb, IqvdocumentlinkDb, \
-    IqvkeyvaluesetDb
+import pytz
+from etmfa_core.postgres_db_schema import NlpEntityDb, IqvkeyvaluesetDb
 from etmfa.db.models.pd_documenttables_db import DocumenttablesDb
+from etmfa.db.models.pd_iqvdocumentlink_db import IqvdocumentlinkDb
 from etmfa.db.models.pd_iqvexternallink_db import IqvexternallinkDb
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -179,6 +180,40 @@ def get_document_terms_data(db: Session, aidoc_id: str,
         logger.info(f"redaction attributes results {redaction_att_values}")
 
     return [terms_values]
+
+
+def get_section_audit_info(psdb: Session, aidoc_id: str, link_ids: list,
+                           link_levels: list) -> list:
+    """
+    get section audit info
+
+    :param psdb: db instance
+    :param aidoc_id: document id
+    :link_ids : link ids of document as section id
+    :link_levels: link ids level
+    :returns : dictionary of single record with specified values
+    """
+    response = []
+    for link_level, link_id in zip(link_levels, link_ids):
+        link_level_dict = {1: IqvdocumentlinkDb.link_id,
+                           2: IqvdocumentlinkDb.link_id_level2,
+                           3: IqvdocumentlinkDb.link_id_level3,
+                           4: IqvdocumentlinkDb.link_id_level4,
+                           5: IqvdocumentlinkDb.link_id_level5,
+                           6: IqvdocumentlinkDb.link_id_level6}
+
+        obj = psdb.query(IqvdocumentlinkDb).filter(
+            IqvdocumentlinkDb.doc_id == aidoc_id,
+            link_level_dict[link_level] == link_id).first()
+
+        current_timezone = obj.last_updated
+        est_datetime = current_timezone.astimezone(
+            pytz.timezone('US/Eastern')).strftime('%d-%m-%Y')
+        response.append({"last_reviewed_date": est_datetime,
+                         "last_reviewed_by": obj.userId or '',
+                         "total_no_review": obj.num_updates})
+
+    return response
 
 
 def get_preferred_data(db, doc_id: str = "", link_id: str = "", ) -> list:
