@@ -1,4 +1,5 @@
 from enum import Enum
+from etmfa.server.config import Config
 
 TERMINATE_NODE='terminate_node'
 class EtmfaQueues(Enum):
@@ -24,7 +25,10 @@ class EtmfaQueues(Enum):
 
     def __init__(self, queue_prefix):
         """Construct queue name enum."""
-        self.queue_prefix = queue_prefix
+        if Config.WORK_FLOW_RUNNER:
+            self.queue_prefix = queue_prefix
+        else:
+            self.queue_prefix=queue_prefix+'_dummy'
         
 
     @property

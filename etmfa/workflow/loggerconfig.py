@@ -44,4 +44,4 @@ def initialize_wf_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=C
         consoleHandler.setFormatter(consoleFormatter)
         logger.addHandler(consoleHandler)
     if add_filter:
-         logger.addFilter(ContextFilter())
+         logger.addFilter(ContextFilter(''))

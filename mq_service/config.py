@@ -7,10 +7,10 @@ import os
 class Config(object):
     """Parent configuration class."""
 
-    def __init__(self, service_name, error_queue='documentprocessing_error'):
+    def __init__(self, service_name, error_queue='documentprocessing_error',input_queue_name='',output_queue_name=''):
         self.SERVICE_NAME = service_name
-        self.INPUT_QUEUE_NAME = service_name+'_request'
-        self.OUTPUT_QUEUE_NAME = service_name+'_complete'
+        self.INPUT_QUEUE_NAME = service_name+'_request' if not input_queue_name else input_queue_name
+        self.OUTPUT_QUEUE_NAME = service_name+'_complete' if not output_queue_name else output_queue_name
         self.ERROR_QUEUE_NAME = error_queue
 
     CONTEXT_MAX_ACTIVE_TIME = 900  # 15*60

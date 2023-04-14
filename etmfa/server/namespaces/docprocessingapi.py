@@ -137,7 +137,7 @@ class DocumentprocessingAPI(Resource):
 
         except Exception as e:
             logger.error(
-                'requested document is not in workflow status table' + str(doc_id) + str(e))
+                'requested document is not in workflow status table ' + str(doc_id) + str(e))
             abort(404, DOCUMENT_MISSING_FROM_METADATA_TABLE)
         doc_uid = None
         _id = str(uuid.uuid4())
@@ -276,7 +276,7 @@ class DocumentprocessingAPI(Resource):
             g.aidocid = id
             resource = get_work_flow_status_by_id(id)
             if not resource:
-                return abort(404, DOCUMENT_NOT_FOUND)
+                return abort(404, DOCUMENT_NOT_FOUND.format(id))
             resource['id'] = resource['work_flow_id']
             resource['percentComplete'] = resource['percent_complete']
             resource['workFlowName'] = resource['work_flow_name']

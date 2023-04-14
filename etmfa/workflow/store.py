@@ -55,6 +55,10 @@ class PostGresStore(WorkFlowStore, DbMixin):
     def store_dependancy_graph(self,depend_graph_info) -> None:
         self.write_unique(depend_graph_info)
 
+    def delete_dependancy_graph(self, work_flow_name) -> None:
+        self.delete_by_key(
+            ServiceWorkflows, ServiceWorkflows.work_flow_name, work_flow_name)
+
     def delete_all_dependancy_graph(self,wf_list:List):
         self.delete_group_of_elms(ServiceWorkflows,ServiceWorkflows.work_flow_name,wf_list)
 

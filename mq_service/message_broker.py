@@ -46,13 +46,20 @@ class MessagePublisher:
         self.send_str(jsonstruct, queue_name)
 
 
-def initialize_msg_listeners(connection_str, service_name, input_queue_name, output_queue_name, error_queue_name, exchange_name, callback):
-    with Connection(connection_str) as conn:
-        # consume
-        listener = MessageListener(conn, connection_str, service_name, input_queue_name, output_queue_name, error_queue_name,
-                                   exchange_name, callback)
-        listener.run()
-    print('out of listener should run in blocking mode always')
+class MessageListenerRunner():
+    def __init__(self):
+        self.listener = None
+
+    @property
+    def is_ready(self):
+        return self.listener.is_ready
+
+    def run(self, connection_str, service_name, input_queue_name, output_queue_name, error_queue_name, exchange_name, callback):
+        with Connection(connection_str) as conn:
+            # consume
+            self.listener = MessageListener(conn, connection_str, service_name, input_queue_name, output_queue_name, error_queue_name,
+                                            exchange_name, callback)
+            self.listener.run()
 
 
 class MessageListener(ConsumerMixin):
@@ -65,12 +72,16 @@ class MessageListener(ConsumerMixin):
         self.output_queue_name = output_queue_name
         self.error_queue_name = error_queue_name
         self.service_name = service_name
+        self.is_ready = False
         self.exchange = Exchange(exchange_name, type='direct', durable=True)
 
-    def get_consumers(self, Consumer, channel):
+    def get_consumers(self, consumer, channel):
         q = Queue(self.input_queue_name, exchange=self.exchange,
                   routing_key=self.input_queue_name, durable=True)
-        return [Consumer(queues=[q], callbacks=[self._on_message])]
+        return [consumer(queues=[q], callbacks=[self._on_message])]
+        
+    def on_consume_ready(self, connection, channel, consumers, **kwargs):
+        self.is_consumer_ready=True
 
     def _on_message(self, body, message):
         message_body = None
@@ -87,6 +98,7 @@ class MessageListener(ConsumerMixin):
         pub = MessagePublisher(self.connection_str, self.exchange_name)
         try:
             if self.execution_context:
+                message_body=self.execution_context.on_adapt_msg(message_body)
                 message_body = self.execution_context.on_msg(message_body)
             pub.send_dict(message_body, self.output_queue_name)
             logging.info(f"sent message on queue {self.output_queue_name}")
