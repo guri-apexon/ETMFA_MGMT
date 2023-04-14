@@ -36,6 +36,9 @@ class ExecutionContext(threading.Thread):
     def on_init(self):
         pass
 
+    def on_adapt_msg(self, msg):
+        return msg
+
     @abstractmethod
     def on_callback(self, data):
         pass
