@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from etmfa.db.db import db_context
 from etmfa.db import utils, config
 from etmfa.consts import Consts as consts
@@ -394,7 +394,7 @@ def insert_into_alert_table(finalattributes, event_dict):
 
             for pd_user_protocol in pd_user_protocol_list:
                 protocolalert_instance = db_context.session.query(Protocolalert).filter_by(id=pd_user_protocol.id, aidocId=finalattributes['AiDocId'], protocol=finalattributes[
-                    'ProtocolNo'], email_template_id=finalattributes.get('email_template_id')).update({'timeUpdated': datetime.utcnow(),'notification_delete': False})
+                    'ProtocolNo'], email_template_id=finalattributes.get('email_template_id')).update({'timeUpdated': datetime.now(timezone.utc),'notification_delete': False})
                 if not protocolalert_instance:
                     protocolalert = Protocolalert()
                     protocolalert.aidocId = finalattributes['AiDocId']
@@ -407,7 +407,7 @@ def insert_into_alert_table(finalattributes, event_dict):
                     protocolalert.approvalDate = finalattributes['approval_date']
                     protocolalert.email_template_id = finalattributes.get(
                         'email_template_id')
-                    time_ = datetime.utcnow()
+                    time_ = datetime.now(timezone.utc)
                     protocolalert.timeCreated = time_
                     protocolalert.timeUpdated = time_
                     protocolalert_list.append(protocolalert)
