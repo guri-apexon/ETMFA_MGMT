@@ -89,8 +89,8 @@ from etmfa.workflow.messaging.models.generic_request import DocumentRequest, Com
 from etmfa.db.models.work_flow_status import WorkFlowStatus
 from .cdc_util import CdcThread
 from flask import jsonify
-
 from etmfa.workflow.wf_manager import WorkFlowManager
+from ...consts.constants import DEFAULT_WORKFLOW_NAME
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -137,15 +137,23 @@ class DocumentprocessingAPI(Resource):
 
         except Exception as e:
             logger.error(
-                'requested document is not in workflow status table ' + str(doc_id) + str(e))
+                'requested document is not in workflow status table' + str(doc_id) + str(e))
             abort(404, DOCUMENT_MISSING_FROM_METADATA_TABLE)
         doc_uid = None
         _id = str(uuid.uuid4())
         if work_flow_list and Config.WORK_FLOW_RUNNER:
             wf_client = WorkFlowClient()
-            message, response_status = wf_client.send_msg(work_flow_name, _id, "", {"work_flow_list": work_flow_list,
-                                                                                    "doc_id": doc_id},
-                                                          MsqType.ADD_CUSTOM_WORKFLOW.value)
+            if work_flow_name:
+                message, response_status = wf_client.send_msg(work_flow_name, _id, "",
+                                                              {"work_flow_list": work_flow_list,
+                                                               "doc_id": doc_id},
+                                                              MsqType.ADD_CUSTOM_WORKFLOW.value)
+            else:
+                work_flow_name = DEFAULT_WORKFLOW_NAME
+                message, response_status = wf_client.send_msg(work_flow_name, _id, "",
+                                                              {"work_flow_list": work_flow_list,
+                                                               "doc_id": doc_id},
+                                                              MsqType.RUN_DEFAULT_WORKFLOW.value)
             if not response_status:
                 return abort(400, message)
 
@@ -1003,6 +1011,7 @@ class DocumentprocessingAPI(Resource):
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
 
+
 @ns.route('/get_all_workflows')
 @ns.response(500, 'Server error.')
 class DocumentprocessingAPI(Resource):
@@ -1018,6 +1027,7 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
+
 
 @ns.route('/cdc')
 @ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
@@ -1117,12 +1127,13 @@ class CdcAPI(Resource):
                 try:
                     session = db_context.session()
                     latest_work = session.query(WorkFlowStatus).filter_by(protocol_name='running_cdc',
-                                                                               work_flow_name='CDC',
-                                                                               status='RUNNING').first()
-                    if latest_work :
+                                                                          work_flow_name='CDC',
+                                                                          status='RUNNING').first()
+                    if latest_work:
                         return {'id': latest_work.work_flow_id, 'status': latest_work.status}
                     else:
-                        new_work = WorkFlowStatus(work_flow_id = str(uuid.uuid4()),protocol_name = 'running_cdc',work_flow_name= 'CDC', status = 'RUNNING')
+                        new_work = WorkFlowStatus(work_flow_id=str(uuid.uuid4()), protocol_name='running_cdc',
+                                                  work_flow_name='CDC', status='RUNNING')
                         session.add(new_work)
                         session.commit()
                         CdcThread(new_work.work_flow_id).start()
@@ -1131,11 +1142,12 @@ class CdcAPI(Resource):
                     logger.error(SERVER_ERROR.format(e))
                     return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
             else:
-                return abort(HTTPStatus.BAD_REQUEST,"invalid operation")
+                return abort(HTTPStatus.BAD_REQUEST, "invalid operation")
 
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
+
 
 @ns.route('/cdc_status/<string:id>/')
 @ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
@@ -1144,18 +1156,19 @@ class CdcAPI(Resource):
     @ns.response(HTTPStatus.NOT_FOUND, 'CDC enabling not found.')
     @api.doc(security='apikey')
     @authenticate
-    def get(self,id):
+    def get(self, id):
         try:
             try:
                 session = db_context.session()
                 latest_work = session.query(WorkFlowStatus).filter_by(work_flow_id=id).first()
-                if latest_work :
-                    return {'id': latest_work.work_flow_id, 'status': latest_work.status,'operation' :latest_work.protocol_name}
+                if latest_work:
+                    return {'id': latest_work.work_flow_id, 'status': latest_work.status,
+                            'operation': latest_work.protocol_name}
                 else:
                     logger.info("Status id not found")
-                    return abort(HTTPStatus.NOT_FOUND,"Not found")
+                    return abort(HTTPStatus.NOT_FOUND, "Not found")
             except ValueError as e:
-                return abort(HTTPStatus.BAD_REQUEST,"invalid operation")
+                return abort(HTTPStatus.BAD_REQUEST, "invalid operation")
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
