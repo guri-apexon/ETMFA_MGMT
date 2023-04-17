@@ -17,6 +17,7 @@ class MsqType(Enum):
     INFO = "info"
     COMMAND = "command"
     REGISTER = "register"
+    RUN_DEFAULT_WORKFLOW = "default workflow"
 
 
 @dataclass

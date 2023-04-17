@@ -39,7 +39,7 @@ LEGACY_PROTOCOL_UPLOAD_DATE = "2021-09-19"
 LEGACY_QUEUE_NAMES = ['triage', 'digitizer1', 'digitizer2', 'i2e_omop_update', 'digitizer2_omopupdate', 'extraction']
 
 # WF to be excluded
-EXCLUDED_WF = ['digitization', 'full_flow']
+EXCLUDED_WF = ['digitization', 'full_flow','email_notification']
 DEFAULT_WORKFLOW_NAME="Default_Workflow"
 
 @unique
