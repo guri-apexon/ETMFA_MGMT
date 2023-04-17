@@ -60,10 +60,9 @@ def update_section_data_with_enriched_data(section_data: dict,
                     terms_values = rows.set_index('text').to_dict(orient='index')
                     sub_section.update({'preferred_terms': terms_values})
 
-                if not reference_df.empty:
-                    if reference_df.iloc[0]['parent_id']:
-                        rows = reference_df[reference_df['parent_id'].isin([para_id])]
-                        ref_values = rows.set_index('id').to_dict(orient='index')
-                        sub_section.update({'link_and_reference': ref_values})
+                if not reference_df.empty and reference_df.iloc[0]['parent_id']:
+                    rows = reference_df[reference_df['parent_id'].isin([para_id])]
+                    ref_values = rows.set_index('id').to_dict(orient='index')
+                    sub_section.update({'link_and_reference': ref_values})
 
     return section_data
