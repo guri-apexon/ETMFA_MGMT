@@ -32,13 +32,14 @@ class SendNotifications(Resource):
         doc_id = args.get('doc_id', '')
         event = args.get('event', '')
         send_mail = args.get('send_mail', False)
-        response = send_event_based_mail(db, doc_id, event, send_mail)
+        environment = args.get('test_case', False)
+        response = send_event_based_mail(db, doc_id, event, send_mail, environment)
         return response
 
 
 @ns.route("/send/edited/emails")
 @ns.response(500, 'Server error.')
-class SendNotifications(Resource):
+class SendEditNotifications(Resource):
     @ns.response(200, 'Success.')
     @ns.response(404, 'Notification issue')
     @api.doc(security='apikey')

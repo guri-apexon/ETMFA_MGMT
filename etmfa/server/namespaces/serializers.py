@@ -744,6 +744,8 @@ notification_args.add_argument('event', type=str, required=True,
                                help='Event to trigger notifications example QC_COMPLETED')
 notification_args.add_argument('send_mail', type=inputs.boolean, default=False, required=False,
                                help="sending mail default false if need to send mail for event true required")
+notification_args.add_argument('test_case', type=inputs.boolean, default=False, required=False,
+                               help="This flag is used for test case execution time no mail send")
 
 
 fetch_workflows_by_doc_id = reqparse.RequestParser()

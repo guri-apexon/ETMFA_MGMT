@@ -84,7 +84,7 @@ class SendEmail:
 
 
 
-def send_mail(subject: str, to_mail: str, html_body_part: str) -> dict:
+def send_mail(subject: str, to_mail: str, html_body_part: str, test_case: bool = False) -> dict:
     """
     this function send mail with html content attached to email body
     """
@@ -95,9 +95,10 @@ def send_mail(subject: str, to_mail: str, html_body_part: str) -> dict:
         message['Subject'] = subject
         part = MIMEText(html_body_part, "html")
         message.attach(part)
-        with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as server:
-            server.sendmail(Config.FROM_EMAIL, to_mail, message.as_string())
-            server.quit()
+        if not test_case:
+            with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as server:            
+                server.sendmail(Config.FROM_EMAIL, to_mail, message.as_string())
+                server.quit()
         logger.info(f"mail sent sucess")
     except Exception as ex:
         logger.exception(f"Exception occured at send mail function {to_mail}, {subject}")
@@ -106,7 +107,7 @@ def send_mail(subject: str, to_mail: str, html_body_part: str) -> dict:
     return {"sent":True}
 
 
-def send_event_based_mail(db: db_context, doc_id: str, event, send_mail_flag):
+def send_event_based_mail(db: db_context, doc_id: str, event, send_mail_flag, test_case=False):
     """
     send email based on event and update email sent time and sent flag in protocol alert table 
     :param db: DB instance
@@ -171,7 +172,7 @@ def send_event_based_mail(db: db_context, doc_id: str, event, send_mail_flag):
                 html_body = html_record.email_body.format(**{"username": username, "doc_link": doc_link, "protocol_number": row.protocol,"version_number":version_number,
                                                         "indication": indication})
 
-            send_mail(subject, to_mail, html_body)
+            send_mail(subject, to_mail, html_body, test_case)
             logger.info(
                 f"docid {doc_id} event {event}  mail sent success for doc_id {doc_id}")
             time_ = datetime.utcnow()
