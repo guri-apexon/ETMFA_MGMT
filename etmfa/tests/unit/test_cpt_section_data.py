@@ -43,7 +43,9 @@ def test_document_object(new_app_context, user_id, protocol, doc_id, status_code
     ("4c7ea27b-8a6b-4bf0-a8ed-2c1e49bbdc8c", "1", "46bac1b7-9197-11ed-b507-005056ab6469", "Dig2_Batch_Tester",
      "005","1","","", 200, "doc id and toc data"),
     ("4c7ea27b-8a6b-4bf0-a8ed-2c1e49bbdc8c", "1", "", "Dig2_Batch_Tester",
-     "005","1","STUDY SYNOPSIS","", 200, "doc id and toc and no link id data")
+     "005","1","STUDY SYNOPSIS","", 200, "doc id and toc and no link id data"),
+    ("4c7ea27b-8a6b-4bf0-a8ed-2c1e49bbdc8c", "1", "", "Dig2_Batch_Tester",
+     "005","1",None,"", 200, "doc id and toc and no link id data")
 ])
 
 def test_configurable_params(new_app_context, user_id, protocol, doc_id, status_code, link_level, link_id, toc, section_text, config_variables, comments):
@@ -58,7 +60,10 @@ def test_configurable_params(new_app_context, user_id, protocol, doc_id, status_
                                                 "link_level": link_level,
                                                 "link_id": link_id,
                                                 "user_id": user_id,
-                                                "protocol": protocol},
+                                                "protocol": protocol,
+                                                "toc":toc,
+                                                "section_text":section_text,
+                                                "config_variables":config_variables},
                                           headers=Config.UNIT_TEST_HEADERS)
 
         assert get_cpt_section_data.status_code == status_code
