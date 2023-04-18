@@ -14,7 +14,7 @@ DB_FILE = os.path.join(DB_DIR, "logstash.db")
 
 class ContextFilter(logging.Filter):
     
-    def __init__(self, doc_id: str = '') -> None:
+    def __init__(self, doc_id) -> None:
         super().__init__(doc_id)
         self.doc_id = doc_id
 

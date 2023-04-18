@@ -286,15 +286,17 @@ class MetaDataTableHelper():
         top_obj = {c.name: getattr(data, c.name) for c in data.__table__.columns}
         result_list = []
         for display_name, attr_name in SUMMARY_FIELDS.items():
-            value, confidence, note = "", "", ""
+            value, confidence, note, _type, attr_id = "", "", "", None, None
             audit_info = {}
             if not attr_name:
                 attr_name = display_name
             if attr_map.get(attr_name,None):
                 curr_data=attr_map[attr_name]
                 value = curr_data.get("attr_value")
+                _type = curr_data.get("attr_type")
                 display_name=curr_data.get("display_name",display_name)
                 confidence = curr_data.get("confidence")
+                attr_id=curr_data.get('attr_id',None)
                 note = curr_data.get("note")
                 audit_info = curr_data.get("audit_info")
             else:
@@ -303,22 +305,28 @@ class MetaDataTableHelper():
                 audit_info["last_updated"] = top_obj.get("lastUpdated")  
             result_list.append({'display_name':display_name,
                                     'attr_name': attr_name,
+                                    'attr_type': _type,
                                     'attr_value': value,
                                     "confidence":confidence,
+                                    "attr_id":attr_id,
                                     "note":note,
                                     'audit_info':audit_info})
         extended_list=[]  
         for attr_name,curr_data in attr_map.items():
             if attr_name not in SUMMARY_ATTR_REV_MAP:
                 value = curr_data.get("attr_value")
+                attr_type = curr_data.get("attr_type")
                 display_name=curr_data.get("display_name",display_name)
                 confidence = curr_data.get("confidence")
                 note = curr_data.get("note")
+                attr_id=curr_data.get("attr_id",None)
                 audit_info = curr_data.get("audit_info")
                 extended_list.append({'display_name':display_name,
                         'attr_name': attr_name,
+                        'attr_type': attr_type,
                         'attr_value': value,
                         "confidence":confidence,
+                        "attr_id":attr_id,
                         "note":note,
                         'audit_info':audit_info})
 
@@ -348,7 +356,7 @@ class MetaDataTableHelper():
                 attr_value = nested_obj.get_attribute_value(
                     attr, 'attribute_value')
                 display_name= attr.display_name  if attr.display_name else attr.attribute_name
-                attribute_info.append({'attr_name': attr.attribute_name,'display_name':display_name,'attr_type':attr.attribute_type,
+                attribute_info.append({'attr_id':attr.id,'attr_name': attr.attribute_name,'display_name':display_name,'attr_type':attr.attribute_type,
                                     'attr_value': attr_value, 'confidence': attr.confidence, 'note': attr.note, 'audit_info':audit_info})
             curr_nested_obj['_meta_data'] = attribute_info
 
@@ -402,13 +410,19 @@ class MetaDataTableHelper():
         result = hashlib.sha256(joined_elm)
         return result.hexdigest()
                
-    def _get_meta_data_attr(self,_id, data, start_field, end_field, level):
+    def _get_meta_data_attr(self,session, _id, data, start_field, end_field, level):
         meta_field = self.variable_type_map[data['attribute_type']]
         name, _type, value = data['attribute_name'], data['attribute_type'], data['attribute_value']
-        attr_id = self._get_elements_hash(
-            [_id, start_field, level, end_field, name])
-        meta_data_attr = PDProtocolMetaDataAttribute(id = attr_id)
-        setattr(meta_data_attr, meta_field, value)
+        
+        if not data.get('attr_id', None):
+            attr_id = self._get_elements_hash(
+             [_id, start_field, level, end_field, name])
+            meta_data_attr = PDProtocolMetaDataAttribute(id = attr_id)
+            setattr(meta_data_attr, meta_field, value)
+        else:
+            attr_id = data['attr_id']
+            meta_data_attr = session.query(PDProtocolMetaDataAttribute).get(attr_id)
+            setattr(meta_data_attr, meta_field, value)
         meta_data_attr.attribute_name = name
         meta_data_attr.attribute_type = _type
         meta_data_attr.user_id = data.get('user_id', None)
@@ -438,7 +452,7 @@ class MetaDataTableHelper():
                 error= str(f"Field {field_name} does not exist")
                 data_list=[]
             for data in data_list:
-                meta_data_attr = self._get_meta_data_attr(_id, data, start_field, end_field, level)
+                meta_data_attr = self._get_meta_data_attr(session, _id, data, start_field, end_field, level)
                 meta_data_level.attributes.append(meta_data_attr)           
             session.commit()
         except IntegrityError as e:
@@ -500,8 +514,9 @@ class MetaDataTableHelper():
                 setattr(obj, m_field, None)
             setattr(obj, col.name, val)
         elif (col_name.startswith('num_updates')):
-            val = obj.num_updates+1
-            setattr(obj, col.name, val)
+            if attr.user_id:
+                val = obj.num_updates+1
+                setattr(obj, col.name, val)
         elif ((col_name == 'attribute_type') or
               (col_name == 'confidence') or
                 (col_name == 'note') or
@@ -521,25 +536,18 @@ class MetaDataTableHelper():
         start_field, end_field = nested_fields[0], nested_fields[-1]
         parent_id = self._get_elements_hash([_id, start_field, level, end_field])
         for data in data_list:
-            try:
-                attr = self._get_meta_data_attr(_id, data, start_field, end_field, level)  
-                if field_name==MetaDataTableHelper.SUMMARY_EXTENDED:
-                    attr.display_name=SUMMARY_ATTR_REV_MAP.get(attr.attribute_name,attr.display_name)
-                obj = session.query(PDProtocolMetaDataAttribute).get(attr.id)
-                if not obj:
-                    attr.parent_id = parent_id
-                    session.add(attr)
-                else:
-                    obj.parent_id = parent_id
-                    for col in attr.__table__.columns:
-                        self._update_attribute_value(obj,col,attr)
-                session.commit()
-            except IntegrityError as e:
-                    status = False
-                    error = str(e)
-                    if isinstance(e.orig, UniqueViolation):
-                        error = str("duplication error")
-                        duplicate = True
+            attr = self._get_meta_data_attr(session, _id, data, start_field, end_field, level)  
+            if field_name==MetaDataTableHelper.SUMMARY_EXTENDED:
+                attr.display_name=SUMMARY_ATTR_REV_MAP.get(attr.attribute_name,attr.display_name)
+            obj = session.query(PDProtocolMetaDataAttribute).get(attr.id)
+            if not obj:
+                attr.parent_id = parent_id
+                session.add(attr)
+            else:
+                obj.parent_id = parent_id
+                for col in attr.__table__.columns:
+                    self._update_attribute_value(obj,col,attr)
+        session.commit()
         return MetaStatusResponse(isAdded=status, isDuplicate=duplicate, error=error).__dict__
 
     def delete_attribute(self,session,_id, field_name, data_list=[]):
