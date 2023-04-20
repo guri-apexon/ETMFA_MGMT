@@ -1,4 +1,4 @@
-DEBUG: True
+DEBUG: False
 mquser: 'guest'
 mqpswd: 'guest'
 mqhost: 'ca2spdml01q'
