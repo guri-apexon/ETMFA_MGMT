@@ -6,7 +6,7 @@ from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_users import User
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
 from sqlalchemy import and_
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 from etmfa.consts import Consts as consts
 from etmfa.db import config
@@ -162,20 +162,20 @@ def send_event_based_mail(db: db_context, doc_id: str, event, send_mail_flag, te
 
             if event_dict.get("qc_complete") or event_dict.get("new_document_version"):
                 subject = html_record.subject.format(
-                    **{"protocol_number": protocol_number, "doc_status_activity": doc_status_activity})
-                html_body = html_record.email_body.format(**{"username": username, "doc_link": doc_link, "protocol_number": row.protocol,
+                    **{"protocol_number": protocol_number, "doc_status_activity": doc_status})
+                html_body = html_record.email_body.format(**{"username": username.title(), "doc_link": doc_link, "protocol_number": row.protocol,
                                                         "indication": indication, "doc_status": doc_status, "doc_activity": doc_activity, "doc_status_activity": doc_status_activity,
                                                         "version_number":version_number})
 
             elif event_dict.get("edited"):
                 subject = html_record.subject
-                html_body = html_record.email_body.format(**{"username": username, "doc_link": doc_link, "protocol_number": row.protocol,"version_number":version_number,
+                html_body = html_record.email_body.format(**{"username": username.title(), "doc_link": doc_link, "protocol_number": row.protocol,"version_number":version_number,
                                                         "indication": indication})
 
             send_mail(subject, to_mail, html_body, test_case)
             logger.info(
                 f"docid {doc_id} event {event}  mail sent success for doc_id {doc_id}")
-            time_ = datetime.utcnow()
+            time_ = datetime.now(timezone.utc)
             db.query(Protocolalert).filter(Protocolalert.id == row.id , Protocolalert.aidocId == doc_id, Protocolalert.protocol == protocol_meta_data.protocol).update({Protocolalert.emailSentFlag: True,
                                                                                                                                         Protocolalert.timeUpdated: time_, Protocolalert.emailSentTime: time_})
             logger.info(
