@@ -324,15 +324,15 @@ def document_compare_tuple(session, work_flow_id, flow_name, id1, id2, document_
     return ids_compare_protocol_list if ret_val else []
 
 
-def filter_user_with_usernames(pd_user_instances_list, user_id_list):
+def filter_user_with_usernames(pd_user_instances_list, user_id_list, user_id_exclude):
     return_list = []
     for user_protocol_instance in pd_user_instances_list:
-        if user_protocol_instance.userId.replace('u', '').replace('q', '') in user_id_list:
+        if user_protocol_instance.userId.replace('u', '').replace('q', '') in user_id_list and user_protocol_instance.userId.replace('u', '').replace('q', '') != user_id_exclude:
             return_list.append(user_protocol_instance)
     return return_list
 
 
-def insert_into_alert_table(finalattributes, event_dict):
+def insert_into_alert_table(finalattributes, event_dict, user_id_exclude=''):
     doc_status = PDProtocolMetadata.query.filter(
         PDProtocolMetadata.id == finalattributes['AiDocId']).first()
     doc_status_flag = doc_status and doc_status.documentStatus in config.VALID_DOCUMENT_STATUS_FOR_ALERT
@@ -374,23 +374,23 @@ def insert_into_alert_table(finalattributes, event_dict):
                           (User.username.like('q%'), func.replace(User.username, 'q', ''))],
                          else_=User.username)).all()]
                 pd_user_protocol_list = filter_user_with_usernames(
-                    pd_user_protocol_list, user_id_list)
+                    pd_user_protocol_list, user_id_list, user_id_exclude)
 
             elif event_dict.get("edited"):
-                user_id_list = user_id_list = [i[0] for i in User.query.filter(User.edited == True).with_entities(
+                user_id_list = [i[0] for i in User.query.filter(User.edited == True).with_entities(
                     case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
                           (User.username.like('q%'), func.replace(User.username, 'q', ''))],
                          else_=User.username)).all()]
                 pd_user_protocol_list = filter_user_with_usernames(
-                    pd_user_protocol_list, user_id_list)
+                    pd_user_protocol_list, user_id_list, user_id_exclude)
 
             elif event_dict.get("new_document_version"):
-                user_id_list = user_id_list = [i[0] for i in User.query.filter(User.new_document_version == True).with_entities(
+                user_id_list = [i[0] for i in User.query.filter(User.new_document_version == True).with_entities(
                     case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
                           (User.username.like('q%'), func.replace(User.username, 'q', ''))],
                          else_=User.username)).all()]
                 pd_user_protocol_list = filter_user_with_usernames(
-                    pd_user_protocol_list, user_id_list)
+                    pd_user_protocol_list, user_id_list, user_id_exclude)
 
             for pd_user_protocol in pd_user_protocol_list:
                 protocolalert_instance = db_context.session.query(Protocolalert).filter_by(id=pd_user_protocol.id, aidocId=finalattributes['AiDocId'], protocol=finalattributes[

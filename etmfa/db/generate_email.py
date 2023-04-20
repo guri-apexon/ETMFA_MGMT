@@ -107,7 +107,7 @@ def send_mail(subject: str, to_mail: str, html_body_part: str, test_case: bool =
     return {"sent":True}
 
 
-def send_event_based_mail(db: db_context, doc_id: str, event, send_mail_flag, test_case=False):
+def send_event_based_mail(db: db_context, doc_id: str, event, send_mail_flag, test_case=False, user_id_exclude=''):
     """
     send email based on event and update email sent time and sent flag in protocol alert table 
     :param db: DB instance
@@ -129,7 +129,7 @@ def send_event_based_mail(db: db_context, doc_id: str, event, send_mail_flag, te
         notification_record = {'AiDocId': doc_id, 'ProtocolNo': protocol_meta_data.protocol,
             'ProtocolTitle': protocol_meta_data.protocolTitle, 'approval_date': str(datetime.today().date()).replace('-',''), "email_template_id":html_record.id}
 
-        insert_into_alert_table(notification_record,event_dict)
+        insert_into_alert_table(notification_record,event_dict, user_id_exclude)
         if send_mail_flag:
             row_data = db.query(PDUserProtocols.id, PDProtocolMetadata.protocol,
                             PDProtocolMetadata.protocolTitle,
