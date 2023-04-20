@@ -39,11 +39,8 @@ def update_section_data_with_enriched_data(section_data: dict,
             if content:
                 roi_id = font_info.get("roi_id")
                 para_id = roi_id.get("para")
-                childbox = roi_id.get("childbox")
-                subtext = roi_id.get("subtext")
                 if not enriched_df.empty:
-                    rows = enriched_df[
-                        enriched_df['parent_id'].isin([para_id, childbox, subtext])]
+                    rows = enriched_df[enriched_df['parent_id'].isin([para_id])]
                     # remove the duplicates records from the rows df
                     rows.drop_duplicates(subset=['text'], keep="last", inplace=True)
                     # Deleted df columns which is not needed any more

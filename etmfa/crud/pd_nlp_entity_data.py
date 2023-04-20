@@ -16,8 +16,8 @@ class NlpEntityCrud(CRUDBase[NlpEntityDb, NlpEntityCreate, NlpEntityUpdate]):
     def get(self, db: Session, doc_id: str, link_id: str):
         try:
             all_term_data = db.query(NlpEntityDb).filter(
-                NlpEntityDb.doc_id == doc_id).filter(
-                NlpEntityDb.link_id == link_id).all()
+                NlpEntityDb.doc_id == doc_id, NlpEntityDb.link_id == link_id,
+                NlpEntityDb.hierarchy == 'paragraph').all()
         except Exception as ex:
             all_term_data = []
             logger.exception("Exception in retrieval of data from table", ex)

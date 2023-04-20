@@ -787,6 +787,7 @@ class DocumentprocessingAPI(Resource):
             if aidoc_id:
                 if attributes is not None:
                     for attrs in attributes:
+                        attribute_id = attrs.get('attr_id', '').strip()
                         attribute_name = attrs.get('attr_name', '').strip()
                         attribute_type = attrs.get('attr_type', '').strip()
                         attribute_value = attrs.get('attr_value', None)
@@ -808,6 +809,7 @@ class DocumentprocessingAPI(Resource):
                         attr_list.append({"attribute_name": attribute_name,
                                           "attribute_type": attribute_type,
                                           "attribute_value": attribute_value,
+                                          "attr_id": attribute_id,
                                           "note": note_value,
                                           "confidence": confidence_value,
                                           "display_name": display_name,

@@ -12,8 +12,11 @@ from mq_service.config import Config
 from etmfa.db import Protocoldata
 from sqlalchemy import Integer, String, DateTime, Boolean
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata, MetaDataTableHelper
-from etmfa.consts.constants import SUMMARY_KEY_META_FIELDS_MAP, SUMMARY_ATTR_REV_MAP, SUMMARY_TYPES, _SummaryConfig
+from etmfa.consts.constants import LM_MAPPED_FIELDS,EXCLUDED_LM_ACCORDIANS,SUMMARY_TYPES
 from datetime import datetime
+from collections import defaultdict
+from etmfa_core.postgres_db_schema import  IqvkeyvaluesetDb
+from sqlalchemy import and_
 
 
 class ElasticIngestion(ExecutionContext):
@@ -48,11 +51,43 @@ class ElasticIngestion(ExecutionContext):
             return str(val)
 
     def update_existing_props(self, obj, data):
-        for key, (val, _) in data.items():
+        for key,val in data.items():
             if hasattr(obj, key):
                 val = self.convert_pd_type(key, val)
                 if val:
                     setattr(obj, key, val)
+
+
+    def update_data_to_tables(self,aidoc_id,protocol_data_str,mapped_meta_fields,lm_accordians):
+        with self.SessionLocal() as session:
+            curr_data = session.query(Protocoldata).filter(
+                Protocoldata.id == aidoc_id).first()
+            if not curr_data:
+                pd_data = Protocoldata(
+                    id=aidoc_id, userId='mgmt', iqvdataToc=protocol_data_str)
+                session.add(pd_data)
+            else:
+                curr_data.iqvdataToc = protocol_data_str
+            meta_data = session.query(PDProtocolMetadata).get(aidoc_id)
+            self.update_existing_props(meta_data, mapped_meta_fields)
+            for accordian_name,accordian_data in lm_accordians.items():
+                if accordian_name in EXCLUDED_LM_ACCORDIANS:
+                    continue
+                if not self.meta_helper_obj.check_field_exist(session,aidoc_id,accordian_name):
+                    self.meta_helper_obj.add_field(session,aidoc_id,accordian_name)
+                    self.meta_helper_obj.add_field_data(session,aidoc_id,accordian_name,accordian_data)
+                else:
+                    self.meta_helper_obj.add_update_attribute(
+                        session, aidoc_id, accordian_name, accordian_data)
+
+            session.commit()
+
+    def get_entities(self, doc_id):
+        with self.SessionLocal() as session:
+            ent_list=session.query(IqvkeyvaluesetDb.key,IqvkeyvaluesetDb.value,IqvkeyvaluesetDb.confidence).filter(and_(
+                IqvkeyvaluesetDb.doc_id == doc_id, IqvkeyvaluesetDb.hierarchy == 'document',
+                     IqvkeyvaluesetDb.parent_id == doc_id, IqvkeyvaluesetDb.group_type == 'Properties')).all()
+            return {ent[0]:ent for ent in ent_list}
 
     def on_callback(self, msg_data):
         """
@@ -62,6 +97,19 @@ class ElasticIngestion(ExecutionContext):
         key = 'docId' if 'docId' in msg else 'doc_id'
         aidoc_id = msg[key]
         link_level, link_id = 0, ""
+        ent_map=self.get_entities(aidoc_id)
+        accordians,mapped_meta_fields=defaultdict(list),{}
+        for lm_name,(db_name,display_name,group_name) in LM_MAPPED_FIELDS.items():
+            _,attr_val,confidence=ent_map.get(lm_name,(None,None,None))
+            if (not attr_val) or (not group_name):
+                continue
+            attr_item={"attribute_name":db_name , "attribute_type": "string",
+                                        "attribute_value": attr_val,
+                                       "display_name": display_name, "confidence": confidence}
+            if group_name=='summary_extended':
+                mapped_meta_fields[db_name]=attr_val
+            accordians[group_name].append(attr_item)
+
         iqv_document = GetIQVDocumentFromDB_with_doc_id(
             self.conn, aidoc_id, link_level, link_id)
         if iqv_document is None:
@@ -77,26 +125,8 @@ class ElasticIngestion(ExecutionContext):
         mcra_dict['columns'] = ["section_level", "CPT_section", "type", "content", "font_info",
                                 "level_1_CPT_section", "file_section", "file_section_num", "file_section_level", "seq_num"]
         protocol_data_str = str(json.dumps(mcra_dict))
-        mapped_meta_fields = {SUMMARY_KEY_META_FIELDS_MAP.get(mkey, mkey): (mval, _SummaryConfig.summary_key_list.get(mkey, mkey))
-                              for mkey, mval in mcra_dict['metadata'].items()}
-        summary_attributes = [{"attribute_name": attr_name, "attribute_type": "string", "attribute_value": attr_val,
-                               "display_name": display_name}
-                              for attr_name, (attr_val, display_name) in mapped_meta_fields.items()]
-
-        with self.SessionLocal() as session:
-            curr_data = session.query(Protocoldata).filter(
-                Protocoldata.id == aidoc_id).first()
-            if not curr_data:
-                pd_data = Protocoldata(
-                    id=aidoc_id, userId='mgmt', iqvdataToc=protocol_data_str)
-                session.add(pd_data)
-            else:
-                curr_data.iqvdataToc = protocol_data_str
-            meta_data = session.query(PDProtocolMetadata).get(aidoc_id)
-            self.update_existing_props(meta_data, mapped_meta_fields)
-            self.meta_helper_obj.add_update_attribute(
-                session, aidoc_id, MetaDataTableHelper.SUMMARY_EXTENDED, summary_attributes)
-            session.commit()
+        self.update_data_to_tables(
+            aidoc_id,protocol_data_str,mapped_meta_fields,accordians)
         return msg_data
 
     def on_release(self):

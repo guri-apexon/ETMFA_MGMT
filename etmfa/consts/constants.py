@@ -41,6 +41,10 @@ LEGACY_QUEUE_NAMES = ['triage', 'digitizer1', 'digitizer2', 'i2e_omop_update', '
 # WF to be excluded
 EXCLUDED_WF = ['digitization', 'full_flow','email_notification']
 DEFAULT_WORKFLOW_NAME="Default_Workflow"
+# used in LM mapped fields
+STUDY_ASSESSMENT_AND_PROCEDURE = 'Study Assessments And Procedure'
+PATIENT_COMPLEXITY = 'Patient Complexity'
+SUMMARY_EXTENDED = 'summary_extended'
 
 @unique
 class QcStatus(Enum):
@@ -96,19 +100,72 @@ class _SummaryConfig:
         "molecule_device": "Molecule Device"
     }
 
-SUMMARY_KEY_META_FIELDS_MAP = {
-    "protocol_name":"fileName", "protocol_number":"protocol", "protocol_title":"protocolTitle",
-    "protocol_title_short":"shortTitle", "is_amendment":"isAmendment", "amendment_number":"amendment",
-    "trial_phase":"phase", "sponsor":"sponsor", "sponsor_address":"sponsorAddress", "drug":"drug",
-    "approval_date":"approvalDate", "version_number":"versionNumber", "version_date":"versionDate",
-    "blinded":"blinded", "compound_number":"compoundNumber", "control":"control", "investigator":"investigator",
-    "study_id":"studyId", "number_of_subjects":"numOfSubjects", "participant_age":"participantAge",
-    "participant_sex":"participantSex", "exclusion_criteria":"exclusionCriteria",
-    "inclusion_criteria":"inclusionCriteria", "indication":"indication", "primary_objectives":"primaryObjectives",
-    "secondary_objectives":"secondaryObjectives", "study_status":"studyStatus",
-    "study_population":"studyPopulation", "endpoints":"endPoints", "trial_type_randomized":"trialTypeRandomized",
-    "molecule_device":"moleculeDevice"
+
+# db_name,display_name,group_name
+LM_MAPPED_FIELDS = {
+    'adverse_events': ('adverse_events', 'Adverse Events', 'Adverse Events LM'),
+    'serious_adverse_events': ('serious_adverse_events', 'Serious Adverse Events', 'Serious Adverse Events LM'),
+    'biopsy': ('biopsy', 'Biopsy', PATIENT_COMPLEXITY),
+    'biopsy_list': ('biopsy_list', 'Biopsy List', PATIENT_COMPLEXITY),
+    'blood_draw': ('blood_draw', 'Blood Draw', PATIENT_COMPLEXITY),
+    'blood_draw_list': ('blood_draw_list', 'Blood Draw List', PATIENT_COMPLEXITY),
+    'caregiver': ('caregiver', 'Caregiver', PATIENT_COMPLEXITY),
+    'caregiver_list': ('caregiver_list', 'Caregiver List', PATIENT_COMPLEXITY),
+    'colonoscopy': ('colonoscopy', 'Colonoscopy', PATIENT_COMPLEXITY),
+    'colonoscopy_list': ('colonoscopy_list', 'Colonoscopy List', PATIENT_COMPLEXITY),
+    'demographics': ('colonoscopy_list', 'Colonoscopy List', STUDY_ASSESSMENT_AND_PROCEDURE),
+    'diary': ('diary', 'Diary', PATIENT_COMPLEXITY),
+    'diary_list': ('diary_list', 'Diary List', PATIENT_COMPLEXITY),
+    'discontinue_treatment': ('discontinue_treatment', 'Discontinue Treatment', PATIENT_COMPLEXITY),
+    'discontinue_treatment_list': ('discontinue_treatment_list', 'Discontinue Treatment List', PATIENT_COMPLEXITY),
+    'ecg': ('ecg', 'ECG', STUDY_ASSESSMENT_AND_PROCEDURE),
+    'endoscopy': ('endoscopy', 'Endoscopy', PATIENT_COMPLEXITY),
+    'endoscopy_list': ('endoscopy_list', 'Endoscopy List', PATIENT_COMPLEXITY),
+    'freq_pro': ('freq_pro', 'Freq Pro', PATIENT_COMPLEXITY),
+    'imaging_ct': ('imaging_ct', 'Imaging CT', PATIENT_COMPLEXITY),
+    'imaging_ct_list': ('imaging_ct', 'Imaging CT', PATIENT_COMPLEXITY),
+    'imaging_dexa': ('imaging_dexa', 'Imaging Dexa', PATIENT_COMPLEXITY),
+    'imaging_dexa_list': ('imaging_dexa_list', 'Imaging Dexa List', PATIENT_COMPLEXITY),
+    'imaging_mammogram': ('imaging_mammogram', 'Imaging Mammogram', PATIENT_COMPLEXITY),
+    'imaging_mammogram_list': ('imaging_mammogram_list', 'Imaging Mammogram List', PATIENT_COMPLEXITY),
+    'imaging_mri': ('imaging_mri', 'Imaging MRI', PATIENT_COMPLEXITY),
+    'imaging_mri_list': ('imaging_mri_list', 'Imaging MRI_List', PATIENT_COMPLEXITY),
+    'imaging_pet': ('imaging_pet', 'Imaging Pet', PATIENT_COMPLEXITY),
+    'imaging_pet_list': ('imaging_pet_list', 'Imaging Pet List', PATIENT_COMPLEXITY),
+    'imaging_ultrasound': ('imaging_ultrasound', 'Imaging Ultrasound', PATIENT_COMPLEXITY),
+    'imaging_ultrasound_list': ('imaging_ultrasound_list', 'Imaging Ultrasound List', PATIENT_COMPLEXITY),
+    'imaging_xray': ('imaging_xray', 'Imaging Xray', PATIENT_COMPLEXITY),
+    'imaging_xray_list': ('imaging_xray_list', 'Imaging Xray List', PATIENT_COMPLEXITY),
+    'injectable': ('injectable', 'Injectable', PATIENT_COMPLEXITY),
+    'injectable_list': ('injectable_list', 'Injectable List', PATIENT_COMPLEXITY),
+    'inpatient': ('inpatient', 'Inpatient', PATIENT_COMPLEXITY),
+    'inpatient_list': ('inpatient_list', 'Inpatient List', PATIENT_COMPLEXITY),
+    'lumbar_puncture': ('lumbar_puncture', 'Lumbar Puncture', PATIENT_COMPLEXITY),
+    'lumbar_puncture_list': ('lumbar_puncture_list', 'Lumbar Puncture List', PATIENT_COMPLEXITY),
+    'vital_signs': ('vital_signs', 'Vital Signs', STUDY_ASSESSMENT_AND_PROCEDURE),
+    'total_num_pro': ('total_num_pro', 'Total Num Pro', STUDY_ASSESSMENT_AND_PROCEDURE),
+    'total_num_site_visit': ('total_num_site_visit', 'Total Num Site Visit', STUDY_ASSESSMENT_AND_PROCEDURE),
+    'total_num_site_visit_list': ('total_num_site_visit_list', 'Total Num Site Visit List', STUDY_ASSESSMENT_AND_PROCEDURE),
+    'exclusion_section': ('exclusionCriteria', 'Exclusion Criteria', SUMMARY_EXTENDED),
+    'inclusion_section': ('inclusionCriteria', 'Inclusion Criteria', SUMMARY_EXTENDED),
+    'indication': ('indication', 'Indication', SUMMARY_EXTENDED),
+    'number_of_subjects': ('numOfSubjects', 'Number Of Subjects', SUMMARY_EXTENDED),
+    'objectives_section': ('primaryObjectives', 'Primary Objectives', SUMMARY_EXTENDED),
+    'participant_age': ('participantAge', 'Participant Age', SUMMARY_EXTENDED),
+    'participant_sex': ('participantSex', 'Participant Sex', SUMMARY_EXTENDED),
+    'blinding': ('blinded', 'Blinded', SUMMARY_EXTENDED),
+    'phase': ('phase', 'Trial Phase', SUMMARY_EXTENDED),
+    'ProtocolNumber': ('protocol', 'Protocol Number', SUMMARY_EXTENDED),
+    'ProtocolTitle': ('protocolTitle', 'Protocol title', SUMMARY_EXTENDED),
+    'sponsor': ('sponsor', 'Sponsor', SUMMARY_EXTENDED),
+    'population': ('population', 'Population', SUMMARY_EXTENDED),
+    'soa_footnotes': ('soa_footnotes', 'Soa Footnotes', ''),
+    'molecule_device':('moleculeDevice','Molecule Device',SUMMARY_EXTENDED),
+    'pro_list': ('pro_list', 'Pro List', PATIENT_COMPLEXITY)
 }
+
+
+EXCLUDED_LM_ACCORDIANS=[]
 
 SUMMARY_TYPES={
     'versionDate':('date','%Y%m%d'),
@@ -141,7 +198,7 @@ SUMMARY_FIELDS = {"Protocol Name": "fileName",
                          "Molecule Device": "moleculeDevice",
                          "Document Status": "documentStatus",
                          "Indication": "indication",
-                         "Draft Version": "draftVersion"
+                         "Population": "population"
                          }
 SUMMARY_ATTR_REV_MAP={v:k for k,v in SUMMARY_FIELDS.items()}
 
@@ -196,7 +253,7 @@ class _GeneralConfig:
         "Control": "control",
         "Investigator": "investigator",
         "StudyId": "study_id",
-        "NumberOfSubjects": "number_of_subjects",
+        "numOfSubjects": "number_of_subjects",
         "ParticipantAge": "participant_age",
         "ParticipantSex": "participant_sex",
         "ExclusionSection": "exclusion_criteria",
