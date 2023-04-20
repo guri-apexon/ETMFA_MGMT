@@ -5,6 +5,6 @@ from microservices.es_ms import ElasticIngestion
 def test_elastic_ingestion():
     cc=Config('simple')
     fn=ElasticIngestion(cc)
-    data={'final':{'docId':'31935a9a-0732-47fb-ab97-786703333c5d'}}
+    data={'final':{'docId':'a9286bc5-6b90-48af-9b0c-c365119e69c8'}}
     msg=fn.on_callback(data)
     assert msg!=None

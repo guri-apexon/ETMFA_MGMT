@@ -29,7 +29,10 @@ def initialize_wf_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=C
         os.makedirs(DB_DIR)
 
     logger = logging.getLogger(module_name)
-    logger.setLevel(logging.DEBUG)
+    if debug:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
 
     elkHandler = AsynchronousLogstashHandler(LOGSTASH_HOST,
                                              LOGSTASH_PORT,

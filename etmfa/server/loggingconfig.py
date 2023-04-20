@@ -65,7 +65,10 @@ def initialize_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=Cons
         os.makedirs(DB_DIR)
 
     logger = logging.getLogger(module_name)
-    logger.setLevel(logging.DEBUG)
+    if debug:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
 
     elkHandler = AsynchronousLogstashHandler(LOGSTASH_HOST,
                                              LOGSTASH_PORT,
@@ -91,7 +94,10 @@ def initialize_api_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=
         os.makedirs(DB_DIR)
 
     logger = logging.getLogger(module_name)
-    logger.setLevel(logging.DEBUG)
+    if debug:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
 
     elkHandler = AsynchronousLogstashHandler(LOGSTASH_HOST,
                                              LOGSTASH_PORT,
