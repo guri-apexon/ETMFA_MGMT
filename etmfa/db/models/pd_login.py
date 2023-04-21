@@ -12,7 +12,8 @@ class Login(db_context.Model):
     internal_user = db_context.Column(db_context.Boolean(), nullable=False)
     active_user = db_context.Column(db_context.Boolean(), default=True, nullable=False)
     incorrect_attempts = db_context.Column(db_context.Integer(), default=0)
-    lastUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
+    lastUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow,
+                                    onupdate=datetime.datetime.utcnow)
     user = db_context.relationship("User", back_populates="login")
     pwd_tracker = db_context.relationship("PwdTracker", back_populates="login")
 

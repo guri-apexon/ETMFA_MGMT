@@ -63,7 +63,8 @@ class PDProtocolMetadata(db_context.Model):
 
     # Audit fields
     timeCreated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
-    lastUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
+    lastUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow,
+                                    onupdate=datetime.datetime.utcnow)
     userCreated = db_context.Column(db_context.String(200))
     userUpdated = db_context.Column(db_context.String(200))
     amendmentNumber = db_context.Column(db_context.String(64))

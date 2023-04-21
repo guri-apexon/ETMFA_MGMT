@@ -23,7 +23,7 @@ class PDUserProtocols(db_context.Model):
         timezone=True), default=datetime.datetime.utcnow)
     userUpdated = db_context.Column(db_context.String(100))
     lastUpdated = db_context.Column(db_context.DateTime(
-        timezone=True), default=datetime.datetime.utcnow)
+        timezone=True), default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}
