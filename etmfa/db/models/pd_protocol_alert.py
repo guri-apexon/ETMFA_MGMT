@@ -20,7 +20,7 @@ class Protocolalert(db_context.Model):
     timeCreated = db_context.Column(db_context.DateTime(
         timezone=True), default=datetime.datetime.utcnow)
     timeUpdated = db_context.Column(db_context.DateTime(
-        timezone=True), default=datetime.datetime.utcnow)
+        timezone=True), default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     email_template_id = db_context.Column(db_context.String(100))
     notification_delete = db_context.Column(db_context.Boolean(), default=False)
     
