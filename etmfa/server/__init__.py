@@ -81,10 +81,10 @@ def start_runners():
 
 def create_app(config_name, ssl_enabled=False):
     # Override 'Development' config when invoking server
-    create_schemas(app.config['SQLALCHEMY_DATABASE_URI'])
     load_app_config(config_name)
     logger = logging.getLogger(Consts.LOGGING_NAME)
     if app.config['WORK_FLOW_RUNNER']:
+        create_schemas(app.config['SQLALCHEMY_DATABASE_URI'])
         start_workflow_runner(logger)
         start_runners()
     # register centralized logger
