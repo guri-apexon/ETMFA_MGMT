@@ -58,7 +58,7 @@ for i in {1..10}; do
     # Wait for service to start and verify the endpoints are accessible
     echo "Waiting for service to start and be accessible at '$VERIFICATION_URL'..."
     sleep 60
-    for j in {1..10}; do
+    for j in {1..60}; do
       echo "Verifying service reachability (retry: $j)"
       APP_RESPONSE=$(curl --insecure -L "$VERIFICATION_URL")
       if [ "$APP_RESPONSE" == "F5-UP" ]; then
