@@ -204,7 +204,8 @@ def get_section_audit_info(psdb: Session, aidoc_id: str, link_ids: list,
 
         obj = psdb.query(IqvdocumentlinkDb).filter(
             IqvdocumentlinkDb.doc_id == aidoc_id,
-            link_level_dict[link_level] == link_id).first()
+            link_level_dict[link_level] == link_id,
+            IqvdocumentlinkDb.LinkLevel == link_level).first()
 
         current_timezone = obj.last_updated
         est_datetime = current_timezone.astimezone(
