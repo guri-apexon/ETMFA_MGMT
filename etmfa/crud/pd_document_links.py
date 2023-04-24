@@ -53,14 +53,16 @@ def get_document_links(db: Session, aidoc_id: str, link_levels: int, toc: int):
                                 == 1 else x['link_id_level{}'.format(x['LinkLevel'])], axis=1)
         df = df[['doc_id', 'group_type', 'link_id', 'LinkLevel', 'LinkPage',
                  'LinkPrefix', 'LinkText', 'LinkType', 'parent_id',
-                 'iqv_standard_term']]
+                 'iqv_standard_term', 'DocumentSequenceIndex']]
         df = df.rename(
             columns={'LinkText': 'source_file_section', 'LinkPage': 'page',
                      'LinkPrefix': 'sec_id', 'parent_id': 'line_id',
                      'iqv_standard_term': 'preferred_term'})
         df['page'] = df['page'] + 1
-        # sorting by page number and sec_id
-        df = df.sort_values(by=['page', 'sec_id']).reset_index(drop=True)
+        # sorting by document sequence index and sec_id
+        df = df.sort_values(by=['DocumentSequenceIndex', 'sec_id']).reset_index(
+            drop=True)
+        df.drop(['DocumentSequenceIndex'], axis=1, inplace=True)
         df['qc_change_type'] = ''
         df['sequence'] = [i for i in range(df.shape[0])]
         df['section_locked'] = False
