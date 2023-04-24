@@ -18,7 +18,7 @@ class User(db_context.Model):
         db_context.Integer(), db_context.ForeignKey("login.id"))
     user_type = db_context.Column(db_context.String(100))
     lastUpdated = db_context.Column(db_context.DateTime(
-        timezone=True), default=datetime.datetime.utcnow)
+        timezone=True), default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     login = db_context.relationship("Login", back_populates="user")
     new_document_version = db_context.Column(db_context.Boolean, nullable=True)
     edited = db_context.Column(db_context.Boolean, nullable=True)

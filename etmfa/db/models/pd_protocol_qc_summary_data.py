@@ -44,7 +44,8 @@ class PDProtocolQCSummaryData(db_context.Model):
     userCreated = db_context.Column(db_context.String(64))
     timeCreated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
     userUpdated = db_context.Column(db_context.String(64))
-    timeUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow)
+    timeUpdated = db_context.Column(db_context.DateTime(timezone=True), default=datetime.datetime.utcnow,
+                                    onupdate=datetime.datetime.utcnow)
 
     def as_dict(self):
         obj = {c.name: getattr(self, c.name) for c in self.__table__.columns}
