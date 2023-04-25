@@ -46,7 +46,7 @@ class ErrorMessageHandler(MessageHandler):
             work_flow_name=get_work_flow_name_by_id(msg.id)
             in_service_message = ErrorMessage(flow_name=work_flow_name, flow_id=msg.id, service_name=msg.service_name,
                                               error_code=msg.error_code, error_message=msg.error_message, error_message_details=msg.error_message_details)
-        except Exception as e:
+        except Exception as _:
             pass
         if not in_service_message:
             in_service_message = ErrorMessage(**message)

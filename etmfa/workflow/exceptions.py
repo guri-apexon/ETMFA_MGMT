@@ -15,6 +15,14 @@ class WorkFlowMissing(Exception):
 
     def __str__(self):
         return f'{self.name} workflow does not exist '
+    
+class GenericMessageException(Exception):
+    def __init__(self,msg,*args):
+        self.msg=msg
+        super().__init__(args)
+
+    def __str__(self):
+        return f'{self.msg}'   
 
 class WorkFlowParamMissing(Exception):
     def __init__(self,name,*args):
