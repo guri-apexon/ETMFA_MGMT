@@ -358,7 +358,7 @@ class WorkFlowClient():
         self.mqs = MqSender(str(port))
         self.logger = logger
 
-    def send_msg(self, wf_name, wf_id, doc_uid, param, type: MsqType = MsqType.COMMAND.value):
+    def send_msg(self, wf_name, wf_id,doc_uid, param, type: MsqType = MsqType.COMMAND.value):
         """
         type: msgtype info or command. to run workflow its COMMAND, to get info INFO
         """

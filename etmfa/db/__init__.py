@@ -242,7 +242,7 @@ def document_compare_all_permutations(session, work_flow_id, flow_name):
                                                        WorkFlowStatus.work_flow_id != work_flow_id,
                                                        WorkFlowStatus.work_flow_name == DWorkFLows.FULL_FLOW.value,
                                                        WorkFlowStatus.status == WorkFlowState.COMPLETED.value
-                                                       )).all()
+                                                       )).order_by(WorkFlowStatus.timeCreated.desc()).limit(3).all()
     iqvxml_path1 = get_latest_file_path(
         document_path, prefix="D2_", suffix=FILE_EXTENSION)
     ids_list = [row['work_flow_id'] for row in ids_compare_protocol]

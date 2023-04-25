@@ -170,6 +170,9 @@ class SectionDataConfigAPI(Resource):
                 link_id, link_level, link_dict = crud.link_id_link_level_based_on_section_text(
                     db, aidoc_id, section_text, link_id, link_level)
 
+                if not protocol:
+                    protocol = crud.get_doc_protocol(db, aidoc_id)
+
                 section_res = get_section_data(aidoc_id=aidoc_id,
                                                link_level=link_level,
                                                link_id=link_id, user_id=user_id,

@@ -227,7 +227,7 @@ class CPTExtractor:
         cpt_df[file_section_columns] = file_section_list
         # Build display data
         display_columns = ['section_level', 'CPT_section', 'type', 'content', 'font_info', 'level_1_CPT_section']  + file_section_columns
-        display_df = cpt_df.loc[(cpt_df['keep_unique_table_flg']) & (cpt_df['not_footnote_flg']) & (cpt_df['not_merged_table_flg']), display_columns]
+        display_df = cpt_df.loc[(cpt_df['keep_unique_table_flg']) & (cpt_df['not_merged_table_flg']), display_columns]
         display_df['seq_num'] = range(1, display_df.shape[0]+1)
         display_df['qc_change_type'] = ''
         display_df.reset_index(drop=True, inplace=True)
