@@ -9,7 +9,7 @@ import traceback
 from etmfa.consts import Globals
 
 class MessageListener(ConsumerMixin):
-    def __init__(self, connection, connection_str, exchange_name=None,queues_to_monitor=[],callback=None):
+    def __init__(self, connection, connection_str, exchange_name=None,queues_to_monitor=None,callback=None):
         self.connection = connection
         self.connection_str = connection_str
         self.exchange_name = exchange_name
@@ -26,8 +26,8 @@ class MessageListener(ConsumerMixin):
     def get_queues(self):
         return [Queue(q, exchange=self.exchange, routing_key=q, durable=True) for q in self.queues_to_monitor]
 
-    def _create_consumer(self, Consumer, queues):
-        consumer = Consumer(queues=[queues], callbacks=[self._on_message], prefetch_count=5)
+    def _create_consumer(self, consumer_cls, queues):
+        consumer = consumer_cls(queues=[queues], callbacks=[self._on_message], prefetch_count=5)
         consumer.tag_prefix = f'{socket.gethostname()} - {getpass.getuser()} | Mgmt-{Globals.VERSION} | '
 
         return consumer
@@ -36,10 +36,10 @@ class MessageListener(ConsumerMixin):
     def is_ready(self):
         return self.is_consumer_ready
 
-    def get_consumers(self, Consumer, channel):
+    def get_consumers(self, consumer_cls , channel):
         consumers=[]
         for q in self.get_queues():
-            consumers.append(self._create_consumer(Consumer, q))
+            consumers.append(self._create_consumer(consumer_cls, q))
         return consumers
 
     def on_consume_ready(self, connection, channel, consumers, **kwargs):

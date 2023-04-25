@@ -10,7 +10,9 @@ from ..models.queue_names import EtmfaQueues
 from ..models.processing_status import ProcessingStatus
 from ...db.db_utils import update_doc_processing_status, get_work_flow_name_by_id, get_work_flow_info_by_id, get_session_obj
 from etmfa.db.feedback_utils import get_latest_file_path
+from ...exceptions import GenericMessageException
 
+from etmfa.consts.constants import XML_SUFFIX
 
 class DigitizationGenericMessageHandler(MessageHandler):
     def __init__(self, dfs_path=None):
@@ -31,7 +33,6 @@ class DigitizationGenericMessageHandler(MessageHandler):
         return message
 
     def _get_msg_obj(self, msg):
-        flow_name = msg.flow_name  # not used by triage now
         _id = msg.flow_id
         service_info = msg.services_param[0]
         msg_proc_obj = service_info.params
@@ -58,7 +59,7 @@ class DigitizationGenericMessageHandler(MessageHandler):
             flow_name = get_work_flow_name_by_id(_id)
             request_params['flow_name'] = flow_name
         if not flow_name:
-            raise Exception("Unknown workflow cant process further ")
+            raise GenericMessageException("Unknown workflow cant process further ")
         in_service_message = ServiceMessage(
             flow_name=flow_name, flow_id=_id, params=request_params)
 
@@ -81,7 +82,6 @@ class TriageMessageHandler(DigitizationGenericMessageHandler):
         """
         message to be sent to Triage Service
         """
-        # from etmfa.db import update_doc_processing_status
 
         service_param = self._get_msg_obj(msg)
         _id = service_param['id']
@@ -113,7 +113,7 @@ class Digitizer1MessageHandler(DigitizationGenericMessageHandler):
         """
         msg_obj = self._get_msg_obj(msg)
         if not msg_obj.get('ocr_required', True):
-            return None
+            return {}
 
         return super().on_output_message_adapter(service_name, msg)
 
@@ -136,13 +136,13 @@ class I2eOmopMessageHandler(DigitizationGenericMessageHandler):
             omop_xml_path = service_param['OMOPPath']
         feedback_run_id, output_file_prefix = service_param[
             'FeedbackRunId'], service_param['OutputFilePrefix']
-        file = None
+        _file = None
         try:
-            IQVXMLPath = os.path.join(self.dfs_path, _id)
-            file = get_latest_file_path(
-                IQVXMLPath, prefix="*.omop", suffix="*.xml*")
-        except Exception as e:
-            file = None
+            iqvxmlpath = os.path.join(self.dfs_path, _id)
+            _file = get_latest_file_path(
+                iqvxmlpath, prefix="*.omop", suffix=XML_SUFFIX)
+        except Exception as _:
+            _file = None
 
         request = DIG2OMAPRequest(
             _id, flow_id, flow_name, omop_xml_path, feedback_run_id, output_file_prefix)
@@ -160,13 +160,14 @@ class Digitizer2OmopGenerateHandler(DigitizationGenericMessageHandler):
         doc_id = service_param.get('doc_id', None)
         if not doc_id:
             doc_id = _id
-        FeedbackRunId = service_param.get('FeedbackRunId', 0)
+        feedbackrunid = service_param.get('FeedbackRunId', 0)
         flow_name = msg.flow_name
         flow_id = msg.flow_id
-        IQVXMLPath = os.path.join(self.dfs_path, doc_id)
+        iqvxmlpath = os.path.join(self.dfs_path, doc_id)
         dig_file_path = get_latest_file_path(
-            IQVXMLPath, prefix="D2_", suffix="*.xml*")
-        return Dig2XMLPathRequest(_id, doc_id, FeedbackRunId, flow_name, flow_id, dig_file_path, '').__dict__
+            iqvxmlpath, prefix="D2_", suffix=XML_SUFFIX)
+        update_doc_processing_status(_id, service_name,True,flow_name)
+        return Dig2XMLPathRequest(_id, doc_id, feedbackrunid, flow_name, flow_id, dig_file_path, '').__dict__
 
 
 class Digitizer2OmopUpdateHandler(DigitizationGenericMessageHandler):
@@ -180,22 +181,22 @@ class Digitizer2OmopUpdateHandler(DigitizationGenericMessageHandler):
         flow_name=service_param['flow_name']
         _id, updated_omop_xml_path = service_param['id'], service_param['updated_omop_xml_path']
         feedback_run_id = service_param['FeedbackRunId']
-        file = None
+        _file = None
         try:
-            IQVXMLPath = os.path.join(self.dfs_path, _id)
+            iqvxmlpath = os.path.join(self.dfs_path, _id)
             dig_file_path = get_latest_file_path(
-                IQVXMLPath, prefix="D2_", suffix="*.xml*")
+                iqvxmlpath, prefix="D2_", suffix=XML_SUFFIX)
             if dig_file_path:
-                file = dig_file_path
-        except Exception as e:
-            file = None
+                _file = dig_file_path
+        except Exception as _:
+            _file = None
 
         if feedback_run_id == 0:
             output_file_prefix = ""
         else:
             output_file_prefix = "R" + str(feedback_run_id).zfill(2)
         out_queue_name = EtmfaQueues.DIGITIZER2_OMOPUPDATE.request
-        request = I2eOmapRequest(_id,flow_id,flow_name, updated_omop_xml_path, file,
+        request = I2eOmapRequest(_id,flow_id,flow_name, updated_omop_xml_path, _file,
                                  feedback_run_id, output_file_prefix, out_queue_name)
         update_doc_processing_status(_id, service_name,True,msg.flow_name)
         return request.__dict__
@@ -222,7 +223,7 @@ class Digitizer2CompareHandler(DigitizationGenericMessageHandler):
         info2 = get_work_flow_info_by_id(id2)
         protocol_name_2, doc_file_path_2 = info2['protocol_name'], info2['documentFilePath']
         if protocol_name_1 != protocol_name_2:
-            raise Exception('protocol name is not same for two documents')
+            raise GenericMessageException('protocol name is not same for two documents')
         return protocol_name_1, doc_file_path_1, doc_file_path_2
 
     def on_output_message_adapter(self, service_name, msg: CompositeServiceMessage) -> Dict:
@@ -264,14 +265,14 @@ class Digitizer2NormSOAHandler(DigitizationGenericMessageHandler):
         service_param = self._get_msg_obj(msg)
         _id = service_param['id']
         doc_id = service_param['doc_id']
-        FeedbackRunId = service_param.get('FeedbackRunId', 0)
+        feedbackrunid = service_param.get('FeedbackRunId', 0)
         flow_name = msg.flow_name
         flow_id = msg.flow_id
-        IQVXMLPath = os.path.join(self.dfs_path, doc_id)
+        iqvxmlpath = os.path.join(self.dfs_path, doc_id)
         dig_file_path = get_latest_file_path(
-            IQVXMLPath, prefix="D2_", suffix="*.xml*")
-
-        return Dig2XMLPathRequest(_id, doc_id, FeedbackRunId, flow_name, flow_id, dig_file_path, '').__dict__
+            iqvxmlpath, prefix="D2_", suffix=XML_SUFFIX)
+        update_doc_processing_status(_id, service_name,True,flow_name)
+        return Dig2XMLPathRequest(_id, doc_id, feedbackrunid, flow_name, flow_id, dig_file_path, '').__dict__
 
 class AnalyzerMessageHandler(DigitizationGenericMessageHandler):
 
@@ -280,6 +281,7 @@ class AnalyzerMessageHandler(DigitizationGenericMessageHandler):
         message to be sent to document compare
         """
         service_param = self._get_msg_obj(msg)
+        _id=None
         if not service_param.get('doc_id',None):        
             _id = service_param['id']
             doc_id=_id
@@ -288,5 +290,6 @@ class AnalyzerMessageHandler(DigitizationGenericMessageHandler):
             _id=msg.flow_id
         flow_name = msg.flow_name
         flow_id = msg.flow_id
+        update_doc_processing_status(_id, service_name,True,flow_name)
         variable_list=["total_num_site_visit","total_num_months","num_visits_per_month","median_visit_len","inpatient"]
         return AnalyzerRequest(flow_id,flow_name,_id,doc_id,variable_list).__dict__

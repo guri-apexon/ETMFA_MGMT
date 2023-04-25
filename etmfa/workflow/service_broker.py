@@ -95,6 +95,9 @@ class ServiceBroker(ABC, threading.Thread):
 
     @property
     def is_ready(self):
+        """
+        property to be inherited
+        """
         pass
 
     def run(self):
