@@ -62,13 +62,15 @@ def get_document_links(db: Session, aidoc_id: str, link_levels: int, toc: int):
         # sorting by document sequence index and sec_id
         df = df.sort_values(by=['DocumentSequenceIndex', 'sec_id']).reset_index(
             drop=True)
+        doc_seq = df['DocumentSequenceIndex']
         df.drop(['DocumentSequenceIndex'], axis=1, inplace=True)
         df['qc_change_type'] = ''
         df['sequence'] = [i for i in range(df.shape[0])]
         df['section_locked'] = False
         df['audit_info'] = get_section_audit_info(psdb=db, aidoc_id=aidoc_id,
                                                   link_ids=df['link_id'],
-                                                  link_levels=df['LinkLevel'])
+                                                  link_levels=df['LinkLevel'],
+                                                  doc_seq=doc_seq)
 
         headers = df.to_dict(orient='records')
         if toc == 0:
