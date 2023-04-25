@@ -184,7 +184,7 @@ def get_document_terms_data(db: Session, aidoc_id: str,
 
 
 def get_section_audit_info(psdb: Session, aidoc_id: str, link_ids: list,
-                           link_levels: list) -> list:
+                           link_levels: list, doc_seq: list) -> list:
     """
     get section audit info
 
@@ -195,7 +195,7 @@ def get_section_audit_info(psdb: Session, aidoc_id: str, link_ids: list,
     :returns : dictionary of single record with specified values
     """
     response = []
-    for link_level, link_id in zip(link_levels, link_ids):
+    for link_level, link_id, seq in zip(link_levels, link_ids, doc_seq):
         link_level_dict = {1: IqvdocumentlinkDb.link_id,
                            2: IqvdocumentlinkDb.link_id_level2,
                            3: IqvdocumentlinkDb.link_id_level3,
@@ -206,7 +206,8 @@ def get_section_audit_info(psdb: Session, aidoc_id: str, link_ids: list,
         obj = psdb.query(IqvdocumentlinkDb).filter(
             IqvdocumentlinkDb.doc_id == aidoc_id,
             link_level_dict[link_level] == link_id,
-            IqvdocumentlinkDb.LinkLevel == link_level).first()
+            IqvdocumentlinkDb.LinkLevel == link_level,
+            IqvdocumentlinkDb.DocumentSequenceIndex == seq).first()
 
         current_timezone = obj.last_updated
         est_datetime = current_timezone.astimezone(
