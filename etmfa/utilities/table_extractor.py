@@ -95,7 +95,7 @@ class SOAResponse:
                             'TableId': prop.table_roi_id,
                             'AttachmentIndex': prop.DocumentSequenceIndex,
                             'key': prop.footnote_indicator,
-                            'AttachmentId': prop.id,
+                            'AttachmentId': prop.roi_id,
                             'Text': prop.footnote_text
                         }
                         dictTableMeta['AttachmentList'].append(footnote_val)
