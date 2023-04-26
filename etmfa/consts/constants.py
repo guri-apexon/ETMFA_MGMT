@@ -158,7 +158,7 @@ LM_MAPPED_FIELDS = {
     'ProtocolNumber': ('protocol', 'Protocol Number', SUMMARY_EXTENDED),
     'ProtocolTitle': ('protocolTitle', 'Protocol title', SUMMARY_EXTENDED),
     'sponsor': ('sponsor', 'Sponsor', SUMMARY_EXTENDED),
-    'population': ('population', 'Population', SUMMARY_EXTENDED),
+    'population': ('population', 'Study Population', SUMMARY_EXTENDED),
     'soa_footnotes': ('soa_footnotes', 'Soa Footnotes', ''),
     'molecule_device':('moleculeDevice','Molecule Device',SUMMARY_EXTENDED),
     'pro_list': ('pro_list', 'Pro List', PATIENT_COMPLEXITY)
@@ -198,7 +198,7 @@ SUMMARY_FIELDS = {"Protocol Name": "fileName",
                          "Molecule Device": "moleculeDevice",
                          "Document Status": "documentStatus",
                          "Indication": "indication",
-                         "Population": "population"
+                         "Study Population": "population"
                          }
 SUMMARY_ATTR_REV_MAP={v:k for k,v in SUMMARY_FIELDS.items()}
 
