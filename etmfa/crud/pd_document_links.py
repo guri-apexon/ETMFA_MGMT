@@ -80,7 +80,7 @@ def get_document_links(db: Session, aidoc_id: str, link_levels: int, toc: int):
             # if toc is 1 returns sections/headers data with parent child relationship
             toc_headers = []  
             doc_headers = []
-            for i in headers:              
+            for i in headers:
                 linklevel = i.get('LinkLevel')
                 section_id = i.get('sec_id')          
                 if linklevel == 1:
@@ -89,16 +89,23 @@ def get_document_links(db: Session, aidoc_id: str, link_levels: int, toc: int):
                     toc_headers.append(i)                   
                     section_id_num = section_id.replace(".", "")
                     if section_id_num.isnumeric():
-                        section_id_split = section_id.split(".")
-                        section_id_join = ".".join(section_id_split[:-1]) + ("." if section_id_split.pop()=="" else "")
-                        filtered_header = filter(lambda x: x.get('sec_id') == section_id_join, headers)
+                        if section_id[-1] == '.':
+                            section_id = section_id[:-1]
+                            section_id_split = section_id.split(".")
+                            section_id_join = ".".join(section_id_split[:-1]) + ("." if section_id_split.pop()=="" else "")
+                            filtered_header = filter(lambda x: x.get('sec_id') == section_id_join + '.', headers)
+                        else:
+                            section_id_split = section_id.split(".")
+                            section_id_join = ".".join(section_id_split[:-1]) + (
+                                "." if section_id_split.pop() == "" else "")
+                            filtered_header = filter(lambda x: x.get('sec_id') == section_id_join, headers)
                         for item in filtered_header:
                             if item in headers:
                                 index = headers.index(item)
                                 if headers[index].get('childlevel'):
                                     headers[index].get('childlevel').append(i)
-                                else:                            
-                                    headers[index]['childlevel']= [i] 
+                                else:
+                                    headers[index]['childlevel']= [i]
                     elif isinstance(section_id, str):
                         doc_headers.append(i)
 

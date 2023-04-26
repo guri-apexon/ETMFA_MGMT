@@ -219,7 +219,7 @@ class WorkFlow():
                 self.delete_channel(flow_id)
                 self.logger.info(
                     f'deleting workflow channel {flow_id} as all done')
-            return
+            return {}
         services_msg_obj = channel.get_services_composite_message(
             next_services)
 

@@ -3,6 +3,7 @@ from etmfa_core.postgres_db_schema import NlpEntityDb, IqvkeyvaluesetDb
 from etmfa.db.models.pd_documenttables_db import DocumenttablesDb
 from etmfa.db.models.pd_iqvdocumentlink_db import IqvdocumentlinkDb
 from etmfa.db.models.pd_iqvexternallink_db import IqvexternallinkDb
+from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from sqlalchemy import or_
@@ -37,9 +38,9 @@ def get_document_terms_data(db: Session, aidoc_id: str,
 
     terms_values = {}
 
-    if config_variables is None: 
+    if config_variables is None:
         return []
-    
+
     if "time_points" in config_variables:
         if link_id:
             iqv_time_point_visit_records = db.query(IqvvisitrecordDb).filter(
@@ -244,10 +245,8 @@ def get_references_data(db, doc_id: str = "", link_id: str = "", ) -> list:
     """
     config_variables = "references"
     reference_data = get_document_terms_data(db, doc_id, link_id,
-                                                           config_variables, {})
-    return reference_data[0].get("references",
-                                          []) if reference_data else []
-
+                                             config_variables, {})
+    return reference_data[0].get("references", []) if reference_data else []
 
 
 def link_id_link_level_based_on_section_text(psdb: Session, aidoc_id: str,
@@ -301,3 +300,14 @@ def link_id_link_level_based_on_section_text(psdb: Session, aidoc_id: str,
                 f"Exception occurred during getting link id {section_text}, {str(e)}")
 
     return link_id, link_level, link_dict
+
+
+def get_doc_protocol(psdb: Session, aidoc_id: str):
+    """
+    To get document protocol based on given document id
+    """
+    doc_protocol = psdb.query(PDProtocolMetadata).filter(
+        PDProtocolMetadata.id == aidoc_id,
+        PDProtocolMetadata.isActive == True).first()
+    if doc_protocol:
+        return doc_protocol.protocol or ''
