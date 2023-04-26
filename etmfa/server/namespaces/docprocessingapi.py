@@ -16,6 +16,7 @@ from etmfa.consts import Consts as consts
 from etmfa.db import feedback_utils as fb_utlis
 from etmfa.db.models import pd_dipa_view_data
 from etmfa.db.db import db_context
+from .confidence_metric import fetch_records_from_db
 from etmfa.db.soa_operations import (
     add_study_procedure,
     add_normalized_data_for_study_procedure,
@@ -81,7 +82,9 @@ from etmfa.server.namespaces.serializers import (
     dipadata_details_get,
     dipadata_details_input,
     metadata_summary_delete,
-    dipa_view_data, fetch_workflows_by_doc_id
+    dipa_view_data,
+    fetch_workflows_by_doc_id,
+    fetch_confidence_score
 )
 from etmfa.workflow.default_workflows import DWorkFLows, DEFAULT_WORKFLOWS
 from etmfa.workflow import WorkFlowClient
@@ -1171,6 +1174,28 @@ class CdcAPI(Resource):
                     return abort(HTTPStatus.NOT_FOUND, "Not found")
             except ValueError as e:
                 return abort(HTTPStatus.BAD_REQUEST, "invalid operation")
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
+
+
+@ns.route('/get_confidence_matrix')
+@ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(fetch_confidence_score)
+    @ns.response(HTTPStatus.OK, 'Success.')
+    @ns.response(HTTPStatus.NOT_FOUND, 'Confidence Matrix not Found')
+    @api.doc(security='apikey')
+    @authenticate
+    def get(self):
+        try:
+            args = fetch_confidence_score.parse_args()
+            sponsor_name = args['sponsorName']
+            doc_id = args['doc_id']
+            doc_status = args['docStatus']
+            confidence_score = fetch_records_from_db(sponsor_name,
+                                                     doc_status=doc_status, doc_id=doc_id)
+            return confidence_score
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))

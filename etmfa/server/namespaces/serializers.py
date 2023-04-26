@@ -757,3 +757,12 @@ fetch_workflows_by_doc_id.add_argument(
     'days', type=str, required=False, help='number of days')
 fetch_workflows_by_doc_id.add_argument('wf_num', type=str, required=False,
                                        help='number of workflows to be fetched')
+
+# fetch confidence Score
+fetch_confidence_score = reqparse.RequestParser()
+fetch_confidence_score.add_argument('doc_id', type=str, required=False,
+                                    help='doc_id id for which workflows will be fetched')
+fetch_confidence_score.add_argument('sponsorName', type=str, required=True,
+                                    help='Name of the sponsor')
+fetch_confidence_score.add_argument('docStatus', type=str, required=False,
+                                    help='doc status of protocol metadata table')

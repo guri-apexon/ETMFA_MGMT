@@ -24,6 +24,7 @@ from .db.db_utils import (create_doc_processing_status,
 from ..consts import Consts
 from etmfa.workflow.loggerconfig import initialize_wf_logger, ContextFilter
 from ..consts.constants import DEFAULT_WORKFLOW_NAME
+from ..server.namespaces.confidence_metric import ConfidenceMatrixRunner
 
 WF_RUN_WAIT_TIME = 3  # 3 sec
 
@@ -466,11 +467,13 @@ class WorkFlowController(Thread):
         self.wfm.wait_until_listener_ready()
         last_pending_services_check_time = time.time()
         is_start=True
+        cfr=ConfidenceMatrixRunner()
         stale_work_flow_check_time_sec = max(1, self.remove_time_for_stale_workflows / 12) * 3600
         while (True):
             try:
                 start_time = time.time()
                 self._process_msg()
+                cfr.run()
                 curr_time = time.time()
                 diff = curr_time - last_pending_services_check_time
                 if diff > stale_work_flow_check_time_sec or is_start:
