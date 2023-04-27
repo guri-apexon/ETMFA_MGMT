@@ -332,9 +332,11 @@ def filter_user_with_usernames(pd_user_instances_list, user_id_list, user_id_exc
     return return_list
 
 
-def insert_into_alert_table(finalattributes, event_dict, user_id_exclude=''):
-    doc_status = PDProtocolMetadata.query.filter(
-        PDProtocolMetadata.id == finalattributes['AiDocId']).first()
+def insert_into_alert_table(finalattributes, event_dict, user_id_exclude='', db=None):
+    if not db:
+        db = db_context.session
+    doc_status = db.query(PDProtocolMetadata).filter(
+            PDProtocolMetadata.id == finalattributes['AiDocId']).first()
     doc_status_flag = doc_status and doc_status.documentStatus in config.VALID_DOCUMENT_STATUS_FOR_ALERT
     approval_date_flag = finalattributes['approval_date'] != '' and len(
         finalattributes['approval_date']) == 8 and finalattributes['approval_date'].isdigit()
@@ -342,7 +344,7 @@ def insert_into_alert_table(finalattributes, event_dict, user_id_exclude=''):
 
         # The query below is to check if the approval date for protocol which alert needs to be generated
         # greater than all other approval dates for the protocols.
-        resources = db_context.session.query(PDProtocolQCSummaryData,
+        resources = db.query(PDProtocolQCSummaryData,
                                              PDProtocolQCSummaryData.source,
                                              PDProtocolQCSummaryData.approvalDate,
                                              func.rank().over(partition_by=PDProtocolQCSummaryData.aidocId,
@@ -364,12 +366,12 @@ def insert_into_alert_table(finalattributes, event_dict, user_id_exclude=''):
 
         if alert_res:
             protocolalert_list = list()
-            pd_user_protocol_list = PDUserProtocols.query.filter(
+            pd_user_protocol_list = db.query(PDUserProtocols).filter(
                 and_(PDUserProtocols.protocol == finalattributes['ProtocolNo'],
                      PDUserProtocols.follow == True)).all()
 
             if event_dict.get("qc_complete"):
-                user_id_list = [i[0] for i in User.query.filter(User.qc_complete == True).with_entities(
+                user_id_list = [i[0] for i in db.query(User).filter(User.qc_complete == True).with_entities(
                     case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
                           (User.username.like('q%'), func.replace(User.username, 'q', ''))],
                          else_=User.username)).all()]
@@ -377,7 +379,7 @@ def insert_into_alert_table(finalattributes, event_dict, user_id_exclude=''):
                     pd_user_protocol_list, user_id_list, user_id_exclude)
 
             elif event_dict.get("edited"):
-                user_id_list = [i[0] for i in User.query.filter(User.edited == True).with_entities(
+                user_id_list = [i[0] for i in db.query(User).filter(User.edited == True).with_entities(
                     case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
                           (User.username.like('q%'), func.replace(User.username, 'q', ''))],
                          else_=User.username)).all()]
@@ -385,7 +387,7 @@ def insert_into_alert_table(finalattributes, event_dict, user_id_exclude=''):
                     pd_user_protocol_list, user_id_list, user_id_exclude)
 
             elif event_dict.get("new_document_version"):
-                user_id_list = [i[0] for i in User.query.filter(User.new_document_version == True).with_entities(
+                user_id_list = [i[0] for i in db.query(User).filter(User.new_document_version == True).with_entities(
                     case([(User.username.like('u%'), func.replace(User.username, 'u', '')),
                           (User.username.like('q%'), func.replace(User.username, 'q', ''))],
                          else_=User.username)).all()]
@@ -393,7 +395,7 @@ def insert_into_alert_table(finalattributes, event_dict, user_id_exclude=''):
                     pd_user_protocol_list, user_id_list, user_id_exclude)
 
             for pd_user_protocol in pd_user_protocol_list:
-                protocolalert_instance = db_context.session.query(Protocolalert).filter_by(id=pd_user_protocol.id, aidocId=finalattributes['AiDocId'], protocol=finalattributes[
+                protocolalert_instance = db.query(Protocolalert).filter_by(id=pd_user_protocol.id, aidocId=finalattributes['AiDocId'], protocol=finalattributes[
                     'ProtocolNo'], email_template_id=finalattributes.get('email_template_id')).update({'timeUpdated': datetime.now(timezone.utc),'notification_delete': False, "readFlag": False})
                 if not protocolalert_instance:
                     protocolalert = Protocolalert()
@@ -412,8 +414,8 @@ def insert_into_alert_table(finalattributes, event_dict, user_id_exclude=''):
                     protocolalert.timeUpdated = time_
                     protocolalert_list.append(protocolalert)
 
-            db_context.session.add_all(protocolalert_list)
-            db_context.session.commit()
+            db.add_all(protocolalert_list)
+            db.commit()
     else:
         logger.info("Could not insert record to pd_protocol_alert for ID: {}, approval_date:{}, protocol no:{}".format(
             finalattributes['AiDocId'], finalattributes['approval_date'], finalattributes['ProtocolNo']))
