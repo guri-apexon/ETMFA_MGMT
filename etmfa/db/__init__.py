@@ -863,23 +863,24 @@ def get_normalized_soa_details(aidoc_id) -> dict:
         visitrecord_mapper = session.query(IqvassessmentvisitrecordDbMapper).filter(
             IqvassessmentvisitrecordDbMapper.doc_id == aidoc_id).all()
 
-        if visitrecord_mapper is not None:
-            for record in visitrecord_mapper:
-                resource_dict = {key: value for key,
-                                 value in record.__dict__.items()}
-                resource_dict.pop("_sa_instance_state")
-                footnote_list = []
+        if visitrecord_mapper is None:
+            return norm_dict
+        for record in visitrecord_mapper:
+            resource_dict = {key: value for key,
+                                value in record.__dict__.items()}
+            resource_dict.pop("_sa_instance_state")
+            footnote_list = []
 
-                for note in footnotes:
-                    if note in resource_dict:
-                        if len(resource_dict.get(note)) != 0:
-                            footnote_list.append(resource_dict.get(note))
-                        resource_dict.pop(note)
-                    continue
+            for note in footnotes:
+                if note in resource_dict:
+                    if len(resource_dict.get(note)) != 0:
+                        footnote_list.append(resource_dict.get(note))
+                    resource_dict.pop(note)
+                continue
 
-                resource_dict.update({"footnotes": footnote_list})
-                norm_soa.append(resource_dict)
-                norm_soa_str = json.loads(json.dumps(norm_soa))
+            resource_dict.update({"footnotes": footnote_list})
+            norm_soa.append(resource_dict)
+            norm_soa_str = json.loads(json.dumps(norm_soa))
 
             norm_dict = {'id': aidoc_id, 'normalizedSOA': norm_soa_str}
 
