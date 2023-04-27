@@ -16,6 +16,7 @@ from etmfa.db.db import db_context
 from datetime import datetime, timedelta
 import logging
 from etmfa.consts import Consts
+import json
 from ...workflow.exceptions import SendExceptionMessages
 
 logger = logging.getLogger(Consts.LOGGING_NAME)
@@ -48,13 +49,14 @@ def get_confidence_metric_stats(session, doc_ids):
             f'Unable to calculate confidence score. Reason: {str(e)}')
 
 
-def fetch_records_from_db(sponsor_name, doc_status=None, doc_id=None):
+def fetch_records_from_db(sponsor_name=None, doc_status=None, doc_id=None):
     """Function to fetch records based on sponsorname or doc_id from Database"""
     try:
         session = db_context.session()
         if not doc_id:
-            result = session.query(PDProtocolMetadata.id). \
-                filter(PDProtocolMetadata.sponsor == sponsor_name)
+            result = session.query(PDProtocolMetadata.id)
+            if sponsor_name:
+                result=result.filter(PDProtocolMetadata.sponsor == sponsor_name)
             if doc_status:
                 result = result.filter(PDProtocolMetadata.documentStatus == doc_status)
             doc_ids = [i[0] for i in result]
@@ -67,9 +69,9 @@ def fetch_records_from_db(sponsor_name, doc_status=None, doc_id=None):
             f'Unable to calculate confidence score. Reason: {str(e)}')
 
 
-class ConfidenceMatrix(Process):
-    def __init__(self, ):
-        Process.__init__(self)
+
+class ConfidenceMatrix():
+    def __init__(self):
         self.session_local = None
         self.custom_ids = None
         self.time_stamp_id = "".join(['1'] * 8)
@@ -86,9 +88,10 @@ class ConfidenceMatrix(Process):
 
     def get_num_pages(self, session, doc_id):
         """ Fetch number of pages from database"""
-        num_pages = session.query(DocumentparagraphsDb.PageSequenceIndex).filter(DocumentparagraphsDb.doc_id == doc_id). \
-            order_by(DocumentparagraphsDb.PageSequenceIndex.desc()).first()[0]
-        return num_pages
+
+        doc_obj = session.query(DocumentparagraphsDb.PageSequenceIndex).filter(DocumentparagraphsDb.doc_id == doc_id). \
+            order_by(DocumentparagraphsDb.PageSequenceIndex.desc()).first()
+        return doc_obj[0] if doc_obj else None
 
     def get_tbl_changes(self, session, doc_id, tbl, audit_tbl, prefix):
         """ fetch table changes from database"""
@@ -126,20 +129,24 @@ class ConfidenceMatrix(Process):
     def get_latest_doc_ids(self, session, last_timestamp):
         reviewed_docs = session.query(PDProtocolMetadata.id).filter(
             PDProtocolMetadata.qcStatus == QcStatus.COMPLETED.value,
-            PDProtocolMetadata.lastQcUpdated >= last_timestamp).all()
+            PDProtocolMetadata.lastUpdated >= last_timestamp).all()
         return [doc[0] for doc in reviewed_docs]
 
     def get_last_run_timestamp(self, session):
         info = session.query(QcEditMetric).filter(QcEditMetric.doc_id == self.time_stamp_id).first()
-        return datetime.utcnow() - timedelta(days=365 * 20) if not info else info['last_run_timestamp']
+        ctime=None
+        if info:
+            last_run_timestamp=info.edit_info['last_run_timestamp']
+            ctime=datetime.strptime(last_run_timestamp,'%Y-%m-%d %H:%M:%S.%f')
+        return datetime.utcnow() - timedelta(days=365 * 20) if not ctime else ctime
 
-    def update_last_run_timestamp(self, session):
-        info = session.query(QcEditMetric).filter(QcEditMetric.doc_id == self.time_stamp_id)
-        curr_time_stamp = datetime.utcnow()
+    def update_last_run_timestamp(self, session,curr_time_stamp):
+        info = session.query(QcEditMetric).filter(QcEditMetric.doc_id == self.time_stamp_id).first()
         if not info:
             info = QcEditMetric()
             info.doc_id = self.time_stamp_id
-        info.edit_info = {'last_run_timestamp': curr_time_stamp}
+        info.edit_info = {'last_run_timestamp': str(curr_time_stamp)}
+        session.add(info)
         session.commit()
 
     def run(self):
@@ -147,11 +154,16 @@ class ConfidenceMatrix(Process):
         self.add_engine_context()
         with self.session_local() as session:
             logger.info('updating information of num of edits for latest documents')
+
+            last_start_timestamp=datetime.utcnow()
             last_run_timestamp = self.get_last_run_timestamp(session)
             doc_ids = self.get_latest_doc_ids(session, last_run_timestamp)
             doc_ids = self.custom_ids if self.custom_ids else doc_ids
             for doc_id in doc_ids:
                 num_pages = self.get_num_pages(session, doc_id)
+                if not num_pages:
+                    continue
+                logger.info(f'updating info for {doc_id}')
                 num_image_changes = self.get_image_changes(session, doc_id)
                 para_info = self.get_tbl_changes(
                     session, doc_id, DocumentparagraphsDb, AuditParagraphDb, 'text')
@@ -171,33 +183,33 @@ class ConfidenceMatrix(Process):
                     qc_metric.edit_info = data
                     session.add(qc_metric)
                 session.commit()
-            self.update_last_run_timestamp(session)
+            self.update_last_run_timestamp(session,last_start_timestamp)
             logger.info('edit info updated for all recent documents ')
 
 
-class ConfidenceMatrixRunner:
+class ConfidenceMatrixRunner(Process):
     """This class works as a scheduler to calculate confidence score & store it in DB"""
 
     def __init__(self, run_interval_in_hrs=24):
+        Process.__init__(self)
+        self.daemon=True
         self.last_update_time = time.time()
         self.first_run = True
         self.run_interval_in_hrs = run_interval_in_hrs
         self.cm = None
 
-    def is_running(self):
-        if self.cm:
-            return self.cm.is_alive()
-        return False
-
     def run(self, custom_ids=None):
-        if self.is_running():
-            logger.info('confidence matrix instance already running')
-            return
-        time_diff_hrs = (time.time() - self.last_update_time) / 3600
-        if time_diff_hrs >= self.run_interval_in_hrs or self.first_run:
-            logger.info("running confidence matrix runner")
-            self.cm = ConfidenceMatrix()
-            self.cm.add_custom_ids(custom_ids)
-            self.cm.start()
-            self.last_update_time = time.time()
-            self.first_run = False
+        while(True):
+            time_diff_hrs = (time.time() - self.last_update_time) / 3600
+            logger.info('confidence scores process lookup ')
+            if time_diff_hrs >= self.run_interval_in_hrs or self.first_run:
+                logger.info("running confidence matrix runner")
+                self.cm = ConfidenceMatrix()
+                self.cm.add_custom_ids(custom_ids)
+                self.cm.run()
+                self.last_update_time = time.time()
+                self.first_run = False
+                logger.info('confidence scores calculated')
+            if custom_ids:
+                break
+            time.sleep(1800)
