@@ -8,7 +8,7 @@ LOGSTASH_HOST: 'ca2spdml01q'
 LOGSTASH_PORT: 5959
 ENABLE_WORK_FLOW_RUNNER: False
 DFS_UPLOAD_FOLDER: '//quintiles.net/enterprise/Services/protdigtest/pilot_iqvxml'
-SQLALCHEMY_DATABASE_URI: 'postgresql+psycopg2://u1149489:pddevQ0pgrg==@10.3.67.93:5432/pd_dev'
+SQLALCHEMY_DATABASE_URI: 'postgresql+psycopg2://app_pd_dev_dbo:pddev12Ufnmpdfhwt@10.3.67.93:5432/pd_dev'
 # SQLALCHEMY_DATABASE_URI: 'postgresql+psycopg2://postgres:postgres@localhost/postgres'
 #SQLALCHEMY_DATABASE_URI: 'postgresql+psycopg2://dig_team:pd_test_FSDRFJEDFjfdfj6823#@10.3.64.46:5432/pd_test'
 

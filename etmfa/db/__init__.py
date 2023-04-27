@@ -41,7 +41,7 @@ from etmfa.db.models.pd_iqvassessmentvisitrecord_db import Iqvassessmentvisitrec
 from etmfa.db.models.pd_iqvassessmentrecord_db import Iqvassessmentrecord
 from etmfa.error import GenericMessageException
 from itertools import chain
-
+from etmfa.server.namespaces.confidence_metric import fetch_records_from_db
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
@@ -50,6 +50,8 @@ NO_COMPARE_RESOURCE_FOUND = "No document resource is found for requested input(s
 ERROR_PROCESSING_STATUS = "Error while updating processing status to pd_protocol_metadata to DB for ID: {},{}"
 
 FILE_EXTENSION = "*.xml*"
+
+
 # Global DB ORM object
 
 
@@ -61,7 +63,6 @@ def init_db(app):
 
     # create schema
     with app.app_context():
-
         # Create schema if not already created
         db_context.create_all()
         # creates default metadata accordion
@@ -89,7 +90,8 @@ def update_doc_resource_by_id(aidoc_id, resource):
 def create_doc_processing_status(work_flow_id, doc_id, doc_uid, work_flow_name, doc_file_path, protocol_name):
     session = db_context.session
     status = WorkFlowStatus(
-        work_flow_id=work_flow_id, doc_id=doc_id, protocol_name=protocol_name, doc_uid=doc_uid, work_flow_name=work_flow_name, documentFilePath=doc_file_path)
+        work_flow_id=work_flow_id, doc_id=doc_id, protocol_name=protocol_name, doc_uid=doc_uid,
+        work_flow_name=work_flow_name, documentFilePath=doc_file_path)
     try:
         session.add(status)
         session.commit()
@@ -124,15 +126,18 @@ def check_if_document_processed(doc_uid):
 
     """
     session = db_context.session
-    obj_list = session.query(WorkFlowStatus.work_flow_id, WorkFlowStatus.doc_uid).filter(and_(WorkFlowStatus.doc_uid == doc_uid,
-                                                                                              or_(WorkFlowStatus.work_flow_name == DWorkFLows.FULL_FLOW.value,
-                                                                                                  WorkFlowStatus.work_flow_name == DWorkFLows.DIGITIZATION.value),
-                                                                                              WorkFlowStatus.status == WorkFlowState.COMPLETED.value)).all()
+    obj_list = session.query(WorkFlowStatus.work_flow_id, WorkFlowStatus.doc_uid).filter(
+        and_(WorkFlowStatus.doc_uid == doc_uid,
+             or_(WorkFlowStatus.work_flow_name == DWorkFLows.FULL_FLOW.value,
+                 WorkFlowStatus.work_flow_name == DWorkFLows.DIGITIZATION.value),
+             WorkFlowStatus.status == WorkFlowState.COMPLETED.value)).all()
     duplicate_list = []
     if obj_list:
         for obj in obj_list:
-            resource = session.query(PDProtocolMetadata.userId, PDProtocolMetadata.versionNumber, PDProtocolMetadata.protocol,
-                                     PDProtocolMetadata.lastUpdated, PDProtocolMetadata.uploadDate, PDProtocolMetadata.userCreated
+            resource = session.query(PDProtocolMetadata.userId, PDProtocolMetadata.versionNumber,
+                                     PDProtocolMetadata.protocol,
+                                     PDProtocolMetadata.lastUpdated, PDProtocolMetadata.uploadDate,
+                                     PDProtocolMetadata.userCreated
                                      ).filter(PDProtocolMetadata.id == obj.work_flow_id).first()
             info = {'userId': resource.userId, 'versionNumber': resource.versionNumber,
                     'userCreated': resource.userCreated, 'protocol': resource.protocol, 'id': obj.work_flow_id,
@@ -266,9 +271,9 @@ def document_compare_all_permutations(session, work_flow_id, flow_name):
                                                    'redact_profile': redact_profile
                                                    },
                                                   {'compare_id': str(uuid.uuid4()),
-                                                 'id1': row['work_flow_id'],
-                                                   'flow_id':work_flow_id,
-                                                   'flow_name':flow_name,
+                                                   'id1': row['work_flow_id'],
+                                                   'flow_id': work_flow_id,
+                                                   'flow_name': flow_name,
                                                    'IQVXMLPath1': iqvxml_path2,
                                                    'id2': work_flow_id,
                                                    'protocolNumber': protocol_number,
@@ -281,7 +286,8 @@ def document_compare_all_permutations(session, work_flow_id, flow_name):
     return ids_compare_protocol_list if ret_val else []
 
 
-def document_compare_tuple(session, work_flow_id, flow_name, id1, id2, document_path_1, document_path_2, protocol_number):
+def document_compare_tuple(session, work_flow_id, flow_name, id1, id2, document_path_1, document_path_2,
+                           protocol_number):
     """
     work_flow_id: document compare may run as a part of some workflow
     id1:reference id1
@@ -309,7 +315,7 @@ def document_compare_tuple(session, work_flow_id, flow_name, id1, id2, document_
                                            'redact_profile': redact_profile
                                            },
                                           {'compare_id': str(uuid.uuid4()),
-                                         'id1': id2,
+                                           'id1': id2,
                                            'flow_name': flow_name,
                                            'flow_id': work_flow_id,
                                            'IQVXMLPath1': iqvxml_path2,
@@ -327,7 +333,9 @@ def document_compare_tuple(session, work_flow_id, flow_name, id1, id2, document_
 def filter_user_with_usernames(pd_user_instances_list, user_id_list, user_id_exclude):
     return_list = []
     for user_protocol_instance in pd_user_instances_list:
-        if user_protocol_instance.userId.replace('u', '').replace('q', '') in user_id_list and user_protocol_instance.userId.replace('u', '').replace('q', '') != user_id_exclude:
+        if user_protocol_instance.userId.replace('u', '').replace('q',
+                                                                  '') in user_id_list and user_protocol_instance.userId.replace(
+                'u', '').replace('q', '') != user_id_exclude:
             return_list.append(user_protocol_instance)
     return return_list
 
@@ -488,6 +496,10 @@ def pd_fetch_summary_data(aidocid, userid, source=config.SRC_QC):
         received_documentprocessing_error_event(exception.__dict__)
 
 
+def get_confidence_score(doc_status):
+    confidence_score = fetch_records_from_db(doc_status=doc_status)
+    return confidence_score['confidence_score']
+
 def save_doc_processing(request, _id, doc_path):
     resource = PDProtocolMetadata.from_post_request(request, _id)
     resource.documentFilePath = doc_path
@@ -509,7 +521,7 @@ def save_doc_processing(request, _id, doc_path):
     resource.status = 'TRIAGE_STARTED'
     resource.qcStatus = QcStatus.NOT_STARTED.value
     resource.runId = 0
-
+    resource.digitizedConfidenceInterval = get_confidence_score(request['documentStatus'])
     try:
         db_context.session.add(resource)
         db_context.session.commit()
@@ -623,7 +635,8 @@ def get_latest_protocol(protocol_number, version_number="", approval_date="", ai
                                                 PDProtocolMetadata.projectId, PDProtocolMetadata.documentStatus,
                                                 PDProtocolMetadata.protocol, PDProtocolMetadata.source,
                                                 PDProtocolMetadata.draftVersion, PDProtocolMetadata.shortTitle,
-                                                PDProtocolMetadata.phase, PDProtocolMetadata.indication, PDProtocolMetadata.id,
+                                                PDProtocolMetadata.phase, PDProtocolMetadata.indication,
+                                                PDProtocolMetadata.id,
                                                 ).filter(text(all_filter)
                                                          ).order_by(text(order_condition)).first()
         else:
@@ -631,8 +644,10 @@ def get_latest_protocol(protocol_number, version_number="", approval_date="", ai
                                                 PDProtocolMetadata.amendment, PDProtocolMetadata.uploadDate,
                                                 PDProtocolMetadata.documentFilePath, PDProtocolMetadata.projectId,
                                                 PDProtocolMetadata.documentStatus, PDProtocolMetadata.protocol,
-                                                PDProtocolMetadata.source, PDProtocolMetadata.draftVersion, PDProtocolMetadata.shortTitle,
-                                                PDProtocolMetadata.phase, PDProtocolMetadata.indication, PDProtocolMetadata.id,
+                                                PDProtocolMetadata.source, PDProtocolMetadata.draftVersion,
+                                                PDProtocolMetadata.shortTitle,
+                                                PDProtocolMetadata.phase, PDProtocolMetadata.indication,
+                                                PDProtocolMetadata.id,
                                                 func.rank().over(partition_by=PDProtocolMetadata.id,
                                                                  order_by=PDProtocolMetadata.source.desc()).label(
                                                     'rank')
@@ -745,7 +760,7 @@ def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
         if visitrecord_mapper is not None:
             for record in visitrecord_mapper:
                 resource_dict = {key: value for key,
-                                 value in record.__dict__.items()}
+                                                value in record.__dict__.items()}
                 resource_dict.pop("_sa_instance_state")
                 footnote_list = []
                 for note in footnotes:
@@ -800,6 +815,7 @@ def get_attr_soa_compare(protocol_number, aidoc_id, compare_doc_id) -> dict:
             f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}; compare_id: {compare_doc_id}]. Exception: {str(exc)}")
 
     return resource_dict
+
 
 def update_compare_run(compare_id, session):
     """
@@ -1027,6 +1043,7 @@ def get_protocols_by_date_time_range(version_date="", approval_date="", start_da
 
     return resource
 
+
 def get_normalized_soa_table(aidoc_id, footnote) -> dict:
     """
     Get protocol Normalized SOA for table mapping
@@ -1107,7 +1124,7 @@ def get_dipa_data_by_category(_id, doc_id, category):
                 PDDipaViewdata.link_id_5, PDDipaViewdata.link_id_6,
                 PDDipaViewdata.category, PDDipaViewdata.dipa_data,
                 PDDipaViewdata.timeCreated, PDDipaViewdata.timeUpdated,
-                PDDipaViewdata.lastEditedBy,PDDipaViewdata.editorUserId,
+                PDDipaViewdata.lastEditedBy, PDDipaViewdata.editorUserId,
                 PDDipaViewdata.editCount
             ).filter(text(apply_filter)).all()
 

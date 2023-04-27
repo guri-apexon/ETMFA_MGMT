@@ -1,7 +1,6 @@
 import logging
 import uuid
 import hashlib
-from etmfa.workflow import WorkFlowParamMissing
 from dataclasses import asdict
 from etmfa.server.config import Config
 from flask import send_from_directory, make_response
@@ -94,7 +93,7 @@ from .cdc_util import CdcThread
 from flask import jsonify
 from etmfa.workflow.wf_manager import WorkFlowManager
 from ...consts.constants import DEFAULT_WORKFLOW_NAME
-
+from etmfa.workflow import WorkFlowParamMissing
 logger = logging.getLogger(consts.LOGGING_NAME)
 
 INVALID_USER_INPUT = 'Invalid user input(s) received: {}'
