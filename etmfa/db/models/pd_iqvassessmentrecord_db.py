@@ -94,7 +94,7 @@ class Iqvassessmentrecord():
                     table_roi_list = set(table_roi)
             else:
                 logger.error(f"Error in getting db object.")
-                return
+                return table_roi_list
         except Exception as exc:
             logger.exception(
                 f"Exception received  for assessment table_roi data [aidoc_id: {self.aidoc_id}]. Exception: {str(exc)}")        

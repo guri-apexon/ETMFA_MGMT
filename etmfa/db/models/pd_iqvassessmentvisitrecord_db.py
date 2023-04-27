@@ -113,53 +113,84 @@ class Iqvassessmentvisitrecord():
 
         return assessment_visitrecord_mapper
 
+    def get_footnotes(self, resource_dict):
+        """
+        Get footnotes and update resource dict
+        """
+        footnote_list = []
+        footnotes = ["footnote_0","footnote_1","footnote_2","footnote_3","footnote_4","footnote_5","footnote_6","footnote_7","footnote_8","footnote_9"]
+        try:
+            for note in footnotes:
+                if note in resource_dict:
+                    if resource_dict.get(note):
+                        footnote_list.append(resource_dict.get(note))
+                    resource_dict.pop(note)
+                continue
+            resource_dict.update({"footnotes":footnote_list})
+            return resource_dict
+        except Exception as exc:
+            logger.exception(
+                f"Exception received for normalized soa data [aidoc_id: {self.aidoc_id}]. Exception: {str(exc)}")
 
-            
+    def get_fieldsvalue_list(self, resource_dict):
+        """
+        Appends fieldsvalue in list 
+        """
+        fieldsvalue_list = []
+        try:
+            fieldsvalue_list.append(resource_dict.get("day_timepoint")) if len(resource_dict.get("day_timepoint")) != 0 else ''
+            fieldsvalue_list.append(resource_dict.get("week_timepoint")) if len(resource_dict.get("week_timepoint")) != 0 else ''
+            fieldsvalue_list.append(resource_dict.get("month_timepoint")) if len(resource_dict.get("month_timepoint")) != 0 else ''
+            fieldsvalue_list.append(resource_dict.get("year_timepoint")) if len(resource_dict.get("year_timepoint")) != 0 else ''
+            fieldsvalue_list.append(resource_dict.get("visit_timepoint")) if len(resource_dict.get("visit_timepoint")) != 0 else ''
+            fieldsvalue_list.append(resource_dict.get("epoch_timepoint")) if len(resource_dict.get("epoch_timepoint")) != 0 else ''
+            fieldsvalue_list.append(resource_dict.get("cycle_timepoint")) if len(resource_dict.get("cycle_timepoint")) != 0 else ''
+            fieldsvalue_list.append(resource_dict.get("window_timepoint")) if len(resource_dict.get("window_timepoint")) != 0 else ''
+            return fieldsvalue_list
+        except Exception as exc:
+            logger.exception(
+                f"Exception received for normalized soa data [aidoc_id: {self.aidoc_id}]. Exception: {str(exc)}")
+    
+    
+    def get_normalized_soa_data(self, assessment_visit_obj, norm_soa, roi_id, footnote):
+        """
+        Normalized soa
+        """
+        try:
+            for record in assessment_visit_obj:
+                resource_dict = {key: value for key, value in record.__dict__.items()}
+                resource_dict.pop("_sa_instance_state")
+                if resource_dict.get("table_roi_id") == roi_id:
+                    if footnote:
+                        resource_dict = self.get_footnotes(resource_dict)
+                    fieldsvalue_list = self.get_fieldsvalue_list(resource_dict)
+                    resource_dict.update({"marked_record":{resource_dict.get("assessment_text"):fieldsvalue_list}})
+                    norm_soa.append(resource_dict)
+            return norm_soa
+        except Exception as exc:
+            logger.exception(
+                f"Exception received for normalized soa data [aidoc_id: {self.aidoc_id}]. Exception: {str(exc)}")
+
+
     def get_normalized_soa(self, footnote) -> dict:
         """
         Get normalizedsoa records for soa table mapping
         """
         norm_dict = dict()
-        resource_dict = dict()
-        footnote_list = []
-        footnotes = ["footnote_0","footnote_1","footnote_2","footnote_3","footnote_4","footnote_5","footnote_6","footnote_7","footnote_8","footnote_9"]        
         try:
             iqvassessment_obj = Iqvassessmentrecord(self.aidoc_id)
             if iqvassessment_obj:
                 assessment_visit_obj = self.get_soatables_mapper()
-                table_roi_list = iqvassessment_obj.get_tableroi_list()               
+                table_roi_list = iqvassessment_obj.get_tableroi_list()
                 if assessment_visit_obj and table_roi_list:
                     for roi_id in list(table_roi_list):
-                        norm_soa = []                        
-                        for record in assessment_visit_obj:
-                            resource_dict = {key: value for key, value in record.__dict__.items()}
-                            resource_dict.pop("_sa_instance_state")
-                            if resource_dict.get("table_roi_id") == roi_id:
-                                if footnote:
-                                    for note in footnotes:
-                                        if note in resource_dict:
-                                            if resource_dict.get(note):
-                                                footnote_list.append(resource_dict.get(note))
-                                            resource_dict.pop(note)
-                                        continue
-                                    resource_dict.update({"footnotes":footnote_list})
-                                fieldsvalue_list = []
-                                fieldsvalue_list.append(resource_dict.get("day_timepoint")) if len(resource_dict.get("day_timepoint")) != 0 else ''
-                                fieldsvalue_list.append(resource_dict.get("week_timepoint")) if len(resource_dict.get("week_timepoint")) != 0 else ''
-                                fieldsvalue_list.append(resource_dict.get("month_timepoint")) if len(resource_dict.get("month_timepoint")) != 0 else ''
-                                fieldsvalue_list.append(resource_dict.get("year_timepoint")) if len(resource_dict.get("year_timepoint")) != 0 else ''
-                                fieldsvalue_list.append(resource_dict.get("visit_timepoint")) if len(resource_dict.get("visit_timepoint")) != 0 else ''
-                                fieldsvalue_list.append(resource_dict.get("epoch_timepoint")) if len(resource_dict.get("epoch_timepoint")) != 0 else ''
-                                fieldsvalue_list.append(resource_dict.get("cycle_timepoint")) if len(resource_dict.get("cycle_timepoint")) != 0 else ''
-                                fieldsvalue_list.append(resource_dict.get("window_timepoint")) if len(resource_dict.get("window_timepoint")) != 0 else ''
-                                resource_dict.update({"marked_record":{resource_dict.get("assessment_text"):fieldsvalue_list}})
-                                norm_soa.append(resource_dict)
+                        norm_soa = []
+                        norm_soa = self.get_normalized_soa_data(assessment_visit_obj, norm_soa, roi_id, footnote)                        
                         norm_dict[roi_id] = norm_soa  
             else:
                 logger.error(f"Error in getting db object.")
-                return         
+                return norm_dict        
         except Exception as exc:
-            
             logger.exception(
                 f"Exception received for normalized soa data [aidoc_id: {self.aidoc_id}]. Exception: {str(exc)}")        
         return  norm_dict
