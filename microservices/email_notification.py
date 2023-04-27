@@ -38,9 +38,9 @@ class EmailNotification(ExecutionContext):
 
         try:
             with self.SessionLocal() as session:
-                _ = send_event_based_mail(db=session, doc_id=aidoc_id,
+                _ = send_event_based_mail(doc_id=aidoc_id,
                                         event="NEW_DOCUMENT_VERSION",
-                                        send_mail_flag=True)
+                                        send_mail_flag=True, db=session, test_case=msg.get('test_case'))
                 logger.info(f"for doc id {aidoc_id} event NEW_DOCUMENT_VERSION records create and mail send success")
         except Exception as ex:
             logger.exception(f"exception occured at NEW_DOCUMENT_VERSION event for doc_id {aidoc_id} as {str(ex)}")
