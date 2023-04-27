@@ -9,7 +9,7 @@ from etmfa.db import init_db
 from etmfa.server.api import api, specs_url
 from etmfa.server.config import Config, app_config
 from .loggingconfig import initialize_logger, initialize_api_logger
-
+from etmfa.server.namespaces.confidence_metric import  ConfidenceMatrixRunner
 # api
 from etmfa.server.namespaces.docprocessingapi import ns as docprocessing_namespace
 from etmfa.server.namespaces.healthprocessingapi import ns as health_namespace
@@ -77,6 +77,8 @@ def start_runners():
     es.start()
     em= EmailNotificationRunner()
     em.start()
+    cfr=ConfidenceMatrixRunner()
+    cfr.start()
 
 
 def create_app(config_name, ssl_enabled=False):
