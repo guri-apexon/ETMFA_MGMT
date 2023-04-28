@@ -62,8 +62,7 @@ class CPTExtractor:
             master_dict['para_master_roi_id'] = master_roi.id
             master_dict['image_content'] = ''
             # For header identification
-            master_dict['font_heading_flg'] = (
-                        'heading' in master_font_style.lower() or master_roi.Value.strip() in self.header_values)
+            master_dict['font_heading_flg'] = (master_roi.Value.strip() in self.header_values)
             # Collect tags
             master_dict['table_index'] = master_roi_dict.get(self.table_index_tag, '')
             master_dict['not_footnote_flg'] = False if self.footnote_tag in all_roi_tags else True

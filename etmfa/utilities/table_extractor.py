@@ -4,9 +4,12 @@ import logging
 import pandas as pd
 import numpy as np
 import ast
+
+from etmfa.db.models.pd_documenttables_db import DocumenttablesDb
 from etmfa.utilities import data_extractor_utils as utils
 from etmfa.consts.constants import ModuleConfig
 from etmfa.consts import Consts as consts
+from etmfa.db.db import db_context
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -197,7 +200,6 @@ class SOAResponse:
                     dictTableMetaList = dictTableMetaList_1
 
             result=[]
-
             if len(df) > 1:
                 df[['TableIndex','RowIndex','ColIndex']] = df[['TableIndex','RowIndex','ColIndex']].astype(float)
                 df=df.sort_values(['TableIndex','RowIndex','ColIndex','IsHeaderCell']).groupby(['TableIndex','RowIndex','ColIndex'])[['TableIndex','FullText', 'table_properties', 'ColIndex','RowIndex','IsHeaderCell']].last()
@@ -229,7 +231,7 @@ class SOAResponse:
                         if ((int(float(tabIndex['TableIndex'])) == int(float(tabseq))) and append==1):
                             resulttable=resulttable.reset_index(drop=True)
                             resultreturn['Table']=resulttable.to_html(escape=False)
-                            resultreturn['TableProperties'] = return_table_formated_data(resulttable_redact.to_json(orient="records"))
+                            resultreturn['TableProperties'] = return_table_formatted_data(resulttable_redact.to_json(orient="records"))
                             resultreturn.update(tabIndex)
                             resultreturn['Header']=keep_header
                             result.append(resultreturn)
@@ -242,30 +244,50 @@ class SOAResponse:
             return ({}, 0)
 
 
+def get_row_id(item):
+    """ To get row id from any one cell """
+    for _, value in item.items():
+        if isinstance(value, dict):
+            roi_id = value.get("roi_id", {}).get('row_roi_id')
+            return roi_id
 
-def return_table_formated_data(data):
-    table_properties_formater = []
+
+def return_table_formatted_data(data):
+    table_properties_formatter = []
     for item in eval(data):
         column_list = []
-        roi_id = ''
-        for k,v in item.items():
-            if isinstance(v,dict):
-                roi_id = v.get("roi_id",{}).get('row_roi_id')
+        roi_id = get_row_id(item=item)
+        for k, v in item.items():
+            if isinstance(v, dict):
                 column_list.append({
                           "col_indx": len(column_list),
                           "op_type": None,
                           "cell_id": v.get("roi_id",{}).get("datacell_roi_id",""),
                           "value": v.get('content')
                         })
-            else:
-                roi_id = ''
+            elif roi_id:
+                # To add cell id if it has missed during section extract
+                column_objs = db_context.session.query(DocumenttablesDb).filter(
+                    DocumenttablesDb.parent_id == roi_id).all()
+                missing_col_obj = column_objs[int(k.split('.')[0])-1]
+                cell_id = db_context.session.query(DocumenttablesDb).filter(
+                    DocumenttablesDb.parent_id == missing_col_obj.id).all()[-1]
                 column_list.append({
                           "col_indx": len(column_list),
                           "op_type": None,
-                          "cell_id": "",
+                          "cell_id": cell_id.id,
                           "value": ""
                         })
+            else:
+                # To handle if there is no data for entire row
+                column_list.append({
+                    "col_indx": len(column_list),
+                    "op_type": None,
+                    "cell_id": "",
+                    "value": ""
+                })
 
-        new_dict = {"row_indx": len(table_properties_formater), "roi_id": roi_id, "op_type": None, "columns":column_list}
-        table_properties_formater.append(new_dict)
-    return json.dumps(table_properties_formater)
+        new_dict = {"row_indx": len(table_properties_formatter),
+                    "roi_id": roi_id, "op_type": None, "columns": column_list}
+        table_properties_formatter.append(new_dict)
+    return json.dumps(table_properties_formatter)
