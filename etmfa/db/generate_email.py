@@ -177,7 +177,7 @@ def send_event_based_mail(doc_id: str, event, send_mail_flag, test_case=False, u
             logger.info(
                 f"docid {doc_id} event {event}  mail sent success for doc_id {doc_id}")
             time_ = datetime.now(timezone.utc)
-            db.query(Protocolalert).filter(Protocolalert.id == row.id , Protocolalert.aidocId == doc_id, Protocolalert.protocol == protocol_meta_data.protocol).update({Protocolalert.emailSentFlag: True,
+            db.query(Protocolalert).filter(Protocolalert.id == row.id , Protocolalert.aidocId == doc_id, Protocolalert.protocol == protocol_meta_data.protocol, Protocolalert.email_template_id == html_record.id).update({Protocolalert.emailSentFlag: True,
                                                                                                                                         Protocolalert.timeUpdated: time_, Protocolalert.emailSentTime: time_})
             logger.info(
                 f"docid {doc_id} event {event} email sent success and updated protocol alert record for doc_id {doc_id} and protocol {protocol_meta_data.protocol}")
