@@ -852,12 +852,16 @@ class DocumentprocessingAPI(Resource):
                 aidoc_id = ACCORDIAN_DOC_ID
             field_name = args.get('fieldName', '').strip()
             attributes = args.get('attributeNames')
+            attribute_ids= args.get('attributeIds')
+            attribute_ids=[] if not attribute_ids else attribute_ids
             data = {}
             attr_list = []
+            attr_id_len=len(attribute_ids)
             if op or aidoc_id or field_name:
                 if attributes is not None:
-                    for attrs in attributes:
-                        attr_list.append({'attribute_name': attrs})
+                    for attr_idx,attrs in enumerate(attributes):
+                        attr_id = None if (not attr_id_len or attr_idx > attr_id_len) else attribute_ids[attr_idx]
+                        attr_list.append({'attribute_name': attrs,'attr_id':attr_id})
 
                 data = {'id': aidoc_id, 'fieldName': field_name,
                         'attributes': attr_list}
