@@ -282,7 +282,7 @@ class MetaDataTableHelper():
             self.add_child_info(value)
 
 
-    def get_result_list(self, data, attr_list):
+    def get_result_list(self,doc_id,data, attr_list):
 
         attr_map={attr['attr_name']:attr  for attr in attr_list.get('_meta_data',[]) if attr.get('attr_name',None)}
         top_obj = {c.name: getattr(data, c.name) for c in data.__table__.columns}
@@ -302,6 +302,7 @@ class MetaDataTableHelper():
                 note = curr_data.get("note")
                 audit_info = curr_data.get("audit_info")
             else:
+                attr_id = self._get_elements_hash([doc_id,MetaDataTableHelper.SUMMARY_EXTENDED,1,MetaDataTableHelper.SUMMARY_EXTENDED, attr_name])
                 value = top_obj.get(attr_name,'')
             if not audit_info:
                 audit_info["last_updated"] = top_obj.get("lastUpdated")  
@@ -364,7 +365,7 @@ class MetaDataTableHelper():
 
         curr_obj = nested_obj.data    
         if not field_name and _id!=ACCORDIAN_DOC_ID:
-            result_list,extended_list = self.get_result_list(data, curr_obj.get(MetaDataTableHelper.SUMMARY_EXTENDED,{}))
+            result_list,extended_list = self.get_result_list(_id,data, curr_obj.get(MetaDataTableHelper.SUMMARY_EXTENDED,{}))
             curr_obj.update({'summary':{'_meta_data':result_list}})
             curr_obj[MetaDataTableHelper.SUMMARY_EXTENDED] = {'_meta_data':extended_list}
             
@@ -424,6 +425,8 @@ class MetaDataTableHelper():
         else:
             attr_id = data['attr_id']
             meta_data_attr = session.query(PDProtocolMetaDataAttribute).get(attr_id)
+            if not meta_data_attr:
+                meta_data_attr = PDProtocolMetaDataAttribute(id = attr_id)
             setattr(meta_data_attr, meta_field, value)
         meta_data_attr.attribute_name = name
         meta_data_attr.attribute_type = _type
@@ -561,7 +564,10 @@ class MetaDataTableHelper():
         start_field, end_field = nested_fields[0], nested_fields[-1]
         for data in data_list:
             name = data['attribute_name']
-            attr_id = self._get_elements_hash([_id, start_field, level, end_field, name])
+            if not data.get('attr_id', None):
+                attr_id = self._get_elements_hash([_id, start_field, level, end_field, name])
+            else:
+                attr_id=data['attr_id']
             try:
                 obj = session.query(PDProtocolMetaDataAttribute).get(attr_id)
                 if obj:
