@@ -34,7 +34,7 @@ class SendNotifications(Resource):
         user_id_exclude = args.get('user_id', '')
         send_mail = args.get('send_mail', False)
         environment = args.get('test_case', False)
-        response = send_event_based_mail(db, doc_id, event, send_mail, environment,user_id_exclude)
+        response = send_event_based_mail(doc_id, event, send_mail, environment,user_id_exclude, db)
         return response
 
 

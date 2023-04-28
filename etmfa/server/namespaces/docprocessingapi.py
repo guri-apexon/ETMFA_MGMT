@@ -1,7 +1,6 @@
 import logging
 import uuid
 import hashlib
-from etmfa.workflow import WorkFlowParamMissing
 from dataclasses import asdict
 from etmfa.server.config import Config
 from flask import send_from_directory, make_response
@@ -16,6 +15,7 @@ from etmfa.consts import Consts as consts
 from etmfa.db import feedback_utils as fb_utlis
 from etmfa.db.models import pd_dipa_view_data
 from etmfa.db.db import db_context
+from .confidence_metric import fetch_records_from_db
 from etmfa.db.soa_operations import (
     add_study_procedure,
     add_normalized_data_for_study_procedure,
@@ -81,7 +81,9 @@ from etmfa.server.namespaces.serializers import (
     dipadata_details_get,
     dipadata_details_input,
     metadata_summary_delete,
-    dipa_view_data, fetch_workflows_by_doc_id
+    dipa_view_data,
+    fetch_workflows_by_doc_id,
+    fetch_confidence_score
 )
 from etmfa.workflow.default_workflows import DWorkFLows, DEFAULT_WORKFLOWS
 from etmfa.workflow import WorkFlowClient
@@ -91,7 +93,7 @@ from .cdc_util import CdcThread
 from flask import jsonify
 from etmfa.workflow.wf_manager import WorkFlowManager
 from ...consts.constants import DEFAULT_WORKFLOW_NAME
-
+from etmfa.workflow import WorkFlowParamMissing
 logger = logging.getLogger(consts.LOGGING_NAME)
 
 INVALID_USER_INPUT = 'Invalid user input(s) received: {}'
@@ -850,12 +852,16 @@ class DocumentprocessingAPI(Resource):
                 aidoc_id = ACCORDIAN_DOC_ID
             field_name = args.get('fieldName', '').strip()
             attributes = args.get('attributeNames')
+            attribute_ids= args.get('attributeIds')
+            attribute_ids=[] if not attribute_ids else attribute_ids
             data = {}
             attr_list = []
+            attr_id_len=len(attribute_ids)
             if op or aidoc_id or field_name:
                 if attributes is not None:
-                    for attrs in attributes:
-                        attr_list.append({'attribute_name': attrs})
+                    for attr_idx,attrs in enumerate(attributes):
+                        attr_id = None if (not attr_id_len or attr_idx > attr_id_len) else attribute_ids[attr_idx]
+                        attr_list.append({'attribute_name': attrs,'attr_id':attr_id})
 
                 data = {'id': aidoc_id, 'fieldName': field_name,
                         'attributes': attr_list}
@@ -1171,6 +1177,28 @@ class CdcAPI(Resource):
                     return abort(HTTPStatus.NOT_FOUND, "Not found")
             except ValueError as e:
                 return abort(HTTPStatus.BAD_REQUEST, "invalid operation")
+        except ValueError as e:
+            logger.error(SERVER_ERROR.format(e))
+            return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
+
+
+@ns.route('/get_confidence_matrix')
+@ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
+class DocumentprocessingAPI(Resource):
+    @ns.expect(fetch_confidence_score)
+    @ns.response(HTTPStatus.OK, 'Success.')
+    @ns.response(HTTPStatus.NOT_FOUND, 'Confidence Matrix not Found')
+    @api.doc(security='apikey')
+    @authenticate
+    def get(self):
+        try:
+            args = fetch_confidence_score.parse_args()
+            sponsor_name = args['sponsorName']
+            doc_id = args['doc_id']
+            doc_status = args['docStatus']
+            confidence_score = fetch_records_from_db(sponsor_name,
+                                                     doc_status=doc_status, doc_id=doc_id)
+            return confidence_score
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))

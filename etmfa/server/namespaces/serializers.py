@@ -15,6 +15,7 @@ UNIQUE_PROTOCOL_DOCUMENT_ID = 'Unique protocol document id'
 SOURCE_SYSYTEM = 'Source system calling this API'
 DOCUMENT_PROCESSING_MODEL = 'Document Processing Status Model'
 SOURCE_INPUT_DOCUMENT = 'Source Input document name'
+METADATA_ATTRIBUTE_IDS = 'metadata attribute Ids'
 
 kv_pair_model = api.model(' KeyValue Pair for patch ', {
     'name': fields.String(
@@ -639,6 +640,8 @@ metadata_detele_summary.add_argument(
     'fieldName', type=str, required=True, help=METADATA_FIELDNAME)
 metadata_detele_summary.add_argument('attributeNames', type=str, action='append', required=False,
                                      help=METADATA_ATTRIBUTES)
+metadata_detele_summary.add_argument('attributeIds', type=str, action='append', required=False,
+                                     help=METADATA_ATTRIBUTE_IDS)
 
 metadata_summary_delete = api.model('API for external systems and BPO view to delete metadata attributes',
                                     {
@@ -757,3 +760,12 @@ fetch_workflows_by_doc_id.add_argument(
     'days', type=str, required=False, help='number of days')
 fetch_workflows_by_doc_id.add_argument('wf_num', type=str, required=False,
                                        help='number of workflows to be fetched')
+
+# fetch confidence Score
+fetch_confidence_score = reqparse.RequestParser()
+fetch_confidence_score.add_argument('doc_id', type=str, required=False,
+                                    help='doc_id id for which workflows will be fetched')
+fetch_confidence_score.add_argument('sponsorName', type=str, required=True,
+                                    help='Name of the sponsor')
+fetch_confidence_score.add_argument('docStatus', type=str, required=False,
+                                    help='doc status of protocol metadata table')

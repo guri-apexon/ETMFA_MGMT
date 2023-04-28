@@ -109,7 +109,7 @@ def send_mail(subject: str, to_mail: str, html_body_part: str, test_case: bool =
     return {"sent":True}
 
 
-def send_event_based_mail(db: db_context, doc_id: str, event, send_mail_flag, test_case=False, user_id_exclude=''):
+def send_event_based_mail(doc_id: str, event, send_mail_flag, test_case=False, user_id_exclude='', db: db_context=None):
     """
     send email based on event and update email sent time and sent flag in protocol alert table 
     :param db: DB instance
@@ -123,7 +123,6 @@ def send_event_based_mail(db: db_context, doc_id: str, event, send_mail_flag, te
             message = json.dumps(
             {'message': "Provided event does not exists"})
             return Response(message, status=400, mimetype='application/json')
-
         html_record = db.query(PdEmailTemplates).filter(
             PdEmailTemplates.event == event).first()
         protocol_meta_data = db.query(PDProtocolMetadata).filter(
@@ -131,7 +130,7 @@ def send_event_based_mail(db: db_context, doc_id: str, event, send_mail_flag, te
         notification_record = {'AiDocId': doc_id, 'ProtocolNo': protocol_meta_data.protocol,
             'ProtocolTitle': protocol_meta_data.protocolTitle, 'approval_date': str(datetime.today().date()).replace('-',''), "email_template_id":html_record.id}
 
-        insert_into_alert_table(notification_record,event_dict, user_id_exclude)
+        insert_into_alert_table(notification_record,event_dict, user_id_exclude,db)
         if send_mail_flag:
             row_data = db.query(PDUserProtocols.id, PDProtocolMetadata.protocol,
                             PDProtocolMetadata.protocolTitle,
@@ -178,7 +177,7 @@ def send_event_based_mail(db: db_context, doc_id: str, event, send_mail_flag, te
             logger.info(
                 f"docid {doc_id} event {event}  mail sent success for doc_id {doc_id}")
             time_ = datetime.now(timezone.utc)
-            db.query(Protocolalert).filter(Protocolalert.id == row.id , Protocolalert.aidocId == doc_id, Protocolalert.protocol == protocol_meta_data.protocol).update({Protocolalert.emailSentFlag: True,
+            db.query(Protocolalert).filter(Protocolalert.id == row.id , Protocolalert.aidocId == doc_id, Protocolalert.protocol == protocol_meta_data.protocol, Protocolalert.email_template_id == html_record.id).update({Protocolalert.emailSentFlag: True,
                                                                                                                                         Protocolalert.timeUpdated: time_, Protocolalert.emailSentTime: time_})
             logger.info(
                 f"docid {doc_id} event {event} email sent success and updated protocol alert record for doc_id {doc_id} and protocol {protocol_meta_data.protocol}")

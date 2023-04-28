@@ -211,7 +211,7 @@ def get_section_audit_info(psdb: Session, aidoc_id: str, link_ids: list,
 
         current_timezone = obj.last_updated
         est_datetime = current_timezone.astimezone(
-            pytz.timezone('US/Eastern')).strftime('%d-%m-%Y')
+            pytz.timezone('US/Eastern')).strftime('%d-%m-%Y %I:%M:%S %p')
         response.append({"last_reviewed_date": est_datetime,
                          "last_reviewed_by": obj.userId or '',
                          "total_no_review": obj.num_updates})
