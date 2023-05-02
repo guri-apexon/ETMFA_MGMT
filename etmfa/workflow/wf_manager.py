@@ -15,7 +15,7 @@ from typing import Dict, List
 from .default_workflows import DEFAULT_WORKFLOWS, DEFAULT_SERVICE_FLOW_MAP, TERMINATE_NODE
 from .service_handlers import GetServiceHandler, SERVICE_HANDLERS
 from .messaging.models import EtmfaQueues, TERMINATE_NODE
-from .db.db_utils import (create_doc_processing_status,
+from .db.db_utils import (
                           update_doc_finished_status,
                           update_doc_running_status,
                           get_pending_running_work_flows,
@@ -24,7 +24,7 @@ from .db.db_utils import (create_doc_processing_status,
 from ..consts import Consts
 from etmfa.workflow.loggerconfig import initialize_wf_logger, ContextFilter
 from ..consts.constants import DEFAULT_WORKFLOW_NAME
-from ..server.namespaces.confidence_metric import ConfidenceMatrixRunner
+
 
 WF_RUN_WAIT_TIME = 3  # 3 sec
 
@@ -415,6 +415,41 @@ class WorkFlowController(Thread):
             self.wfm.run_work_flow(
                 wf_msg.work_flow_name, wf_msg.work_flow_id, param)
 
+    def register_custom_flow(self,msg):    
+        param = msg['param']
+        work_flow_list = param['work_flow_list']
+        status = {}
+        is_valid, status = self.wfm.validate_workflow(msg['work_flow_name'], work_flow_list)
+        if not is_valid:
+            return status['Message'], is_valid
+        work_flow_graph, service_list = [], []
+        for wfs in work_flow_list:
+            depends_graph = wfs['dependency_graph']
+            work_flow_graph.extend(depends_graph)
+            for sr_info in depends_graph:
+                service_list.append(sr_info['service_name'])
+        work_flow_graph.append({'service_name': TERMINATE_NODE, 'depends': service_list})
+        self.wfm.register_work_flow(msg['work_flow_name'], work_flow_graph, False)
+        self.wfm.add_work_flow(CustomWorkFlow(msg['work_flow_name'], work_flow_graph))
+        return status, is_valid
+    
+    def run_default_flow(self,msg):
+        param = msg['param']
+        work_flow_list = param['work_flow_list']
+        status = {}
+        is_valid, status = self.wfm.validate_workflow(msg['work_flow_name'], work_flow_list)
+        if not is_valid:
+            return status['Message'], is_valid
+        work_flow_graph, service_list = [], []
+        for wfs in work_flow_list:
+            depends_graph = wfs['dependency_graph']
+            work_flow_graph.extend(depends_graph)
+            for sr_info in depends_graph:
+                service_list.append(sr_info['service_name'])
+        work_flow_graph.append({'service_name': TERMINATE_NODE, 'depends': service_list})
+        self.wfm.add_work_flow(CustomWorkFlow(DEFAULT_WORKFLOW_NAME, work_flow_graph))
+        return status, is_valid
+    
     def on_msg(self, msg_obj):
         """
         Receive message on controller
@@ -425,55 +460,24 @@ class WorkFlowController(Thread):
         _type, msg = msg_obj.type, msg_obj.msg
         if _type == MsqType.COMMAND.value:
             self.add_msg(msg)
+            return {}
         elif _type == MsqType.ADD_CUSTOM_WORKFLOW.value:
-            param = msg['param']
-            work_flow_list = param['work_flow_list']
-            status = {}
-            is_valid, status = self.wfm.validate_workflow(msg['work_flow_name'], work_flow_list)
-            if not is_valid:
-                return status['Message'], is_valid
-            work_flow_graph, service_list = [], []
-            for wfs in work_flow_list:
-                depends_graph = wfs['dependency_graph']
-                work_flow_graph.extend(depends_graph)
-                for sr_info in depends_graph:
-                    service_list.append(sr_info['service_name'])
-            work_flow_graph.append({'service_name': TERMINATE_NODE, 'depends': service_list})
-            self.wfm.register_work_flow(msg['work_flow_name'], work_flow_graph, False)
-            self.wfm.add_work_flow(CustomWorkFlow(msg['work_flow_name'], work_flow_graph))
-            return status, is_valid
+            return self.register_custom_flow(msg)
         elif _type == MsqType.RUN_DEFAULT_WORKFLOW.value:
-            param = msg['param']
-            work_flow_list = param['work_flow_list']
-            status = {}
-            is_valid, status = self.wfm.validate_workflow(msg['work_flow_name'], work_flow_list)
-            if not is_valid:
-                return status['Message'], is_valid
-            work_flow_graph, service_list = [], []
-            for wfs in work_flow_list:
-                depends_graph = wfs['dependency_graph']
-                work_flow_graph.extend(depends_graph)
-                for sr_info in depends_graph:
-                    service_list.append(sr_info['service_name'])
-            work_flow_graph.append({'service_name': TERMINATE_NODE, 'depends': service_list})
-            self.wfm.add_work_flow(CustomWorkFlow(DEFAULT_WORKFLOW_NAME, work_flow_graph))
-            return status, is_valid
+            return self.run_default_flow(msg)
         else:
             raise SendExceptionMessages(
                 f"{type} is not a valid type request on controller ")
-        return {}
-
+        
     def run(self):
         self.wfm.wait_until_listener_ready()
         last_pending_services_check_time = time.time()
         is_start=True
-        cfr=ConfidenceMatrixRunner()
         stale_work_flow_check_time_sec = max(1, self.remove_time_for_stale_workflows / 12) * 3600
         while (True):
             try:
                 start_time = time.time()
                 self._process_msg()
-                cfr.run()
                 curr_time = time.time()
                 diff = curr_time - last_pending_services_check_time
                 if diff > stale_work_flow_check_time_sec or is_start:
@@ -533,6 +537,10 @@ class WorkFlowRunner(Process, WorkFlowsHandler):
         self.run_controller()
 
 class WorkFlowThreadRunner(Thread, WorkFlowsHandler):
+    """
+    Thread runner is only for testing purpose .Application should use Process runner
+    in place of thread runner
+    """
     def __init__(self, config):
         WorkFlowsHandler.__init__(self,config)
         Thread.__init__(self)

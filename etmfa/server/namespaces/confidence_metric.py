@@ -130,7 +130,8 @@ class ConfidenceMatrix():
         reviewed_docs = session.query(PDProtocolMetadata.id).filter(
             PDProtocolMetadata.qcStatus == QcStatus.COMPLETED.value,
             PDProtocolMetadata.lastUpdated >= last_timestamp).all()
-        return [doc[0] for doc in reviewed_docs]
+        all_docs= [doc[0] for doc in reviewed_docs]
+        return list(set(all_docs))
 
     def get_last_run_timestamp(self, session):
         info = session.query(QcEditMetric).filter(QcEditMetric.doc_id == self.time_stamp_id).first()
@@ -149,43 +150,47 @@ class ConfidenceMatrix():
         session.add(info)
         session.commit()
 
+    def update_doc_info(self,session,doc_id):
+        num_pages = self.get_num_pages(session, doc_id)
+        if not num_pages:
+            return
+        logger.info(f'updating info for {doc_id}')
+        num_image_changes = self.get_image_changes(session, doc_id)
+        para_info = self.get_tbl_changes(
+            session, doc_id, DocumentparagraphsDb, AuditParagraphDb, 'text')
+        tbl_info = self.get_tbl_changes(
+            session, doc_id, DocumenttablesDb, AuditTablesDb, 'tbl')
+        data = {'num_pages': num_pages,
+                'num_image_update': num_image_changes}
+        data.update(para_info)
+        data.update(tbl_info)
+        qc_metric = QcEditMetric()
+        prev_data = session.query(QcEditMetric).filter(
+            QcEditMetric.doc_id == doc_id).first()
+        if prev_data:
+            prev_data.edit_info = data
+        else:
+            qc_metric.doc_id = doc_id
+            qc_metric.edit_info = data
+            session.add(qc_metric)
+        session.commit()
+
     def run(self):
         """ Handler to run process ConfidenceMatrix """
         self.add_engine_context()
         with self.session_local() as session:
             logger.info('updating information of num of edits for latest documents')
-
             last_start_timestamp=datetime.utcnow()
             last_run_timestamp = self.get_last_run_timestamp(session)
             doc_ids = self.get_latest_doc_ids(session, last_run_timestamp)
             doc_ids = self.custom_ids if self.custom_ids else doc_ids
             for doc_id in doc_ids:
-                num_pages = self.get_num_pages(session, doc_id)
-                if not num_pages:
-                    continue
-                logger.info(f'updating info for {doc_id}')
-                num_image_changes = self.get_image_changes(session, doc_id)
-                para_info = self.get_tbl_changes(
-                    session, doc_id, DocumentparagraphsDb, AuditParagraphDb, 'text')
-                tbl_info = self.get_tbl_changes(
-                    session, doc_id, DocumenttablesDb, AuditTablesDb, 'tbl')
-                data = {'num_pages': num_pages,
-                        'num_image_update': num_image_changes}
-                data.update(para_info)
-                data.update(tbl_info)
-                qc_metric = QcEditMetric()
-                prev_data = session.query(QcEditMetric).filter(
-                    QcEditMetric.doc_id == doc_id).first()
-                if prev_data:
-                    prev_data.edit_info = data
-                else:
-                    qc_metric.doc_id = doc_id
-                    qc_metric.edit_info = data
-                    session.add(qc_metric)
-                session.commit()
+                try:
+                    self.update_doc_info(session,doc_id)
+                except Exception as e:
+                    logger.error(str(e))
             self.update_last_run_timestamp(session,last_start_timestamp)
             logger.info('edit info updated for all recent documents ')
-
 
 class ConfidenceMatrixRunner(Process):
     """This class works as a scheduler to calculate confidence score & store it in DB"""
