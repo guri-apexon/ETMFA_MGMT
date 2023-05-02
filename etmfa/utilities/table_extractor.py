@@ -228,7 +228,7 @@ class SOAResponse:
                     keep_header=[int(x) for x in keep_header]
                     append=1
                     for tabIndex in [i for i in dictTableMetaList if i]:
-                        if ((int(float(tabIndex['ColIndex'])) == int(float(tabseq))) and append==1):
+                        if ((int(float(tabIndex['TableIndex'])) == int(float(tabseq))) and append==1):
                             resulttable=resulttable.reset_index(drop=True)
                             resultreturn['Table']=resulttable.to_html(escape=False)
                             resultreturn['TableProperties'] = return_table_formatted_data(resulttable_redact.to_json(orient="records"))
