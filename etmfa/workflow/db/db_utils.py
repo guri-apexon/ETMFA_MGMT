@@ -140,25 +140,30 @@ def get_session_obj():
     return SessionLocal()
 
 
+def _update_running_finished_services(data, service_name, service_added, count):
+    running_services = data.running_services.copy()
+    finished_services = data.finished_services.copy()
+    all_services = data.all_services.copy()
+    if service_added:
+        for _ in range(count):
+            running_services.append(service_name)
+        if count > 1:
+            for _ in range(1, count):
+                all_services.append(service_name)
+    else:
+        if service_name in running_services:
+            running_services.remove(service_name)
+            finished_services.append(service_name)
+    return all_services, running_services, finished_services
+
 def update_doc_processing_status(id: str, service_name, service_added, work_flow_name, count=1):
     """
     count: few case mulitple parallel services are invoked
     """
     with SessionLocal() as session:
         data = session.query(WorkFlowStatus).get(id)
-        running_services = data.running_services.copy()
-        finished_services = data.finished_services.copy()
-        all_services = data.all_services.copy()
-        if service_added:
-            for _ in range(count):
-                running_services.append(service_name)
-            if count > 1:
-                for _ in range(1, count):
-                    all_services.append(service_name)
-        else:
-            if service_name in running_services:
-                running_services.remove(service_name)
-                finished_services.append(service_name)
+        all_services, running_services, finished_services = _update_running_finished_services(
+            data, service_name, service_added, count)
         data.running_services = list(running_services)
         data.finished_services = list(finished_services)
         data.all_services = all_services
@@ -179,6 +184,10 @@ def update_doc_finished_status(id, work_flow_name):
         data = session.query(WorkFlowStatus).get(id)
         data.status = WorkFlowState.COMPLETED.value
         data.percent_complete = int(ProcessingStatus.PROCESS_COMPLETED.value)
+        all_services = list(set(data.all_services.copy()))
+        data.finished_services=all_services
+        data.all_services=all_services
+        data.running_services=[]
         data.isProcessing = False
         if work_flow_name == DWorkFLows.FULL_FLOW.value:
             data = session.query(PDProtocolMetadata).get(id)
