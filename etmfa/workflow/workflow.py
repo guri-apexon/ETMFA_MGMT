@@ -172,7 +172,7 @@ class WorkFlow():
 
     @property
     def services_list(self):
-        return self._services_list
+        return [sr_name for sr_name in self._services_list if sr_name!=TERMINATE_NODE]
 
     def get_channel(self, flow_id):
         with self.lock:
