@@ -24,7 +24,7 @@ class ContextFilter(logging.Filter):
         return True
 
 
-def initialize_wf_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=Consts.LOGGING_WF,add_filter=True):
+def initialize_wf_logger(logstash_host, logstash_port, debug=True, module_name=Consts.LOGGING_WF,add_filter=True):
     if not os.path.exists(DB_DIR):
         os.makedirs(DB_DIR)
 
@@ -34,17 +34,17 @@ def initialize_wf_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=C
     else:
         logger.setLevel(logging.INFO)
 
-    elkHandler = AsynchronousLogstashHandler(LOGSTASH_HOST,
-                                             LOGSTASH_PORT,
+    elk_handler = AsynchronousLogstashHandler(logstash_host,
+                                             logstash_port,
                                              database_path=DB_FILE)
-    elkHandler.setLevel(logging.INFO)
-    logger.addHandler(elkHandler)
+    elk_handler.setLevel(logging.INFO)
+    logger.addHandler(elk_handler)
 
     if debug:
-        consoleHandler = logging.StreamHandler()
-        consoleHandler.setLevel(logging.DEBUG)
-        consoleFormatter = logging.Formatter('%(asctime)s %(levelname)s [%(name)s] [%(doc_id)s] %(message)s')
-        consoleHandler.setFormatter(consoleFormatter)
-        logger.addHandler(consoleHandler)
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.DEBUG)
+        console_formatter = logging.Formatter('%(asctime)s %(levelname)s [%(name)s] [%(doc_id)s] %(message)s')
+        console_handler.setFormatter(console_formatter)
+        logger.addHandler(console_handler)
     if add_filter:
          logger.addFilter(ContextFilter(''))
