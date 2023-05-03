@@ -117,7 +117,17 @@ class Channel():
             return True
         curr_node.count -= 1
         return False
-
+    
+    def check_if_service_executed(self,service_name):
+        """
+        if service is executed and num of instance count is at 1
+        """
+        if service_name not in self.executed_services:
+            return False
+        curr_node = self.node_graph[service_name]
+        if curr_node.count == 1:
+            return True
+        
     def dynamic_instance_creation_check_update(self, service_msg_map):
         for service_name, msg_obj in service_msg_map.items():
             if isinstance(msg_obj, list):

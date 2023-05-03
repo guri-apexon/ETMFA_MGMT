@@ -163,16 +163,25 @@ class WorkFlowManager():
             output_queue_name = self.service_queue_tuple_map[sr_name][1]
             self.on_msg(output_queue_name, msg_obj)
 
+    def is_duplicate_msg(self,curr_service_name,msg_obj):
+        flow_name,flow_id=self.service_message_handler.get_flow_info(msg_obj)
+        channel = self.work_flows[flow_name].get_channel(flow_id)
+        if channel.check_if_service_executed(curr_service_name):
+            self.logger.error(f'duplicate message received for {flow_name} and {flow_id} for service {curr_service_name}')
+            return True
+        return False
+
     def _process_msg(self, out_queue_name, msg_obj):
         curr_service_name = self.out_queue_service_map.get(
             out_queue_name, None)
+        if self.is_duplicate_msg(curr_service_name,msg_obj):
+            return
         if not curr_service_name:
             curr_service_name = EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value
         msg_obj = self.service_message_handler.on_input_message_adapter(
             msg_obj, curr_service_name)
-        meta_info = {}  # additional info w.r.t stage in pipeline etc.
         service_msg = self.service_message_handler.on_msg(
-            msg_obj, curr_service_name, meta_info)
+            msg_obj, curr_service_name)
 
         if curr_service_name == EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value:
             work_flow = self.work_flows[service_msg.flow_name]
