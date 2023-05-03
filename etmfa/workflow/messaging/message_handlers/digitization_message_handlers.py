@@ -249,10 +249,11 @@ class Digitizer2CompareHandler(DigitizationGenericMessageHandler):
             compare_request_list = document_compare_tuple(
                 session, _id, flow_name, id1, id2, doc_file_path_1, doc_file_path_2, protocol_name)
         session.close()
-        update_doc_processing_status(
-            _id, service_name, True,flow_name,len(compare_request_list))
+
         if not compare_request_list:
             return {}
+        update_doc_processing_status(
+            _id, service_name, True, flow_name, len(compare_request_list))
         return compare_request_list
 
 

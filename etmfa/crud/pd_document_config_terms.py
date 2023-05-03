@@ -1,3 +1,4 @@
+from datetime import timezone
 import pytz
 from etmfa_core.postgres_db_schema import NlpEntityDb, IqvkeyvaluesetDb
 from etmfa.db.models.pd_documenttables_db import DocumenttablesDb
@@ -210,9 +211,8 @@ def get_section_audit_info(psdb: Session, aidoc_id: str, link_ids: list,
             IqvdocumentlinkDb.DocumentSequenceIndex == seq).first()
 
         current_timezone = obj.last_updated
-        est_datetime = current_timezone.astimezone(
-            pytz.timezone('US/Eastern')).strftime('%d-%m-%Y %I:%M:%S %p')
-        response.append({"last_reviewed_date": est_datetime,
+        est_datetime = current_timezone.astimezone(timezone.utc)
+        response.append({"last_reviewed_date": str(est_datetime).replace('+00:00',''),
                          "last_reviewed_by": obj.userId or '',
                          "total_no_review": obj.num_updates})
 
