@@ -23,5 +23,15 @@ class NlpEntityCrud(CRUDBase[NlpEntityDb, NlpEntityCreate, NlpEntityUpdate]):
             logger.exception("Exception in retrieval of data from table", ex)
         return all_term_data
 
+    def get_with_doc_id(self, db: Session, doc_id: str):
+        try:
+            all_term_data = db.query(NlpEntityDb).filter(
+                NlpEntityDb.doc_id == doc_id,
+                NlpEntityDb.hierarchy != 'document').distinct(NlpEntityDb.standard_entity_name).all()
+        except Exception as ex:
+            all_term_data = []
+            logger.exception("Exception in retrieval of data from table", ex)
+        return all_term_data
+
 
 nlp_entity_content = NlpEntityCrud(NlpEntityDb)
