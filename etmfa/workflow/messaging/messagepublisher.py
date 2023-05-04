@@ -10,18 +10,6 @@ class MessagePublisher:
     def __init__(self, connection_str, exchange_name):
         self.connection_str = connection_str
         self.exchange_name = exchange_name
-        self.initial_msg = True
-
-    def _purge_on_start(self, channel, queue_name):
-        """
-        purge queue messages on start
-        """
-        if self.initial_msg:
-            try:
-                channel.queue_purge(queue_name)
-            except Exception as e:
-                pass
-            self.initial_msg = False
 
     def _publish_msg(self, conn, exchange, channel, queue_name, msg_dict):
         msg_str = json.dumps(msg_dict)
@@ -83,7 +71,7 @@ class MessagePublisher:
     def send_msg(self, msg_dict, queue_name):
         try:
             assert queue_name is not None
-        except AssertionError as e:
+        except AssertionError as _:
             # logger.error('A queue has to be provided!', e)
             raise ValueError('A queue has to be provided')
 

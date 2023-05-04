@@ -250,7 +250,6 @@ def document_compare_all_permutations(session, work_flow_id, flow_name):
                                                        )).order_by(WorkFlowStatus.timeCreated.desc()).limit(3).all()
     iqvxml_path1 = get_latest_file_path(
         document_path, prefix="D2_", suffix=FILE_EXTENSION)
-    ids_list = [row['work_flow_id'] for row in ids_compare_protocol]
     ids_compare_protocol_list = list()
     for row in ids_compare_protocol:
         iqvxml_path2_document_file_path = row['documentFilePath'][:row.documentFilePath.rfind(
@@ -468,34 +467,6 @@ def received_documentprocessing_error_event(error_dict, session=None):
         logger.error(NO_RESOURCE_FOUND.format(doc_id))
 
 
-def pd_fetch_summary_data(aidocid, userid, source=config.SRC_QC):
-    try:
-        if source == config.SRC_QC:
-            resource = Protocolqcdata.query.filter(
-                Protocolqcdata.id == aidocid).first()
-        else:
-            resource = Protocoldata.query.filter(
-                Protocoldata.id == aidocid).first()
-
-        if resource:
-            summary = ast.literal_eval(json.loads(resource.iqvdataSummary))
-            summary_dict = {k: v for k, v, _ in summary['data']}
-        else:
-            return None
-
-        summary_record = utils.get_updated_qc_summary_record(doc_id=aidocid, source=source, summary_dict=summary_dict,
-                                                             is_active_flg=True, qc_approved_by=userid)
-        db_context.session.merge(summary_record)
-        db_context.session.commit()
-        return aidocid
-    except Exception as ex:
-        logger.error(ERROR_PROCESSING_STATUS.format(aidocid, str(ex)))
-        db_context.session.rollback()
-        exception = ManagementException(
-            aidocid, ErrorCodes.ERROR_QC_SUMMARY_DATA)
-        received_documentprocessing_error_event(exception.__dict__)
-
-
 def get_confidence_score(doc_status):
     confidence_score = fetch_records_from_db(doc_status=doc_status)
     return confidence_score['confidence_score']
@@ -532,7 +503,7 @@ def save_doc_processing(request, _id, doc_path):
         logger.error(ERROR_PROCESSING_STATUS.format(_id, ex))
 
 
-def get_file_contents_by_id(protocol_number: str, aidoc_id: str, protocol_number_verified: bool = False) -> str:
+def get_file_contents_by_id(protocol_number: str, aidoc_id: str) -> str:
     """
     Extracts file toc json by aidoc_id
 
@@ -556,7 +527,7 @@ def get_file_contents_by_id(protocol_number: str, aidoc_id: str, protocol_number
             result = resource[1]
         else:
             result = None
-    except Exception as e:
+    except Exception as _:
         logger.error(NO_RESOURCE_FOUND.format(aidoc_id))
         result = None
     return result
@@ -725,61 +696,65 @@ def update_user_protocols(user_id, project_id, protocol_number):
                 logger.error(
                     "Error while updating record to PD_user_protocol file in DB for user id: {},{}".format(user_id, ex))
 
-
-def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
-    """
-    Get protocol attributes and Normalized SOA
-    """
-    norm_soa = []
-    visitrecord_mapper = None
-    resource_dict = dict()
-    norm_dict = dict()
-    footnotes = ["footnote_0", "footnote_1", "footnote_2", "footnote_3", "footnote_4",
-                 "footnote_5", "footnote_6", "footnote_7", "footnote_8", "footnote_9"]
+def _get_active_protocol(aidoc_id,protocol_number):
     try:
         active_protocol = PDProtocolMetadata.query.filter(
             and_(PDProtocolMetadata.id == aidoc_id, PDProtocolMetadata.protocol == protocol_number,
                  PDProtocolMetadata.isActive == True)).first()
         if active_protocol is None:
-            return resource_dict
-
+            return None
+        return active_protocol
     except Exception as e:
         logger.error(
             f"No active document found in DB [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]")
         logger.error(f"Exception message:\n{e}")
+        return None
 
+def _get_norm_soa(session,aidoc_id,footnotes):
+    norm_soa = []
+    visitrecord_mapper = session.query(IqvassessmentvisitrecordDbMapper).filter(
+        IqvassessmentvisitrecordDbMapper.doc_id == aidoc_id).all()
+
+    for record in visitrecord_mapper:
+        resource_dict = {key: value for key,
+                                        value in record.__dict__.items()}
+        resource_dict.pop("_sa_instance_state")
+        footnote_list = []
+        for note in footnotes:
+            if note in resource_dict:
+                if len(resource_dict.get(note)) != 0:
+                    footnote_list.append(resource_dict.get(note))
+                resource_dict.pop(note)
+
+        resource_dict.update({"footnotes": footnote_list})
+        norm_soa.append(resource_dict)
+    norm_soa_str = json.loads(json.dumps(norm_soa)) 
+    return norm_soa_str 
+
+
+def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
+    """
+    Get protocol attributes and Normalized SOA
+    """
+    norm_dict = dict()
+    footnotes = ["footnote_0", "footnote_1", "footnote_2", "footnote_3", "footnote_4",
+                 "footnote_5", "footnote_6", "footnote_7", "footnote_8", "footnote_9"]
+
+    active_protocol = _get_active_protocol(aidoc_id, protocol_number)
+
+    if not active_protocol:
+        return {}
     try:
         session = db_context.session()
 
         helper_obj = MetaDataTableHelper()
         protocol_attributes_str = helper_obj.get_data(session, aidoc_id)
-
-        visitrecord_mapper = session.query(IqvassessmentvisitrecordDbMapper).filter(
-            IqvassessmentvisitrecordDbMapper.doc_id == aidoc_id).all()
-
-        if visitrecord_mapper is not None:
-            for record in visitrecord_mapper:
-                resource_dict = {key: value for key,
-                                                value in record.__dict__.items()}
-                resource_dict.pop("_sa_instance_state")
-                footnote_list = []
-                for note in footnotes:
-                    if note in resource_dict:
-                        if len(resource_dict.get(note)) != 0:
-                            footnote_list.append(resource_dict.get(note))
-                        resource_dict.pop(note)
-                    continue
-
-                resource_dict.update({"footnotes": footnote_list})
-                norm_soa.append(resource_dict)
-            norm_soa_str = json.loads(json.dumps(norm_soa))
-
+        norm_soa_str = _get_norm_soa(session, aidoc_id, footnotes)
         norm_dict = {
             'id': aidoc_id, 'protocolAttributes': protocol_attributes_str, 'normalizedSOA': norm_soa_str}
     except Exception as exc:
         logger.exception(
             f"Exception received while formatting the data [Protocol: {protocol_number}; aidoc_id: {aidoc_id}]. Exception: {str(exc)}")
-
     return norm_dict
 
 
@@ -801,9 +776,9 @@ def get_attr_soa_compare(protocol_number, aidoc_id, compare_doc_id) -> dict:
             return resource_dict
 
         compare_record = max(resource, key=lambda record: record.compareRun)
-        JSONPathNormSOA = Path(compare_record.compareJSONPathNormSOA)
-        if JSONPathNormSOA:
-            with open(JSONPathNormSOA, 'rb') as file_obj:
+        json_path_norm_soa = Path(compare_record.compareJSONPathNormSOA)
+        if json_path_norm_soa:
+            with open(json_path_norm_soa, 'rb') as file_obj:
                 norm_soa_diff = json.load(file_obj)
                 file_obj.close()
         else:

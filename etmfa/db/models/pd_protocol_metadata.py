@@ -172,19 +172,8 @@ class NestedDict():
                 if attr_value != None:
                     return attr_value
 
-
-@dataclass
-class MetaStatusResponse():
-    isAdded: Boolean
-    isDuplicate: Boolean = False
-    error: str = ''
-
-@dataclass
-class MetaDeleteResponse():
-    isDeleted:Boolean
-    error:str
-
-
+MetaStatusResponse =lambda is_added,is_duplicate,error:{'isAdded':is_added,'isDuplicate':is_duplicate,'error':error}
+MetaDeleteResponse= lambda is_deleted,error:{'isDeleted':is_deleted,'error':error}
 
 class SessionManager():
     """
@@ -396,7 +385,7 @@ class MetaDataTableHelper():
             if isinstance(e.orig, UniqueViolation):
                 error = DUPLICATION_ERROR
                 duplicate = True
-            return MetaStatusResponse(isAdded=status, isDuplicate=duplicate, error=error).__dict__
+            return MetaStatusResponse(status,duplicate,error)
 
     def _get_level(self, field_name):
         if not field_name:
@@ -443,9 +432,9 @@ class MetaDataTableHelper():
         Add metadata field attributes
         """
         status, duplicate, error = True, False, False
-        if field_name == MetaDataTableHelper.SUMMARY_EXTENDED:
-            if not self.check_field_exist(session,_id, MetaDataTableHelper.SUMMARY_EXTENDED):
-                self.add_field(session,_id, MetaDataTableHelper.SUMMARY_EXTENDED)
+        if (field_name == MetaDataTableHelper.SUMMARY_EXTENDED) and \
+                (not self.check_field_exist(session, _id, MetaDataTableHelper.SUMMARY_EXTENDED)):
+            self.add_field(session, _id, MetaDataTableHelper.SUMMARY_EXTENDED)
         nested_fields, level = self._get_level(field_name)
         try:
             start_field, end_field = nested_fields[0],nested_fields[-1]
@@ -467,7 +456,7 @@ class MetaDataTableHelper():
                 duplicate = True
             else:
                 error=str(e)
-        return MetaStatusResponse(isAdded=status, isDuplicate=duplicate, error=error).__dict__
+        return MetaStatusResponse(status,duplicate,error)
 
 
     def check_field_exist(self,session,_id,field_name):
@@ -509,7 +498,7 @@ class MetaDataTableHelper():
                 deleted=False
                 error=str(e)
             
-        return MetaDeleteResponse(isDeleted = deleted, error = error).__dict__
+        return MetaDeleteResponse(deleted,error)
 
     def _update_attribute_value(self, obj, col, attr):
         col_name = col.name
@@ -534,9 +523,9 @@ class MetaDataTableHelper():
         Update attributes
         """
         status, duplicate, error = True, False, False
-        if field_name == MetaDataTableHelper.SUMMARY_EXTENDED:
-            if not self.check_field_exist(session,_id, MetaDataTableHelper.SUMMARY_EXTENDED):
-                self.add_field(session,_id, MetaDataTableHelper.SUMMARY_EXTENDED)
+        if (field_name == MetaDataTableHelper.SUMMARY_EXTENDED) and \
+                (not self.check_field_exist(session, _id, MetaDataTableHelper.SUMMARY_EXTENDED)):
+            self.add_field(session, _id, MetaDataTableHelper.SUMMARY_EXTENDED)
         nested_fields, level = self._get_level(field_name)
         start_field, end_field = nested_fields[0], nested_fields[-1]
         parent_id = self._get_elements_hash([_id, start_field, level, end_field])
@@ -553,7 +542,7 @@ class MetaDataTableHelper():
                 for col in attr.__table__.columns:
                     self._update_attribute_value(obj,col,attr)
         session.commit()
-        return MetaStatusResponse(isAdded=status, isDuplicate=duplicate, error=error).__dict__
+        return MetaStatusResponse(status,duplicate,error)
 
     def delete_attribute(self,session,_id, field_name, data_list=[]):
         """
@@ -575,7 +564,7 @@ class MetaDataTableHelper():
                     session.commit()
             except Exception as e:
                 error=str(e)
-        return MetaDeleteResponse(isDeleted = deleted, error=error).__dict__       
+        return MetaDeleteResponse(deleted,error)   
        
     
     def add_field(self,session, _id, field_name):
@@ -599,5 +588,5 @@ class MetaDataTableHelper():
             if isinstance(e.orig, UniqueViolation):
                 error = DUPLICATION_ERROR
                 duplicate = True
-        return MetaStatusResponse(isAdded=status, isDuplicate=duplicate, error=error).__dict__
+        return MetaStatusResponse(status,duplicate,error)
     
