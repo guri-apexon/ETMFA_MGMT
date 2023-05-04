@@ -210,10 +210,10 @@ class SOAResponse:
                     resultreturn=dict()
                     col_header=dict()
                     resulttable=pd.DataFrame()
-                    resulttable=df[(df.ColIndex==tabseq)]
+                    resulttable=df[(df.TableIndex==tabseq)]
                     drop_rows,keep_header=self.header_finder(df=resulttable)
                     drop_rows.extend(self.drop_duplicate_header(df=resulttable))
-                    resulttable=df[(df.ColIndex==tabseq) & (~(df.RowIndex.isin(drop_rows)))]
+                    resulttable=df[(df.TableIndex==tabseq) & (~(df.RowIndex.isin(drop_rows)))]
                     resulttable=resulttable.reset_index(drop=True)
                     resulttable_redact = resulttable.copy(deep=True)
                     # Generating table structure
@@ -254,38 +254,43 @@ def get_row_id(item):
 
 def return_table_formatted_data(data):
     table_properties_formatter = []
+    datacell_roi_ids = []
     for item in eval(data):
         column_list = []
         roi_id = get_row_id(item=item)
         for k, v in item.items():
-            if isinstance(v, dict):
-                column_list.append({
-                          "col_indx": len(column_list),
-                          "op_type": None,
-                          "cell_id": v.get("roi_id",{}).get("datacell_roi_id",""),
-                          "value": v.get('content')
+            if v:
+                if isinstance(v, dict):
+                    datacell_id = v.get("roi_id", {}).get('datacell_roi_id', "")
+                    if datacell_id and datacell_id not in datacell_roi_ids:
+                        datacell_roi_ids.append(datacell_id)
+                        column_list.append({
+                            "col_indx": len(column_list),
+                            "op_type": None,
+                            "cell_id": v.get("roi_id", {}).get("datacell_roi_id", ""),
+                            "value": v.get('content')
                         })
-            elif roi_id:
-                # To add cell id if it has missed during section extract
-                column_objs = db_context.session.query(DocumenttablesDb).filter(
-                    DocumenttablesDb.parent_id == roi_id).all()
-                missing_col_obj = column_objs[int(k.split('.')[0])-1]
-                cell_id = db_context.session.query(DocumenttablesDb).filter(
-                    DocumenttablesDb.parent_id == missing_col_obj.id).all()[-1]
-                column_list.append({
-                          "col_indx": len(column_list),
-                          "op_type": None,
-                          "cell_id": cell_id.id,
-                          "value": ""
-                        })
-            else:
-                # To handle if there is no data for entire row
-                column_list.append({
-                    "col_indx": len(column_list),
-                    "op_type": None,
-                    "cell_id": "",
-                    "value": ""
-                })
+                elif roi_id and v and v.get("roi_id", {}).get("datacell_roi_id", ""):
+                    # To add cell id if it has missed during section extract
+                    column_objs = db_context.session.query(DocumenttablesDb).filter(
+                        DocumenttablesDb.parent_id == roi_id).all()
+                    missing_col_obj = column_objs[int(k.split('.')[0])-1]
+                    cell_id = db_context.session.query(DocumenttablesDb).filter(
+                        DocumenttablesDb.parent_id == missing_col_obj.id).all()[-1]
+                    column_list.append({
+                              "col_indx": len(column_list),
+                              "op_type": None,
+                              "cell_id": cell_id.id,
+                              "value": ""
+                            })
+                else:
+                    # To handle if there is no data for entire row
+                    column_list.append({
+                        "col_indx": len(column_list),
+                        "op_type": None,
+                        "cell_id": "",
+                        "value": ""
+                    })
 
         new_dict = {"row_indx": len(table_properties_formatter),
                     "roi_id": roi_id, "op_type": None, "columns": column_list}
