@@ -65,27 +65,27 @@ Index('iqvassessmentvisitrecord_db_doc_id', IqvassessmentvisitrecordDb.doc_id)
 @dataclass
 class IqvassessmentvisitrecordDbMapper:
     id: str = field(init=False)
-    ProcessVersion: str = None
-    ProcessMachineName: str = None
-    pname: str = None
-    doc_id: str = None
-    dts: str = None
-    table_link_text: str = None
-    indicator_text: str = None
-    visit_timepoint: str = None
-    epoch_timepoint: str = None
-    cycle_timepoint: str = None
-    day_timepoint: str = None
-    week_timepoint: str = None
-    window_timepoint: str = None
-    year_timepoint: str = None
-    month_timepoint: str = None
-    roi_id: str = None
-    assessment: str = None
-    section: str = None
-    procedure: str = None
-    assessment_text: str = None
-    procedure_text: str = None
+    ProcessVersion: str = ''
+    ProcessMachineName: str = ''
+    pname: str = ''
+    doc_id: str = ''
+    dts: str = ''
+    table_link_text: str = ''
+    indicator_text: str = ''
+    visit_timepoint: str = ''
+    epoch_timepoint: str = ''
+    cycle_timepoint: str = ''
+    day_timepoint: str = ''
+    week_timepoint: str = ''
+    window_timepoint: str = ''
+    year_timepoint: str = ''
+    month_timepoint: str = ''
+    roi_id: str = ''
+    assessment: str = ''
+    section: str = ''
+    procedure: str = ''
+    assessment_text: str = ''
+    procedure_text: str = ''
     footnotes: List = field(default_factory=list)
     marked_record: dict = field(default_factory=dict)
 
@@ -188,7 +188,7 @@ class Iqvassessmentvisitrecord():
                         norm_soa = self.get_normalized_soa_data(assessment_visit_obj, norm_soa, roi_id, footnote)                        
                         norm_dict[roi_id] = norm_soa  
             else:
-                logger.error(f"Error in getting db object.")
+                logger.error("Error in getting db object.")
                 return norm_dict        
         except Exception as exc:
             logger.exception(
@@ -200,7 +200,7 @@ class Iqvassessmentvisitrecord():
 class IqvassessmentvisitrecordDeleteDbMapper:
     id: str = ""
     table_roi_id: str = ""
-    table_row_index: int = ""
-    table_column_index: int = ""
+    table_row_index: int = 0
+    table_column_index: int = 0
 
 mapper_registry.map_imperatively(IqvassessmentvisitrecordDeleteDbMapper, IqvassessmentvisitrecordDb)

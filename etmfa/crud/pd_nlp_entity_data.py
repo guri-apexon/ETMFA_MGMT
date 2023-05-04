@@ -26,7 +26,7 @@ class NlpEntityCrud(CRUDBase[NlpEntityDb, NlpEntityCreate, NlpEntityUpdate]):
     def get_with_doc_id(self, db: Session, doc_id: str):
         try:
             all_term_data = db.query(NlpEntityDb).filter(
-                NlpEntityDb.doc_id == doc_id,
+                NlpEntityDb.doc_id == doc_id,NlpEntityDb.standard_entity_name != "",
                 NlpEntityDb.hierarchy != 'document').distinct(NlpEntityDb.standard_entity_name).all()
         except Exception as ex:
             all_term_data = []

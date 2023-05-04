@@ -10,75 +10,9 @@ from etmfa.db import config
 from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 from etmfa.server.namespaces.serializers import latest_protocol_contract_fields
 from typing import Tuple
-# from etmfa.error import ManagementException
-# from etmfa.error import ErrorCodes
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.AL32UTF8"
-
-
-# def get_iqvxml_file_path(dfs_folder_path, prefix):
-#     try:
-#         files = os.listdir(dfs_folder_path)
-#         file = [file for file in files if file.startswith(prefix)][0]
-#         return os.path.join(dfs_folder_path, file)
-#     except Exception as ex:
-#         logger.error("Could not {} XML file in path: {} {}".format(prefix, dfs_folder_path, str(ex)))
-#         exception = ManagementException(id, ErrorCodes.ERROR_PROTOCOL_DATA)
-
-def get_summary_records(aidoc_id, source):
-    """
-        Fetch the summary record
-    """
-    all_summary_records = PDProtocolQCSummaryData.query.filter(PDProtocolQCSummaryData.aidocId == aidoc_id,
-                                                               PDProtocolQCSummaryData.source == source).all()
-    return all_summary_records
-
-
-def fix_data(value, json_col, max_len, data_type, data_format):
-    """
-    Makes the data aligned to the required format and length
-    """
-    if max_len is not None:
-        value = value.strip()[:max_len]
-
-    if data_type == 'date':
-        try:
-            datetime.strptime(value, data_format)
-        except ValueError as exc:
-            logging.warning(
-                f"{json_col} received data [{value}] not matching the expected format[{data_format}],"
-                f" default value used.\nException: {str(exc)}")
-            return ''
-    return value
-
-
-def get_updated_qc_summary_record(doc_id, source, summary_dict, is_active_flg=True, qc_approved_by='', FeedbackRunId=0):
-    """
-    Returns the Updated Summary record table record based on summary_dict
-    """
-    current_utctime = datetime.utcnow()
-
-    qc_summ_record = PDProtocolQCSummaryData()
-    qc_summ_record.aidocId = doc_id
-    qc_summ_record.source = source
-    qc_summ_record.isActive = is_active_flg
-    qc_summ_record.qcApprovedBy = qc_approved_by
-    qc_summ_record.timeUpdated = current_utctime
-    qc_summ_record.runId = FeedbackRunId
-
-    resource = PDProtocolQCSummaryData.query.filter(PDProtocolQCSummaryData.aidocId == doc_id,
-                                                    PDProtocolQCSummaryData.source == source).first()
-    if resource:
-        qc_summ_record.timeCreated = resource.timeCreated
-    else:
-        qc_summ_record.timeCreated = current_utctime
-
-    _ = [setattr(qc_summ_record, tab_col,
-                 fix_data(summary_dict.get(json_col, config.JSON_DEFAULT_MISSING_VALUE), json_col, max_len, data_type,
-                          data_format))
-         for tab_col, (json_col, max_len, data_type, data_format) in config.summary_table_json_mapper.items()]
-    return qc_summ_record
 
 
 def clean_inputs(protocol_number="", version_number="", approval_date="", aidoc_id="", document_status="", qc_status="",
@@ -179,7 +113,7 @@ def get_filter_conditions(protocol_number, version_number="", approval_date="", 
         all_filter = all_filter + ' AND ' + additional_filter
 
     # order condition
-    order_condition = f"pd_protocol_metadata.\"approvalDate\" desc, pd_protocol_metadata.\"uploadDate\" desc"
+    order_condition = "pd_protocol_metadata.\"approvalDate\" desc, pd_protocol_metadata.\"uploadDate\" desc"
 
     logger.debug(
         f"Input arguments: protocol={protocol_number}; version_number={version_number}; approval_date={approval_date}; aidoc_id={aidoc_id}; document_status={document_status}; Dynamic conditions: {all_filter}\n order by {order_condition}")
@@ -245,7 +179,7 @@ def post_process_resource(resources, multiple_records=False) -> dict:
 
     if multiple_records and resources is not None and type(resources) == list and len(resources) > 0:
         resource_list = []
-        logger.debug(f"\nALL_RESPONSE:")
+        logger.debug("\nALL_RESPONSE:")
         for idx, resource in enumerate(resources):
             logger.debug(f"\n----- Processing for {idx} resource...")
             resource_dict = resource[0].as_dict()
@@ -261,13 +195,13 @@ def post_process_resource(resources, multiple_records=False) -> dict:
         top_resource['allVersions'] = resource_list
 
     elif not multiple_records and resources is not None:
-        logger.debug(f"\nTOP_1_RESPONSE:")
+        logger.debug("\nTOP_1_RESPONSE:")
         top_resource = resources[0].as_dict()
 
         top_resource = apply_contract_rules(top_resource=top_resource, metadata_fields=resources[1:],
                                             ignore_filepath=False)
     else:
-        logger.warning(f"No data for post process")
+        logger.warning("No data for post process")
 
     logger.debug(f"top_resource:\n{top_resource}")
     return top_resource
@@ -317,7 +251,7 @@ def all_filters(version_date="", approval_date="", start_date="", end_date="", d
     if approval_date:
         logger.debug("In approval_date type ...")
         all_filters += f"AND pd_protocol_metadata.\"approvalDate\"::date = '{approval_date}'"
-    if upload_date is not '':
+    if upload_date !="":
         logger.debug("In upload_date type ...")
         all_filters += f" AND pd_protocol_metadata.\"uploadDate\"::date = '{upload_date}'"
     if start_date and end_date:

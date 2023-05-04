@@ -69,7 +69,7 @@ class DagParser():
             try:
                 info = NodeInfoModel(**data)
                 info_list.append(info)
-            except Exception as e:
+            except Exception as _:
                 raise (ValidationError)
         return info_list
 

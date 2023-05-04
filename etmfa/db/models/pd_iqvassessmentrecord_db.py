@@ -50,9 +50,9 @@ Index('iqvassessmentrecord_db_doc_id',IqvassessmentrecordDb.doc_id)
 
 @dataclass
 class IqvassessmentrecordDbMapper:
-    doc_id: str = None
-    assessment_text: str = None
-    table_roi_id: str = None
+    doc_id: str = ''
+    assessment_text: str = ''
+    table_roi_id: str = ''
     
 mapper_registry.map_imperatively(IqvassessmentrecordDbMapper, IqvassessmentrecordDb)
 
