@@ -237,3 +237,31 @@ def add_column_study_visit(session, study_visit_data, doc_id, table_roi_id, new_
                 VALUES('{uuid.uuid4()}','{doc_id}','{table_roi_id}', {new_table_column_index},\
                 {timepoint_values}, 5, -1, '','','','','','',-1,'','', '','','','','','','','','','')"""
         session.execute(insert_column)
+
+
+def create_message(data: bool, operation: str, sub_type: str):
+    try:
+        if data and operation == 'update':
+            return "Updated data"
+        elif data and operation == 'delete' and sub_type == 'delete_column':
+            return "Successfully deleted column and updated index"
+        elif data and operation == 'delete' and sub_type == 'delete_row':
+            return "Successfully deleted row and updated index"
+        else:
+            return ""
+    except Exception as exc:
+        logger.exception(
+            f"Exception received while creating message [operation: {operation}, Exception: {str(exc)}")
+
+
+def create_message_add_operation(study_data: bool, normalized_data: bool, sub_type):
+    try:
+        if study_data and normalized_data and sub_type == 'add_row':
+            return "Row added successfully"
+        elif study_data and normalized_data and sub_type == 'add_column':
+            return "Column added successfully"
+        else:
+            return ""
+    except Exception as exc:
+        logger.exception(
+            f"Exception received while creating message [type: {sub_type}, Exception: {str(exc)}")

@@ -16,6 +16,11 @@ SOURCE_SYSYTEM = 'Source system calling this API'
 DOCUMENT_PROCESSING_MODEL = 'Document Processing Status Model'
 SOURCE_INPUT_DOCUMENT = 'Source Input document name'
 METADATA_ATTRIBUTE_IDS = 'metadata attribute Ids'
+UNIQUE_IDENTIFIER_PROCESSING_JOB='The unique identifier (UUID) of a document processing job'
+DOC_ID='doc id'
+LINK_LVL_1_6='Link level in between 1 to 6'
+USER_ID='user id'
+DOC_SECTION_ID='doc section id'
 
 kv_pair_model = api.model(' KeyValue Pair for patch ', {
     'name': fields.String(
@@ -196,7 +201,7 @@ eTMFA_attributes_input.add_argument('docStatus',
 eTMFA_attributes_input.add_argument('userId',
                                     type=str,
                                     required=False,
-                                    help='User ID')
+                                    help=USER_ID)
 eTMFA_attributes_input.add_argument('environment',
                                     type=str,
                                     required=False,
@@ -438,7 +443,7 @@ wf_object_post.add_argument('docIdToCompare',
 document_processing_object_put = api.model('Document feedback definition',
                                            {
                                                'id': fields.String(required=True,
-                                                                   description='The unique identifier (UUID) of a document processing job.'),
+                                                                   description=UNIQUE_IDENTIFIER_PROCESSING_JOB),
                                                'feedbackSource': fields.String(required=True,
                                                                                description='Feedback source for the processed document'),
                                                'userId': fields.String(required=False, description='userId'),
@@ -468,7 +473,7 @@ document_processing_object_put = api.model('Document feedback definition',
 document_processing_object_put_get = api.model('Document Processing Feedback Model',
                                                {
                                                    'id': fields.String(readOnly=True,
-                                                                       description='The unique identifier (UUID) of a document processing job.'),
+                                                                       description=UNIQUE_IDENTIFIER_PROCESSING_JOB),
                                                    'fileName': fields.String(readOnly=True,
                                                                              description='file name of the document for updating feedback'),
                                                    'documentFilePath': fields.String(readOnly=True,
@@ -655,48 +660,48 @@ metadata_summary_delete = api.model('API for external systems and BPO view to de
 # To get section header
 section_header_args = reqparse.RequestParser()
 section_header_args.add_argument(
-    'aidoc_id', type=str, required=True, help='doc id')
+    'aidoc_id', type=str, required=True, help=DOC_ID)
 section_header_args.add_argument(
-    'link_level', type=int, required=True, help='Link leven in between 1 to 6')
+    'link_level', type=int, required=True, help=LINK_LVL_1_6)
 section_header_args.add_argument(
-    'toc', type=int, required=True, help='doc section id')
+    'toc', type=int, required=True, help=DOC_SECTION_ID)
 section_header_args.add_argument(
-    'user_id', type=str, required=False, help='user id')
+    'user_id', type=str, required=False, help=USER_ID)
 
 # to get enriched data
 enriched_data_args = reqparse.RequestParser()
 enriched_data_args.add_argument(
-    'aidoc_id', type=str, required=True, help='doc id')
+    'aidoc_id', type=str, required=True, help=DOC_ID)
 enriched_data_args.add_argument(
-    'link_id', type=str, required=True, help='doc section id')
+    'link_id', type=str, required=True, help=DOC_SECTION_ID)
 
 # to get section data
 section_data_args = reqparse.RequestParser()
 section_data_args.add_argument(
-    'aidoc_id', type=str, required=True, help='doc id')
+    'aidoc_id', type=str, required=True, help=DOC_ID)
 section_data_args.add_argument(
-    'link_level', type=int, required=False, help='Link leven in between 1 to 6')
+    'link_level', type=int, required=False, help=LINK_LVL_1_6)
 section_data_args.add_argument(
-    'link_id', type=str, required=False, help='doc section id')
+    'link_id', type=str, required=False, help=DOC_SECTION_ID)
 section_data_args.add_argument(
-    'user_id', type=str, required=False, help='user id')
+    'user_id', type=str, required=False, help=USER_ID)
 section_data_args.add_argument(
     'protocol', type=str, required=False, help='protocol number')
 
 # To get section config data
 section_data_config_args = reqparse.RequestParser()
 section_data_config_args.add_argument(
-    'aidoc_id', type=str, required=True, help='doc id')
+    'aidoc_id', type=str, required=True, help=DOC_ID)
 section_data_config_args.add_argument(
     'link_level', type=int, required=False,default=1, help='Link leven in between 1 to 6')
 section_data_config_args.add_argument(
     'toc', type=str, required=False, help='toc 0 or 1 to get section headers')
 section_data_config_args.add_argument(
-    'link_id', type=str, required=False, default="", help='doc section id')
+    'link_id', type=str, required=False, default="", help=DOC_SECTION_ID)
 section_data_config_args.add_argument('section_text', type=str, required=False,
                                       help='doc section text, table, appendix')
 section_data_config_args.add_argument(
-    'user_id', type=str, required=False, help='user id')
+    'user_id', type=str, required=False, help=USER_ID)
 section_data_config_args.add_argument(
     'protocol', type=str, required=False, help='protocol number')
 section_data_config_args.add_argument('config_variables', type=str, required=False,
@@ -705,13 +710,13 @@ section_data_config_args.add_argument('config_variables', type=str, required=Fal
 # for dipadata get
 dipadata_details_get = reqparse.RequestParser()
 dipadata_details_get.add_argument(
-    'doc_id', type=str, required=True, help='Unique protocol document id')
+    'doc_id', type=str, required=True, help= UNIQUE_PROTOCOL_DOCUMENT_ID)
 
 dipadata_details_input = reqparse.RequestParser()
 dipadata_details_input.add_argument('id', type=str, required=False,
-                                    help='The unique identifier (UUID) of a document processing job.')
+                                    help=UNIQUE_IDENTIFIER_PROCESSING_JOB)
 dipadata_details_input.add_argument(
-    'doc_id', type=str, required=True, help='Unique protocol document id')
+    'doc_id', type=str, required=True, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
 dipadata_details_input.add_argument(
     'category', type=str, required=False, help='Dipadata Category')
 
@@ -742,7 +747,7 @@ fetch_workflows_by_userId.add_argument(
 # notification args
 notification_args = reqparse.RequestParser()
 notification_args.add_argument(
-    'doc_id', type=str, required=True, help='doc id')
+    'doc_id', type=str, required=True, help=DOC_ID)
 notification_args.add_argument('event', type=str, required=True,
                                help='Event to trigger notifications example QC_COMPLETED')
 notification_args.add_argument('user_id', type=str, required=False, default='',

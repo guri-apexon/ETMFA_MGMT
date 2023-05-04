@@ -33,7 +33,6 @@ class DigitizationGenericMessageHandler(MessageHandler):
         return message
 
     def _get_msg_obj(self, msg):
-        _id = msg.flow_id
         service_info = msg.services_param[0]
         msg_proc_obj = service_info.params
         return msg_proc_obj
@@ -136,13 +135,6 @@ class I2eOmopMessageHandler(DigitizationGenericMessageHandler):
             omop_xml_path = service_param['OMOPPath']
         feedback_run_id, output_file_prefix = service_param[
             'FeedbackRunId'], service_param['OutputFilePrefix']
-        _file = None
-        try:
-            iqvxmlpath = os.path.join(self.dfs_path, _id)
-            _file = get_latest_file_path(
-                iqvxmlpath, prefix="*.omop", suffix=XML_SUFFIX)
-        except Exception as _:
-            _file = None
 
         request = DIG2OMAPRequest(
             _id, flow_id, flow_name, omop_xml_path, feedback_run_id, output_file_prefix)

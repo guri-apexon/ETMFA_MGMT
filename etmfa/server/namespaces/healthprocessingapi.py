@@ -12,7 +12,7 @@ class HealthprocessingAPI(Resource):
         resp.status_code = 200
         return resp
 
-    def output_html(data, code, headers=None):
+    def output_html(self,data, code, headers=None):
         resp = Response(data, mimetype='text/html', headers=headers)
         resp.status_code = code
         return resp
