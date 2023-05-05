@@ -8,6 +8,7 @@ from etmfa.utilities.extractor import cpt_extractor
 from etmfa.utilities import table_extractor
 from etmfa.consts.constants import ModuleConfig
 from etmfa.consts import Consts as consts
+from etmfa.error import GenericMessageException
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -45,7 +46,10 @@ class PrepareUpdateData:
         display_df, search_df, _, _, _ = cpt_iqvdata.get_cpt_iqvdata()
         display_dict = display_df.to_dict(orient=self.dict_orient_type)
         db_data, _= ei.ingest_doc_elastic(self.iqv_document, search_df)
-        ei.save_elastic_doc(host,port,index,db_data)
+        status=ei.save_elastic_doc(host,port,index,db_data)
+        if not status:
+            raise GenericMessageException("Failed to ingest doc to elastic")
+
         try:
             metadata_fields = dict()
             for key in ModuleConfig.GENERAL.es_metadata_mapping:
