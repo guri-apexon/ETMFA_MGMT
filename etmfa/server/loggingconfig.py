@@ -37,7 +37,7 @@ class ContextFilter(logging.Filter):
         return True
 
 
-def initialize_logger(log_stash_host, log_stash_port, debug=True, module_name=Consts.LOGGING_NAME,add_filter=True):
+def initialize_logger(log_stash_host, log_stash_port, debug=False, module_name=Consts.LOGGING_NAME,add_filter=True):
     if not os.path.exists(DB_DIR):
         os.makedirs(DB_DIR)
 
@@ -46,7 +46,6 @@ def initialize_logger(log_stash_host, log_stash_port, debug=True, module_name=Co
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
-
     elk_handler = AsynchronousLogstashHandler(log_stash_host,
                                              log_stash_port,
                                              database_path=DB_FILE)
