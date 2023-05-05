@@ -74,7 +74,7 @@ intake_field_list_priority = ["SponsorName", "Indication"]
 
 def save_elastic_doc(host,port,index,es_sec_dict):
     if  es_sec_dict:
-        es_save_doc_res = ingest_elastic(host,port,index,es_sec_dict)
+        return ingest_elastic(host,port,index,es_sec_dict)
 
 def ingest_doc_elastic(iqv_document, search_df):
     """
