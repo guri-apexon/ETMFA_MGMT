@@ -263,7 +263,7 @@ def return_table_formatted_data(data):
                           "col_indx": len(column_list),
                           "op_type": None,
                           "cell_id": v.get("roi_id",{}).get("datacell_roi_id",""),
-                          "value": v.get('content')
+                          "value": v.get('content').replace("\\","")
                         })
             elif roi_id:
                 # To add cell id if it has missed during section extract
