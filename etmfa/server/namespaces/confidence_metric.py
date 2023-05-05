@@ -109,25 +109,26 @@ class ConfidenceMatrix():
         return confidence_score
 
     def update_confidence_score_stats(self, session, doc_id):
-        """Function to fetch records based on sponsorname or doc_id from Database"""
-        confidence_score=0
+        """update scores for all documents"""
+        confidence_score = 0
         result = session.query(PDProtocolMetadata).filter(
             PDProtocolMetadata.id == doc_id).first()
-        existing_score=result.digitizedConfidenceInterval
+        existing_score = result.digitizedConfidenceInterval
         if result.qcStatus == 'QC_COMPLETED':
             valid_doc_ids = [doc_id]
             confidence_score = get_confidence_metric_stats(
-                session, valid_doc_ids,self.avg_changes_per_page)['confidence_score']
+                session, valid_doc_ids, self.avg_changes_per_page)['confidence_score']
 
         elif result.sponsor:
-            confidence_score=self._get_sponsor_docs_score(session,result)
+            confidence_score = self._get_sponsor_docs_score(session, result)
             if (not confidence_score) and (not existing_score):
-                confidence_score=self._get_draft_docs_score(session,result)
+                confidence_score = self._get_draft_docs_score(session, result)
 
         else:
-            confidence_score=self._get_draft_docs_score(session,result)
+            confidence_score = self._get_draft_docs_score(session, result)
 
         result.digitizedConfidenceInterval = str(confidence_score)
+        session.add(result)
         session.commit()
 
 
@@ -209,6 +210,9 @@ class ConfidenceMatrix():
         session.commit()
 
     def update_doc_info(self,session,doc_id):
+        """
+        For qc complete docs update information
+        """
         num_pages = self.get_num_pages(session, doc_id)
         if not num_pages:
             return
@@ -260,8 +264,7 @@ class ConfidenceMatrix():
                 self.sponsor_score_map = {}
                 self.doc_status_score_map = {}
                 doc_ids = self.get_latest_doc_ids(session, last_run_timestamp)
-                remaining_doc_ids = set(doc_ids)-set(qc_doc_ids)
-                for doc_id in remaining_doc_ids:
+                for doc_id in doc_ids:
                     try:
                         self.update_confidence_score_stats(session, doc_id)
                     except Exception as e:
