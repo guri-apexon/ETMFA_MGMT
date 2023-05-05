@@ -86,7 +86,7 @@ def create_app(config_name, ssl_enabled=False):
     load_app_config(config_name)
     logger = logging.getLogger(Consts.LOGGING_NAME)
     if app.config['WORK_FLOW_RUNNER']:
-        #create_schemas(app.config['SQLALCHEMY_DATABASE_URI'])
+        create_schemas(app.config['SQLALCHEMY_DATABASE_URI'])
         start_workflow_runner(logger)
         start_runners(app.config)
     # register centralized logger
@@ -100,9 +100,9 @@ def create_app(config_name, ssl_enabled=False):
         logger.info('reading dfs path {}'.format(Config.DFS_UPLOAD_FOLDER))
     else:
         logger.error(
-            f'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')
+            'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')
         sys.exit(
-            f'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')
+            'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')
 
     # register database instance
     init_db(app)
