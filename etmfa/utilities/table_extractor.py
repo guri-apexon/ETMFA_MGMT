@@ -198,6 +198,11 @@ class SOAResponse:
 
                 if dictTableMetaList_1:
                     dictTableMetaList = dictTableMetaList_1
+            elif dictTableMetaList and len(dictTableMetaList) == 1:
+                for Metalist in dictTableMetaList:
+                    if 'AttachmentList' in Metalist:
+                        Metalist['AttachmentListProperties'] = Metalist.get('AttachmentList', list())
+                        del Metalist['AttachmentList']
 
             result=[]
             if len(df) > 1:
