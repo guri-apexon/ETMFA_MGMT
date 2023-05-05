@@ -61,7 +61,8 @@ def get_enriched_data_with_doc_id(aidoc_id):
             'ontology': entity.ontology,
             'synonyms': entity.entity_xref,
             'medical_term': "",
-            'classification': entity.entity_class
+            'classification': entity.entity_class,
+            'clinical_terms': entity.text
         }}
         clinical_data.append(clinical_values)
     return clinical_data
