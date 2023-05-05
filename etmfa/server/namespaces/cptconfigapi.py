@@ -41,8 +41,28 @@ def get_enriched_data(aidoc_id, link_id):
             'ontology': entity.ontology,
             'synonyms': entity.entity_xref,
             'medical_term': "",
-            'classification': entity.entity_class
+            'classification': entity.entity_class,
+            'clinical_terms': entity.text
         }
+        clinical_data.append(clinical_values)
+    return clinical_data
+
+
+def get_enriched_data_with_doc_id(aidoc_id):
+    """
+    To fetch enriched content from the nlp entity as per doc and section id
+    """
+    nlp_entity_data = crud.nlp_entity_content.get_with_doc_id(db=db, doc_id=aidoc_id
+                                                              )
+    clinical_data = []
+    for entity in nlp_entity_data:
+        clinical_values = {entity.standard_entity_name: {
+            'preferred_term': entity.iqv_standard_term,
+            'ontology': entity.ontology,
+            'synonyms': entity.entity_xref,
+            'medical_term': "",
+            'classification': entity.entity_class
+        }}
         clinical_data.append(clinical_values)
     return clinical_data
 
@@ -165,7 +185,10 @@ class SectionDataConfigAPI(Resource):
                                                             link_id,
                                                             config_variables,
                                                             {})
-                return [section_header, terms_values]
+
+                enriched_data = get_enriched_data_with_doc_id(
+                    aidoc_id=aidoc_id)
+                return [section_header, terms_values, enriched_data]
             else:
                 link_id, link_level, link_dict = crud.link_id_link_level_based_on_section_text(
                     db, aidoc_id, section_text, link_id, link_level)

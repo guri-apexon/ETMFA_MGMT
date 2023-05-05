@@ -15,7 +15,7 @@ from typing import Dict, List
 from .default_workflows import DEFAULT_WORKFLOWS, DEFAULT_SERVICE_FLOW_MAP, TERMINATE_NODE
 from .service_handlers import GetServiceHandler, SERVICE_HANDLERS
 from .messaging.models import EtmfaQueues, TERMINATE_NODE
-from .db.db_utils import (create_doc_processing_status,
+from .db.db_utils import (
                           update_doc_finished_status,
                           update_doc_running_status,
                           get_pending_running_work_flows,
@@ -24,7 +24,7 @@ from .db.db_utils import (create_doc_processing_status,
 from ..consts import Consts
 from etmfa.workflow.loggerconfig import initialize_wf_logger, ContextFilter
 from ..consts.constants import DEFAULT_WORKFLOW_NAME
-from ..server.namespaces.confidence_metric import ConfidenceMatrixRunner
+
 
 WF_RUN_WAIT_TIME = 3  # 3 sec
 
@@ -163,16 +163,25 @@ class WorkFlowManager():
             output_queue_name = self.service_queue_tuple_map[sr_name][1]
             self.on_msg(output_queue_name, msg_obj)
 
+    def is_duplicate_msg(self,curr_service_name,msg_obj):
+        flow_name,flow_id=self.service_message_handler.get_flow_info(msg_obj)
+        channel = self.work_flows[flow_name].get_channel(flow_id)
+        if channel.check_if_service_executed(curr_service_name):
+            self.logger.error(f'duplicate message received for {flow_name} and {flow_id} for service {curr_service_name}')
+            return True
+        return False
+
     def _process_msg(self, out_queue_name, msg_obj):
         curr_service_name = self.out_queue_service_map.get(
             out_queue_name, None)
+        if self.is_duplicate_msg(curr_service_name,msg_obj):
+            return
         if not curr_service_name:
             curr_service_name = EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value
         msg_obj = self.service_message_handler.on_input_message_adapter(
             msg_obj, curr_service_name)
-        meta_info = {}  # additional info w.r.t stage in pipeline etc.
         service_msg = self.service_message_handler.on_msg(
-            msg_obj, curr_service_name, meta_info)
+            msg_obj, curr_service_name)
 
         if curr_service_name == EtmfaQueues.DOCUMENT_PROCESSING_ERROR.value:
             work_flow = self.work_flows[service_msg.flow_name]
@@ -359,7 +368,7 @@ class WorkFlowClient():
         self.mqs = MqSender(str(port))
         self.logger = logger
 
-    def send_msg(self, wf_name, wf_id,doc_uid, param, type: MsqType = MsqType.COMMAND.value):
+    def send_msg(self, wf_name, wf_id,_, param, type: MsqType = MsqType.COMMAND.value):
         """
         type: msgtype info or command. to run workflow its COMMAND, to get info INFO
         """
@@ -415,6 +424,41 @@ class WorkFlowController(Thread):
             self.wfm.run_work_flow(
                 wf_msg.work_flow_name, wf_msg.work_flow_id, param)
 
+    def register_custom_flow(self,msg):    
+        param = msg['param']
+        work_flow_list = param['work_flow_list']
+        status = {}
+        is_valid, status = self.wfm.validate_workflow(msg['work_flow_name'], work_flow_list)
+        if not is_valid:
+            return status['Message'], is_valid
+        work_flow_graph, service_list = [], []
+        for wfs in work_flow_list:
+            depends_graph = wfs['dependency_graph']
+            work_flow_graph.extend(depends_graph)
+            for sr_info in depends_graph:
+                service_list.append(sr_info['service_name'])
+        work_flow_graph.append({'service_name': TERMINATE_NODE, 'depends': service_list})
+        self.wfm.register_work_flow(msg['work_flow_name'], work_flow_graph, False)
+        self.wfm.add_work_flow(CustomWorkFlow(msg['work_flow_name'], work_flow_graph))
+        return status, is_valid
+    
+    def run_default_flow(self,msg):
+        param = msg['param']
+        work_flow_list = param['work_flow_list']
+        status = {}
+        is_valid, status = self.wfm.validate_workflow(msg['work_flow_name'], work_flow_list)
+        if not is_valid:
+            return status['Message'], is_valid
+        work_flow_graph, service_list = [], []
+        for wfs in work_flow_list:
+            depends_graph = wfs['dependency_graph']
+            work_flow_graph.extend(depends_graph)
+            for sr_info in depends_graph:
+                service_list.append(sr_info['service_name'])
+        work_flow_graph.append({'service_name': TERMINATE_NODE, 'depends': service_list})
+        self.wfm.add_work_flow(CustomWorkFlow(DEFAULT_WORKFLOW_NAME, work_flow_graph))
+        return status, is_valid
+    
     def on_msg(self, msg_obj):
         """
         Receive message on controller
@@ -425,55 +469,24 @@ class WorkFlowController(Thread):
         _type, msg = msg_obj.type, msg_obj.msg
         if _type == MsqType.COMMAND.value:
             self.add_msg(msg)
+            return {}
         elif _type == MsqType.ADD_CUSTOM_WORKFLOW.value:
-            param = msg['param']
-            work_flow_list = param['work_flow_list']
-            status = {}
-            is_valid, status = self.wfm.validate_workflow(msg['work_flow_name'], work_flow_list)
-            if not is_valid:
-                return status['Message'], is_valid
-            work_flow_graph, service_list = [], []
-            for wfs in work_flow_list:
-                depends_graph = wfs['dependency_graph']
-                work_flow_graph.extend(depends_graph)
-                for sr_info in depends_graph:
-                    service_list.append(sr_info['service_name'])
-            work_flow_graph.append({'service_name': TERMINATE_NODE, 'depends': service_list})
-            self.wfm.register_work_flow(msg['work_flow_name'], work_flow_graph, False)
-            self.wfm.add_work_flow(CustomWorkFlow(msg['work_flow_name'], work_flow_graph))
-            return status, is_valid
+            return self.register_custom_flow(msg)
         elif _type == MsqType.RUN_DEFAULT_WORKFLOW.value:
-            param = msg['param']
-            work_flow_list = param['work_flow_list']
-            status = {}
-            is_valid, status = self.wfm.validate_workflow(msg['work_flow_name'], work_flow_list)
-            if not is_valid:
-                return status['Message'], is_valid
-            work_flow_graph, service_list = [], []
-            for wfs in work_flow_list:
-                depends_graph = wfs['dependency_graph']
-                work_flow_graph.extend(depends_graph)
-                for sr_info in depends_graph:
-                    service_list.append(sr_info['service_name'])
-            work_flow_graph.append({'service_name': TERMINATE_NODE, 'depends': service_list})
-            self.wfm.add_work_flow(CustomWorkFlow(DEFAULT_WORKFLOW_NAME, work_flow_graph))
-            return status, is_valid
+            return self.run_default_flow(msg)
         else:
             raise SendExceptionMessages(
                 f"{type} is not a valid type request on controller ")
-        return {}
-
+        
     def run(self):
         self.wfm.wait_until_listener_ready()
         last_pending_services_check_time = time.time()
         is_start=True
-        cfr=ConfidenceMatrixRunner()
         stale_work_flow_check_time_sec = max(1, self.remove_time_for_stale_workflows / 12) * 3600
         while (True):
             try:
                 start_time = time.time()
                 self._process_msg()
-                cfr.run()
                 curr_time = time.time()
                 diff = curr_time - last_pending_services_check_time
                 if diff > stale_work_flow_check_time_sec or is_start:
@@ -533,6 +546,10 @@ class WorkFlowRunner(Process, WorkFlowsHandler):
         self.run_controller()
 
 class WorkFlowThreadRunner(Thread, WorkFlowsHandler):
+    """
+    Thread runner is only for testing purpose .Application should use Process runner
+    in place of thread runner
+    """
     def __init__(self, config):
         WorkFlowsHandler.__init__(self,config)
         Thread.__init__(self)

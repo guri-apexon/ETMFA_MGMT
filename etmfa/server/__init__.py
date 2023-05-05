@@ -72,12 +72,12 @@ def start_workflow_runner(logger):
     WorkFlowClient(app.config["ZMQ_PORT"], logger)
 
 
-def start_runners():
+def start_runners(config):
     es = ElasticIngestionRunner()
     es.start()
     em= EmailNotificationRunner()
     em.start()
-    cfr=ConfidenceMatrixRunner()
+    cfr=ConfidenceMatrixRunner(config['AVG_NUM_CHANGE_PER_LINE'])
     cfr.start()
 
 
@@ -88,7 +88,7 @@ def create_app(config_name, ssl_enabled=False):
     if app.config['WORK_FLOW_RUNNER']:
         create_schemas(app.config['SQLALCHEMY_DATABASE_URI'])
         start_workflow_runner(logger)
-        start_runners()
+        start_runners(app.config)
     # register centralized logger
     initialize_logger(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'])
     initialize_api_logger(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'])
@@ -100,9 +100,9 @@ def create_app(config_name, ssl_enabled=False):
         logger.info('reading dfs path {}'.format(Config.DFS_UPLOAD_FOLDER))
     else:
         logger.error(
-            f'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')
+            'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')
         sys.exit(
-            f'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')
+            'DFS upload folder does not exist. Please make sure that upload folder is correctly set. Exiting management service.')
 
     # register database instance
     init_db(app)

@@ -33,7 +33,6 @@ class DigitizationGenericMessageHandler(MessageHandler):
         return message
 
     def _get_msg_obj(self, msg):
-        _id = msg.flow_id
         service_info = msg.services_param[0]
         msg_proc_obj = service_info.params
         return msg_proc_obj
@@ -136,13 +135,6 @@ class I2eOmopMessageHandler(DigitizationGenericMessageHandler):
             omop_xml_path = service_param['OMOPPath']
         feedback_run_id, output_file_prefix = service_param[
             'FeedbackRunId'], service_param['OutputFilePrefix']
-        _file = None
-        try:
-            iqvxmlpath = os.path.join(self.dfs_path, _id)
-            _file = get_latest_file_path(
-                iqvxmlpath, prefix="*.omop", suffix=XML_SUFFIX)
-        except Exception as _:
-            _file = None
 
         request = DIG2OMAPRequest(
             _id, flow_id, flow_name, omop_xml_path, feedback_run_id, output_file_prefix)
@@ -249,10 +241,11 @@ class Digitizer2CompareHandler(DigitizationGenericMessageHandler):
             compare_request_list = document_compare_tuple(
                 session, _id, flow_name, id1, id2, doc_file_path_1, doc_file_path_2, protocol_name)
         session.close()
-        update_doc_processing_status(
-            _id, service_name, True,flow_name,len(compare_request_list))
+
         if not compare_request_list:
             return {}
+        update_doc_processing_status(
+            _id, service_name, True, flow_name, len(compare_request_list))
         return compare_request_list
 
 

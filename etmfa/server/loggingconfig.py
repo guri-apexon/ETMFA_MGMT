@@ -8,29 +8,6 @@ from flask import request
 from logstash_async.handler import AsynchronousLogstashHandler
 
 
-# @api.errorhandler
-# def handle_global_errors(error):
-#     logger = logging.getLogger(Consts.LOGGING_NAME)
-#
-#     try:
-#         payload = dict({'req': {
-#             'headers': dict(request.headers),
-#             'url': request.url,
-#             'values': request.values,
-#             'json': request.json,
-#         }
-#         })
-#         if not isinstance(error, LookupError):
-#             logger.exception(error, extra=payload)
-#     except Exception as e:
-#         logger.exception(e, exc_info=True)
-#
-#     if isinstance(error, LookupError):
-#         # All LookupErrors throw 404s
-#         error.code = 404
-#
-#     return {'message': str(error)}, getattr(error, 'code', 500)
-
 
 DB_DIR = os.path.join("logs")
 DB_FILE = os.path.join(DB_DIR, "logstash.db")
@@ -60,7 +37,7 @@ class ContextFilter(logging.Filter):
         return True
 
 
-def initialize_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=Consts.LOGGING_NAME,add_filter=True):
+def initialize_logger(log_stash_host, log_stash_port, debug=True, module_name=Consts.LOGGING_NAME,add_filter=True):
     if not os.path.exists(DB_DIR):
         os.makedirs(DB_DIR)
 
@@ -70,23 +47,23 @@ def initialize_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=Cons
     else:
         logger.setLevel(logging.INFO)
 
-    elkHandler = AsynchronousLogstashHandler(LOGSTASH_HOST,
-                                             LOGSTASH_PORT,
+    elk_handler = AsynchronousLogstashHandler(log_stash_host,
+                                             log_stash_port,
                                              database_path=DB_FILE)
-    elkHandler.setLevel(logging.INFO)
-    logger.addHandler(elkHandler)
+    elk_handler.setLevel(logging.INFO)
+    logger.addHandler(elk_handler)
 
     if debug:
-        consoleHandler = logging.StreamHandler()
-        consoleHandler.setLevel(logging.DEBUG)
-        consoleFormatter = logging.Formatter('%(asctime)s %(levelname)s [%(name)s] [%(aidocid)s] %(message)s')
-        consoleHandler.setFormatter(consoleFormatter)
-        logger.addHandler(consoleHandler)
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.DEBUG)
+        console_formatter = logging.Formatter('%(asctime)s %(levelname)s [%(name)s] [%(aidocid)s] %(message)s')
+        console_handler.setFormatter(console_formatter)
+        logger.addHandler(console_handler)
     if add_filter:
         logger.addFilter(ContextFilter())
 
 
-def initialize_api_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=Consts.LOGGING_API,add_filter=True):
+def initialize_api_logger(logstash_host, logstash_port, debug=True, module_name=Consts.LOGGING_API):
     """
     API logger configuration created to track API metrics with separate logger format
     """
@@ -99,15 +76,15 @@ def initialize_api_logger(LOGSTASH_HOST, LOGSTASH_PORT, debug=True, module_name=
     else:
         logger.setLevel(logging.INFO)
 
-    elkHandler = AsynchronousLogstashHandler(LOGSTASH_HOST,
-                                             LOGSTASH_PORT,
+    elk_handler = AsynchronousLogstashHandler(logstash_host,
+                                             logstash_port,
                                              database_path=DB_FILE)
-    elkHandler.setLevel(logging.INFO)
-    logger.addHandler(elkHandler)
+    elk_handler.setLevel(logging.INFO)
+    logger.addHandler(elk_handler)
 
     if debug:
-        consoleHandler = logging.StreamHandler()
-        consoleHandler.setLevel(logging.DEBUG)
-        consoleFormatter = logging.Formatter('%(asctime)s %(levelname)s PD [%(request_type)s-%(api_endpoint)s] [%(message)s]')
-        consoleHandler.setFormatter(consoleFormatter)
-        logger.addHandler(consoleHandler)
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.DEBUG)
+        console_formatter = logging.Formatter('%(asctime)s %(levelname)s PD [%(request_type)s-%(api_endpoint)s] [%(message)s]')
+        console_handler.setFormatter(console_formatter)
+        logger.addHandler(console_handler)

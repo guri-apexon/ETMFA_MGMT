@@ -2,7 +2,7 @@
 from typing import Dict
 from ..models import ServiceMessage,CompositeServiceMessage,ServiceInfo
 from .message_handler_interface import MessageHandler
-
+from ...db.db_utils import get_work_flow_name_by_id
 
 class ServiceMessageHandler():
     def __init__(self,service_handeler_callback,logger):
@@ -18,12 +18,20 @@ class ServiceMessageHandler():
         comp_msg.services_param = [sr_info]
         return comp_msg
 
+    def get_flow_info(self, msg_proc_obj):
+        _id = msg_proc_obj.get('flow_id', None)
+        if not _id:
+            _id = msg_proc_obj['id']
+        flow_name = msg_proc_obj.get('flow_name', None)
+        if not flow_name:
+            flow_name = get_work_flow_name_by_id(_id)
+        return flow_name, _id
 
     def on_input_message_adapter(self, msg_obj, service_name):
         handler = self.get_service_handler(service_name)
         return handler.on_input_message_adapter(service_name,msg_obj)
 
-    def on_msg(self, msg_obj, service_name,meta_info={}) -> ServiceMessage:
+    def on_msg(self, msg_obj, service_name) -> ServiceMessage:
         """
         do db update for status.
         validate for message type,Do mapping w.r.t function and pass forward.

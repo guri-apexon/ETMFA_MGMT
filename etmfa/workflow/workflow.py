@@ -69,7 +69,7 @@ class DagParser():
             try:
                 info = NodeInfoModel(**data)
                 info_list.append(info)
-            except Exception as e:
+            except Exception as _:
                 raise (ValidationError)
         return info_list
 
@@ -117,7 +117,17 @@ class Channel():
             return True
         curr_node.count -= 1
         return False
-
+    
+    def check_if_service_executed(self,service_name):
+        """
+        if service is executed and num of instance count is at 1
+        """
+        if service_name not in self.executed_services:
+            return False
+        curr_node = self.node_graph[service_name]
+        if curr_node.count == 1:
+            return True
+        
     def dynamic_instance_creation_check_update(self, service_msg_map):
         for service_name, msg_obj in service_msg_map.items():
             if isinstance(msg_obj, list):
@@ -172,7 +182,7 @@ class WorkFlow():
 
     @property
     def services_list(self):
-        return self._services_list
+        return [sr_name for sr_name in self._services_list if sr_name!=TERMINATE_NODE]
 
     def get_channel(self, flow_id):
         with self.lock:

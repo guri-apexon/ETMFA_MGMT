@@ -92,7 +92,7 @@ class SOAResponse:
                                                            else False for prop in table.Properties])):
                     dictTableMeta=dict()
                     # As per etmfa core repo changes, we are able to get foonote records
-                    dictTableMeta['AttachmentList'] = list()
+                    dictTableMeta['AttachmentListProperties'] = list()
                     for prop in table.footnote_records:
                         footnote_val = {
                             'TableId': prop.table_roi_id,
@@ -101,7 +101,7 @@ class SOAResponse:
                             'AttachmentId': prop.roi_id,
                             'Text': prop.footnote_text
                         }
-                        dictTableMeta['AttachmentList'].append(footnote_val)
+                        dictTableMeta['AttachmentListProperties'].append(footnote_val)
 
                     for prop in table.Properties:
                         if prop.key in poi:
@@ -263,7 +263,7 @@ def return_table_formatted_data(data):
                           "col_indx": len(column_list),
                           "op_type": None,
                           "cell_id": v.get("roi_id",{}).get("datacell_roi_id",""),
-                          "value": v.get('content')
+                          "value": v.get('content').replace("\\","")
                         })
             elif roi_id:
                 # To add cell id if it has missed during section extract
