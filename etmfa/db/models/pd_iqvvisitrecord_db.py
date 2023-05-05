@@ -53,16 +53,16 @@ Index('iqvvisitrecord_db_doc_id', IqvvisitrecordDb.doc_id)
 
 @dataclass
 class IqvvisitrecordDbMapper:
-    doc_id: str = None
-    visit_timepoint: str = None
-    epoch_timepoint: str = None
-    cycle_timepoint: str = None
-    day_timepoint: str = None
-    week_timepoint: str = None
-    window_timepoint: str = None
-    year_timepoint: str = None
-    month_timepoint: str = None
-    table_roi_id: str = None
+    doc_id: str = ''
+    visit_timepoint: str = ''
+    epoch_timepoint: str = ''
+    cycle_timepoint: str = ''
+    day_timepoint: str = ''
+    week_timepoint: str = ''
+    window_timepoint: str = ''
+    year_timepoint: str = ''
+    month_timepoint: str = ''
+    table_roi_id: str = ''
 
 
 mapper_registry.map_imperatively(IqvvisitrecordDbMapper, IqvvisitrecordDb)
