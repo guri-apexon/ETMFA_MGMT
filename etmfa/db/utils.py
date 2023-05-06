@@ -240,7 +240,7 @@ def all_filters(version_date="", approval_date="", start_date="", end_date="", d
     document_status = cleaned_inputs.get('document_status', '')
     qc_status = cleaned_inputs.get('qc_status', '')
 
-    all_filters = "pd_protocol_metadata.\"isActive\" = True AND pd_protocol_metadata.source = 'QC'"
+    all_filters = "pd_protocol_metadata.\"isActive\" = True "
 
     if document_status:
         logger.debug("Documents status ...")
@@ -251,7 +251,7 @@ def all_filters(version_date="", approval_date="", start_date="", end_date="", d
     if approval_date:
         logger.debug("In approval_date type ...")
         all_filters += f"AND pd_protocol_metadata.\"approvalDate\"::date = '{approval_date}'"
-    if upload_date !="":
+    if upload_date:
         logger.debug("In upload_date type ...")
         all_filters += f" AND pd_protocol_metadata.\"uploadDate\"::date = '{upload_date}'"
     if start_date and end_date:
