@@ -539,13 +539,11 @@ latest_protocol_get_by_date_range = api.model(DOCUMENT_PROCESSING_MODEL,
                                                                                description='version date inin YYYYMMDD format'),
                                                   'approvalDate': fields.String(readOnly=True,
                                                                                 description='Approval date (in YYYYMMDD format) of the latest protocol'),
-                                                  'draftNumber': fields.String(readOnly=True,
-                                                                               description='Draft number of the latest protocol'),
                                                   'uploadDate': fields.String(readOnly=True,
                                                                               description='Upload date in ISO-8601 format'),
                                                   'projectId': fields.String(readOnly=True,
                                                                              description='projectId of the latest protocol'),
-                                                  'amendmentFlag': fields.String(readOnly=True,
+                                                  'amendment': fields.String(readOnly=True,
                                                                                  description='Amendment flag(Y/N) of the latest protocol'),
                                                   'shortTitle': fields.String(readOnly=True,
                                                                               description='Protocol Short title of the latest protocol'),
@@ -554,18 +552,20 @@ latest_protocol_get_by_date_range = api.model(DOCUMENT_PROCESSING_MODEL,
                                                   'indication': fields.String(readOnly=True,
                                                                               description='Multiple indications of the latest protocol'),
                                                   'phase': fields.String(readOnly=True,
-                                                                              description='Trial phase of the latest protocol'),
-                                                  'blinded': fields.String(readOnly=True,
-                                                                           description='Blind strategy of the latest protocol'),
+                                                                         description='Trial phase of the latest protocol'),
                                               }
                                               )
 # added for pd 2.0
 # Protocol normalized SOA
 protocol_soa_input = reqparse.RequestParser()
-protocol_soa_input.add_argument('id', type=str, required=True, help=PROTOCOL_UNIQUE_ID)
-protocol_soa_input.add_argument('sourceSystem', type=str, required=False, help=SOURCE_SYSYTEM)
-protocol_soa_input.add_argument('operationValue', type=str, required=False, help='Operation value')
-protocol_soa_input.add_argument('footnotes', type=inputs.boolean, required=False, help="Footnotes")
+protocol_soa_input.add_argument(
+    'id', type=str, required=True, help=PROTOCOL_UNIQUE_ID)
+protocol_soa_input.add_argument(
+    'sourceSystem', type=str, required=False, help=SOURCE_SYSYTEM)
+protocol_soa_input.add_argument(
+    'operationValue', type=str, required=False, help='Operation value')
+protocol_soa_input.add_argument(
+    'footnotes', type=inputs.boolean, required=False, help="Footnotes")
 
 protocol_soa_get = api.model('Protocol Normalized SOA',
                              {
@@ -693,7 +693,7 @@ section_data_config_args = reqparse.RequestParser()
 section_data_config_args.add_argument(
     'aidoc_id', type=str, required=True, help=DOC_ID)
 section_data_config_args.add_argument(
-    'link_level', type=int, required=False,default=1, help='Link leven in between 1 to 6')
+    'link_level', type=int, required=False, default=1, help=LINK_LVL_1_6)
 section_data_config_args.add_argument(
     'toc', type=str, required=False, help='toc 0 or 1 to get section headers')
 section_data_config_args.add_argument(
@@ -722,16 +722,26 @@ dipadata_details_input.add_argument(
 
 # for Upsert DIPA View Data
 dipa_view_data = reqparse.RequestParser()
-dipa_view_data.add_argument('id', type=str, required=True, help='unique db id for dipa view data')
-dipa_view_data.add_argument('doc_id', type=str, required=False, help='unqiue id of document')
-dipa_view_data.add_argument('link_id_1', type=str, required=False, help='link level id 1')
-dipa_view_data.add_argument('link_id_2', type=str, required=False, help='link level id 2')
-dipa_view_data.add_argument('link_id_3', type=str, required=False, help='link level id 3')
-dipa_view_data.add_argument('link_id_4', type=str, required=False, help='link level id 4')
-dipa_view_data.add_argument('link_id_5', type=str, required=False, help='link level id 5')
-dipa_view_data.add_argument('link_id_6', type=str, required=False, help='link level id 6')
-dipa_view_data.add_argument('userId', type=str, required=True, help='id of user updating the Data')
-dipa_view_data.add_argument('userName', type=str, required=True, help='id of user updating the Data')
+dipa_view_data.add_argument(
+    'id', type=str, required=True, help='unique db id for dipa view data')
+dipa_view_data.add_argument(
+    'doc_id', type=str, required=False, help='unqiue id of document')
+dipa_view_data.add_argument('link_id_1', type=str,
+                            required=False, help='link level id 1')
+dipa_view_data.add_argument('link_id_2', type=str,
+                            required=False, help='link level id 2')
+dipa_view_data.add_argument('link_id_3', type=str,
+                            required=False, help='link level id 3')
+dipa_view_data.add_argument('link_id_4', type=str,
+                            required=False, help='link level id 4')
+dipa_view_data.add_argument('link_id_5', type=str,
+                            required=False, help='link level id 5')
+dipa_view_data.add_argument('link_id_6', type=str,
+                            required=False, help='link level id 6')
+dipa_view_data.add_argument(
+    'userId', type=str, required=True, help='id of user updating the Data')
+dipa_view_data.add_argument(
+    'userName', type=str, required=True, help='id of user updating the Data')
 dipa_view_data.add_argument('dipa_data', type=dict,
                             help='contains json data to be stored against dipa data column')
 
