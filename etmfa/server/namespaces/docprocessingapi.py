@@ -669,8 +669,8 @@ class DocumentprocessingAPI(Resource):
         args = metadata_summary_input.parse_args()
         try:
             op = args.get('op', '').strip()
-            aidoc_id = args.get('aidocId', '').strip()
-            field_name = args.get('fieldName', '').strip()
+            aidoc_id = args.get('aidocId').strip() if isinstance(args.get('aidocId'), str) else ''
+            field_name = args.get('fieldName').strip() if isinstance(args.get('fieldName'), str) else ''
             if not aidoc_id:
                 aidoc_id = ACCORDIAN_DOC_ID
             
@@ -711,13 +711,13 @@ class DocumentprocessingAPI(Resource):
             
             if attributes:
                 for attrs in attributes:
-                    attribute_name = attrs.get('attr_name', '').strip()
-                    attribute_type = attrs.get('attr_type', '').strip()
-                    attribute_value = attrs.get('attr_value')
-                    note_value = attrs.get('note', '').strip()
-                    confidence_value = attrs.get('confidence', '').strip()
-                    user_id = attrs.get('user_id', '').strip()
-                    display_name = attrs.get('display_name', '').strip()
+                    attribute_name = attrs.get('attr_name').strip() if isinstance(attrs.get('attr_name'), str) else ''
+                    attribute_type = attrs.get('attr_type').strip() if isinstance(attrs.get('attr_type'), str) else ''
+                    attribute_value = attrs.get('attr_value', None) 
+                    note_value = attrs.get('note').strip() if isinstance(attrs.get('note'), str) else ''
+                    confidence_value = attrs.get('confidence').strip() if isinstance(attrs.get('confidence'), str) else ''
+                    user_id = attrs.get('user_id').strip() if isinstance(attrs.get('user_id'), str) else ''
+                    display_name = attrs.get('display_name').strip() if isinstance(attrs.get('display_name'), str) else ''
                     
                     attr_list.append({"attribute_name": attribute_name,
                                         "attribute_type": attribute_type,
@@ -764,14 +764,14 @@ class DocumentprocessingAPI(Resource):
             data, attr_list = {}, []
             if attributes:
                 for attrs in attributes:
-                    attribute_id = attrs.get('attr_id', '').strip()
-                    attribute_name = attrs.get('attr_name', '').strip()
-                    attribute_type = attrs.get('attr_type', '').strip()
-                    attribute_value = attrs.get('attr_value')
-                    note_value = attrs.get('note', '').strip()
-                    confidence_value = attrs.get('confidence', '').strip()
-                    user_id = attrs.get('user_id', '').strip()
-                    display_name = attrs.get('display_name', '').strip()
+                    attribute_id = attrs.get('attr_id').strip() if isinstance(attrs.get('attr_id'), str) else ''
+                    attribute_name = attrs.get('attr_name').strip() if isinstance(attrs.get('attr_name'), str) else ''
+                    attribute_type = attrs.get('attr_type').strip() if isinstance(attrs.get('attr_type'), str) else ''
+                    attribute_value = attrs.get('attr_value', None)
+                    note_value = attrs.get('note').strip() if isinstance(attrs.get('note'), str) else ''
+                    confidence_value = attrs.get('confidence').strip() if isinstance(attrs.get('confidence'), str) else ''
+                    user_id = attrs.get('user_id').strip() if isinstance(attrs.get('user_id'), str) else ''
+                    display_name = attrs.get('display_name').strip() if isinstance(attrs.get('display_name'), str) else ''
                     
                     attr_list.append({"attribute_name": attribute_name,
                                         "attribute_type": attribute_type,
@@ -810,10 +810,10 @@ class DocumentprocessingAPI(Resource):
         args = metadata_detele_summary.parse_args()
         try:
             op = args.get('op', '').strip()
-            aidoc_id = args.get('aidocId', '').strip()
+            aidoc_id = args.get('aidocId').strip() if isinstance(args.get('aidocId'), str) else ''
             if not aidoc_id:
                 aidoc_id = ACCORDIAN_DOC_ID
-            field_name = args.get('fieldName', '').strip()
+            field_name = args.get('fieldName', '').strip() if isinstance(args.get('fieldName'), str) else ''
             attributes = args.get('attributeNames')
             attribute_ids= args.get('attributeIds')
             attribute_ids=[] if not attribute_ids else attribute_ids
