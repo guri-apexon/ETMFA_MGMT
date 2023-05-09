@@ -13,21 +13,22 @@ class NlpEntityCrud(CRUDBase[NlpEntityDb, NlpEntityCreate, NlpEntityUpdate]):
     """
     NLP Entity crud operation to get entity object with clinical terms.
     """
-    def get(self, db: Session, doc_id: str, link_id: str):
+    def get(self, db: Session, doc_id: str, link_id: str, user_id:str):
         try:
             all_term_data = db.query(NlpEntityDb).filter(
                 NlpEntityDb.doc_id == doc_id, NlpEntityDb.link_id == link_id,
-                NlpEntityDb.hierarchy != 'document').all()
+                NlpEntityDb.hierarchy != 'document', NlpEntityDb.user_id == user_id).order_by(NlpEntityDb.dts).all()
+
         except Exception as ex:
             all_term_data = []
             logger.exception("Exception in retrieval of data from table", ex)
         return all_term_data
 
-    def get_with_doc_id(self, db: Session, doc_id: str):
+    def get_with_doc_id(self, db: Session, doc_id: str, user_id:str):
         try:
             all_term_data = db.query(NlpEntityDb).filter(
                 NlpEntityDb.doc_id == doc_id,NlpEntityDb.standard_entity_name != "",
-                NlpEntityDb.hierarchy != 'document').distinct(NlpEntityDb.standard_entity_name).all()
+                NlpEntityDb.hierarchy != 'document', NlpEntityDb.user_id == user_id).distinct(NlpEntityDb.standard_entity_name).order_by(NlpEntityDb.dts).all()
         except Exception as ex:
             all_term_data = []
             logger.exception("Exception in retrieval of data from table", ex)

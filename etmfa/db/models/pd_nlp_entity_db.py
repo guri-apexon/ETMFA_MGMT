@@ -1,3 +1,4 @@
+import datetime
 from sqlalchemy import Column, String
 from etmfa.db.db import db_context
 
@@ -35,6 +36,6 @@ class NlpEntityDb(db_context.Model):
     confidence = Column(String, nullable=True)
     start = Column(String, nullable=True)
     text_len = Column(String, nullable=True)
-
+    dts = Column(String, nullable=True)
     
 

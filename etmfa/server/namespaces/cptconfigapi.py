@@ -24,12 +24,12 @@ ns = api.namespace('CPT_config', path='/cpt_data',
                    description='Document paragraph data')
 
 
-def get_enriched_data(aidoc_id, link_id):
+def get_enriched_data(aidoc_id, link_id, user_id):
     """
     To fetch enriched content from the nlp entity as per doc and section id
     """
     nlp_entity_data = crud.nlp_entity_content.get(db=db, doc_id=aidoc_id,
-                                                  link_id=link_id)
+                                                  link_id=link_id, user_id=user_id)
     clinical_data = []
     for entity in nlp_entity_data:
         clinical_values = {
@@ -48,12 +48,11 @@ def get_enriched_data(aidoc_id, link_id):
     return clinical_data
 
 
-def get_enriched_data_with_doc_id(aidoc_id):
+def get_enriched_data_with_doc_id(aidoc_id, user_id):
     """
     To fetch enriched content from the nlp entity as per doc and section id
     """
-    nlp_entity_data = crud.nlp_entity_content.get_with_doc_id(db=db, doc_id=aidoc_id
-                                                              )
+    nlp_entity_data = crud.nlp_entity_content.get_with_doc_id(db=db, doc_id=aidoc_id, user_id=user_id)
     clinical_data = []
     for entity in nlp_entity_data:
         clinical_values = {entity.standard_entity_name: {
@@ -85,7 +84,7 @@ def get_section_data(aidoc_id, link_level, link_id, user_id, protocol):
                                          protocol_view_redaction.entity_profile_genre)
     finalization_req_dict, _ = finalized_iqvxml.prepare_msg()
     # Collect the enriched clinical data based on doc and link ids.
-    enriched_data = get_enriched_data(aidoc_id, link_id)
+    enriched_data = get_enriched_data(aidoc_id, link_id, user_id)
     # Collect the enriched preferred data based on doc and link ids.
     preferred_data = crud.get_preferred_data(db, aidoc_id, link_id)
     references_data = crud.get_references_data(db, aidoc_id, link_id)
@@ -188,7 +187,7 @@ class SectionDataConfigAPI(Resource):
                                                             {})
 
                 enriched_data = get_enriched_data_with_doc_id(
-                    aidoc_id=aidoc_id)
+                    aidoc_id=aidoc_id, user_id=user_id)
                 return [section_header, terms_values, enriched_data]
             else:
                 link_id, link_level, link_dict = crud.link_id_link_level_based_on_section_text(
@@ -216,7 +215,8 @@ class SectionDataConfigAPI(Resource):
 
                 # enriched data from existing end point
                 enriched_data = get_enriched_data(aidoc_id=aidoc_id,
-                                                  link_id=link_id)
+                                                  link_id=link_id,
+                                                  user_id=user_id)
                 logger.info(f"config api process completed")
 
                 return [section_res, terms_values, enriched_data]
