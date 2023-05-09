@@ -982,37 +982,8 @@ def get_protocols_by_date_time_range(version_date="", approval_date="", start_da
         version_date, approval_date, start_date, end_date, document_status, upload_date, qc_status)
 
     try:
-        if not qc_status:
-            resource = db_context.session.query(PDProtocolMetadata,
-                                                PDProtocolMetadata.draftVersion, PDProtocolMetadata.id,
-                                                PDProtocolMetadata.protocol, PDProtocolMetadata.documentFilePath,
-                                                PDProtocolMetadata.projectId, PDProtocolMetadata.uploadDate,
-                                                PDProtocolMetadata.sponsor, PDProtocolMetadata.protocolTitle,
-                                                PDProtocolMetadata.versionNumber, PDProtocolMetadata.documentStatus,
-                                                PDProtocolMetadata.protocol, PDProtocolMetadata.amendment,
-                                                PDProtocolMetadata.qcStatus, PDProtocolMetadata.indication,
-                                                PDProtocolMetadata.approvalDate, PDProtocolMetadata.source,
-                                                PDProtocolMetadata.amendment,
-                                                PDProtocolMetadata.shortTitle,
-                                                PDProtocolMetadata.versionDate
-                                                ).filter(text(all_filter)).all()
-        else:
-            resource = db_context.session.query(PDProtocolMetadata, PDProtocolMetadata.id,
-                                                PDProtocolMetadata.draftVersion,
-                                                PDProtocolMetadata.protocol, PDProtocolMetadata.documentFilePath,
-                                                PDProtocolMetadata.projectId, PDProtocolMetadata.uploadDate,
-                                                PDProtocolMetadata.sponsor, PDProtocolMetadata.protocolTitle,
-                                                PDProtocolMetadata.versionNumber, PDProtocolMetadata.documentStatus,
-                                                PDProtocolMetadata.protocol, PDProtocolMetadata.amendment,
-                                                PDProtocolMetadata.qcStatus, PDProtocolMetadata.indication,
-                                                PDProtocolMetadata.approvalDate, PDProtocolMetadata.source,
-                                                PDProtocolMetadata.amendment,
-                                                PDProtocolMetadata.shortTitle,
-                                                PDProtocolMetadata.versionDate
-                                                ).filter(text(all_filter)).all()
+        resource = db_context.session.query(PDProtocolMetadata).filter(text(all_filter)).all()
 
-        resource = utils.filter_qc_status(
-            resources=resource, qc_status=qc_status)
     except Exception as e:
         logger.error(f"Exception message:\n{e}")
 

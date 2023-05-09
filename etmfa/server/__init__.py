@@ -90,7 +90,7 @@ def create_app(config_name, ssl_enabled=False):
         start_workflow_runner(logger)
         start_runners(app.config)
     # register centralized logger
-    initialize_logger(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'])
+    initialize_logger(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'],app.config['DEBUG'])
     initialize_api_logger(app.config['LOGSTASH_HOST'], app.config['LOGSTASH_PORT'])
 
     if config_name == 'test':

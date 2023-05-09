@@ -134,6 +134,7 @@ def get_params(args):
 
 
 def generate_doc_meta_hash(file_path):
+    """meta hash"""
     with open(file_path, 'rb') as fp:
         data = fp.read()
         result = hashlib.sha256(data)
@@ -233,7 +234,6 @@ class DocumentprocessingAPI(Resource):
         """Create document Processing REST object and returns document Processing API object """
 
         args = eTMFA_object_post.parse_args()
-
         # Generate ID
         _id = uuid.uuid4()
         _id = str(_id)
@@ -289,6 +289,31 @@ class DocumentprocessingAPI(Resource):
         response['percentComplete'] = response['percent_complete']
         response['workFlowName'] = response['work_flow_name']
         return response
+
+    def get_params(self, args):
+        """All Param"""
+        source_filename = args['sourceFileName'] if args['sourceFileName'] is not None else ' '
+        version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
+        # protocol check
+        protocol = args['protocolNumber'] if args['protocolNumber'] is not None else ' '
+        document_status = args['documentStatus'].lower().strip(
+        ) if args['documentStatus'] is not None else ' '  # Doc status check
+        environment = args['environment'] if args['environment'] is not None else ' '
+        source_system = args['sourceSystem'] if args['sourceSystem'] is not None else ' '
+        sponsor = args['sponsor'] if args['sponsor'] is not None else ' '
+        # Study status check
+        study_status = args['studyStatus'] if args['studyStatus'] is not None else ' '
+        amendment_number = args['amendmentNumber'] if args['amendmentNumber'] is not None else ' '
+        project_id = args['projectID'] if args['projectID'] is not None else ' '
+        indication = args['indication'] if args['indication'] is not None else ' '
+        molecule_device = args['moleculeDevice'] if args['moleculeDevice'] is not None else ' '
+        user_id = args['userId'] if args['userId'] is not None else ' '
+        workflow_name = args['workFlowName'] if args['workFlowName'] is not None else DWorkFLows.FULL_FLOW.value
+        duplicate_check = args.get('duplicateCheck', False)
+
+        return source_filename, version_number, protocol, document_status, environment,\
+            source_system, sponsor, study_status, amendment_number, project_id, indication,\
+            molecule_device, user_id, workflow_name, duplicate_check
 
 
 @ns.route('/<string:id>/status')
@@ -387,12 +412,6 @@ class DocumentprocessingAPI(Resource):
             version_number = args['versionNumber'] if args['versionNumber'] is not None else ''
             document_status = args['documentStatus'] if args['documentStatus'] is not None else ''
 
-            input_valid_flg = utils.validate_inputs(
-                protocol_number=protocol_number)
-            if not input_valid_flg:
-                logger.error(f"Invalid user inputs received: {args}")
-                return abort(404, INVALID_USER_INPUT.format(args))
-
             if not aidoc_id:
                 resources = get_latest_protocol(protocol_number=protocol_number, aidoc_id=aidoc_id,
                                                 version_number=version_number,
@@ -400,9 +419,7 @@ class DocumentprocessingAPI(Resource):
                                                 is_top_1_only=True)
                 aligned_resources = utils.post_process_resource(
                     resources, multiple_records=False)
-                if aligned_resources:
-                    expected_aidoc_id = '' if aligned_resources is None else aligned_resources[
-                        'id']
+                expected_aidoc_id = '' if aligned_resources is None else aligned_resources['id']
             else:
                 expected_aidoc_id = aidoc_id
 
@@ -652,8 +669,8 @@ class DocumentprocessingAPI(Resource):
         args = metadata_summary_input.parse_args()
         try:
             op = args.get('op', '').strip()
-            aidoc_id = args.get('aidocId', '').strip()
-            field_name = args.get('fieldName', '').strip()
+            aidoc_id = args.get('aidocId').strip() if isinstance(args.get('aidocId'), str) else ''
+            field_name = args.get('fieldName').strip() if isinstance(args.get('fieldName'), str) else ''
             if not aidoc_id:
                 aidoc_id = ACCORDIAN_DOC_ID
             
@@ -694,13 +711,13 @@ class DocumentprocessingAPI(Resource):
             
             if attributes:
                 for attrs in attributes:
-                    attribute_name = attrs.get('attr_name', '').strip()
-                    attribute_type = attrs.get('attr_type', '').strip()
-                    attribute_value = attrs.get('attr_value')
-                    note_value = attrs.get('note', '').strip()
-                    confidence_value = attrs.get('confidence', '').strip()
-                    user_id = attrs.get('user_id', '').strip()
-                    display_name = attrs.get('display_name', '').strip()
+                    attribute_name = attrs.get('attr_name').strip() if isinstance(attrs.get('attr_name'), str) else ''
+                    attribute_type = attrs.get('attr_type').strip() if isinstance(attrs.get('attr_type'), str) else ''
+                    attribute_value = attrs.get('attr_value', None) 
+                    note_value = attrs.get('note').strip() if isinstance(attrs.get('note'), str) else ''
+                    confidence_value = attrs.get('confidence').strip() if isinstance(attrs.get('confidence'), str) else ''
+                    user_id = attrs.get('user_id').strip() if isinstance(attrs.get('user_id'), str) else ''
+                    display_name = attrs.get('display_name').strip() if isinstance(attrs.get('display_name'), str) else ''
                     
                     attr_list.append({"attribute_name": attribute_name,
                                         "attribute_type": attribute_type,
@@ -747,14 +764,14 @@ class DocumentprocessingAPI(Resource):
             data, attr_list = {}, []
             if attributes:
                 for attrs in attributes:
-                    attribute_id = attrs.get('attr_id', '').strip()
-                    attribute_name = attrs.get('attr_name', '').strip()
-                    attribute_type = attrs.get('attr_type', '').strip()
-                    attribute_value = attrs.get('attr_value')
-                    note_value = attrs.get('note', '').strip()
-                    confidence_value = attrs.get('confidence', '').strip()
-                    user_id = attrs.get('user_id', '').strip()
-                    display_name = attrs.get('display_name', '').strip()
+                    attribute_id = attrs.get('attr_id').strip() if isinstance(attrs.get('attr_id'), str) else ''
+                    attribute_name = attrs.get('attr_name').strip() if isinstance(attrs.get('attr_name'), str) else ''
+                    attribute_type = attrs.get('attr_type').strip() if isinstance(attrs.get('attr_type'), str) else ''
+                    attribute_value = attrs.get('attr_value', None)
+                    note_value = attrs.get('note').strip() if isinstance(attrs.get('note'), str) else ''
+                    confidence_value = attrs.get('confidence').strip() if isinstance(attrs.get('confidence'), str) else ''
+                    user_id = attrs.get('user_id').strip() if isinstance(attrs.get('user_id'), str) else ''
+                    display_name = attrs.get('display_name').strip() if isinstance(attrs.get('display_name'), str) else ''
                     
                     attr_list.append({"attribute_name": attribute_name,
                                         "attribute_type": attribute_type,
@@ -793,10 +810,10 @@ class DocumentprocessingAPI(Resource):
         args = metadata_detele_summary.parse_args()
         try:
             op = args.get('op', '').strip()
-            aidoc_id = args.get('aidocId', '').strip()
+            aidoc_id = args.get('aidocId').strip() if isinstance(args.get('aidocId'), str) else ''
             if not aidoc_id:
                 aidoc_id = ACCORDIAN_DOC_ID
-            field_name = args.get('fieldName', '').strip()
+            field_name = args.get('fieldName', '').strip() if isinstance(args.get('fieldName'), str) else ''
             attributes = args.get('attributeNames')
             attribute_ids= args.get('attributeIds')
             attribute_ids=[] if not attribute_ids else attribute_ids
@@ -1058,68 +1075,6 @@ class DocumentprocessingAPI(Resource):
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(500, SERVER_ERROR.format(e))
-
-
-@ns.route('/cdc')
-@ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
-class CdcAPI(Resource):
-    @ns.response(HTTPStatus.OK, 'Success.')
-    @ns.response(HTTPStatus.NOT_FOUND, 'CDC enabling not found.')
-    @api.doc(security='apikey')
-    @authenticate
-    def post(self):
-        try:
-            operation = request.args.get('op')
-            if operation == 'enable_cdc':
-
-                try:
-                    session = db_context.session()
-                    latest_work = session.query(WorkFlowStatus).filter_by(protocol_name='running_cdc',
-                                                                          work_flow_name='CDC',
-                                                                          status='RUNNING').first()
-                    if latest_work:
-                        return {'id': latest_work.work_flow_id, 'status': latest_work.status}
-                    else:
-                        new_work = WorkFlowStatus(work_flow_id=str(uuid.uuid4()), protocol_name='running_cdc',
-                                                  work_flow_name='CDC', status='RUNNING')
-                        session.add(new_work)
-                        session.commit()
-                        CdcThread(new_work.work_flow_id).start()
-                        return {'id': new_work.work_flow_id, 'status': new_work.status}
-                except ValueError as e:
-                    logger.error(SERVER_ERROR.format(e))
-                    return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
-            else:
-                return abort(HTTPStatus.BAD_REQUEST, INVALID_OPERATION)
-
-        except ValueError as e:
-            logger.error(SERVER_ERROR.format(e))
-            return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
-
-
-@ns.route('/cdc_status/<string:id>/')
-@ns.response(HTTPStatus.INTERNAL_SERVER_ERROR, 'Server error.')
-class CdcAPI(Resource):
-    @ns.response(HTTPStatus.OK, 'Success.')
-    @ns.response(HTTPStatus.NOT_FOUND, 'CDC enabling not found.')
-    @api.doc(security='apikey')
-    @authenticate
-    def get(self, id):
-        try:
-            try:
-                session = db_context.session()
-                latest_work = session.query(WorkFlowStatus).filter_by(work_flow_id=id).first()
-                if latest_work:
-                    return {'id': latest_work.work_flow_id, 'status': latest_work.status,
-                            'operation': latest_work.protocol_name}
-                else:
-                    logger.info("Status id not found")
-                    return abort(HTTPStatus.NOT_FOUND, "Not found")
-            except ValueError as e:
-                return abort(HTTPStatus.BAD_REQUEST, INVALID_OPERATION)
-        except ValueError as e:
-            logger.error(SERVER_ERROR.format(e))
-            return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
 
 
 @ns.route('/get_confidence_matrix')
