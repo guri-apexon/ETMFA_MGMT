@@ -52,18 +52,18 @@ def get_enriched_data_with_doc_id(aidoc_id):
     """
     To fetch enriched content from the nlp entity as per doc and section id
     """
-    entity = crud.nlp_entity_content.get_with_doc_id(db=db, doc_id=aidoc_id)
+    nlp_entity_data = crud.nlp_entity_content.get_with_doc_id(db=db, doc_id=aidoc_id)
     clinical_data = []
-    # for entity in nlp_entity_data:
-    clinical_values = {entity.standard_entity_name: {
-        'preferred_term': entity.iqv_standard_term,
-        'ontology': entity.ontology,
-        'synonyms': entity.entity_xref,
-        'medical_term': "",
-        'classification': entity.entity_class,
-        'clinical_terms': entity.text
-    }}
-    clinical_data.append(clinical_values)
+    for entity in nlp_entity_data:
+        clinical_values = {entity.standard_entity_name: {
+            'preferred_term': entity.iqv_standard_term,
+            'ontology': entity.ontology,
+            'synonyms': entity.entity_xref,
+            'medical_term': "",
+            'classification': entity.entity_class,
+            'clinical_terms': entity.text
+        }}
+        clinical_data.append(clinical_values)
     return clinical_data
 
 

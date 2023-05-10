@@ -29,7 +29,7 @@ class NlpEntityCrud(CRUDBase[NlpEntityDb, NlpEntityCreate, NlpEntityUpdate]):
         try:
             all_term_data = db.query(NlpEntityDb).filter(
                 NlpEntityDb.doc_id == doc_id,NlpEntityDb.standard_entity_name != "",
-                NlpEntityDb.hierarchy != 'document').distinct(NlpEntityDb.standard_entity_name,NlpEntityDb.dts).order_by(desc(NlpEntityDb.dts)).first()
+                NlpEntityDb.hierarchy != 'document').distinct(NlpEntityDb.standard_entity_name).order_by(NlpEntityDb.dts.desc()).all()
         except Exception as ex:
             all_term_data = []
             logger.exception("Exception in retrieval of data from table", ex)
