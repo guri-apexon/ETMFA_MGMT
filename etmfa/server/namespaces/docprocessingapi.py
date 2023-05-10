@@ -188,8 +188,9 @@ class DocumentprocessingAPI(Resource):
         doc_uid = None
         _id = str(uuid.uuid4())
         message, response_status=register_custom_flows(work_flow_list,work_flow_name,_id,doc_id)
-        if not response_status and Config.WORK_FLOW_RUNNER:
-            return abort(400, message)
+        if work_flow_list:
+            if not response_status and Config.WORK_FLOW_RUNNER:
+                return abort(400, message)
 
         if not work_flow_list:
             work_flow_graph = DEFAULT_WORKFLOWS.get(work_flow_name, None)
@@ -673,7 +674,7 @@ class DocumentprocessingAPI(Resource):
             field_name = args.get('fieldName').strip() if isinstance(args.get('fieldName'), str) else ''
             if not aidoc_id:
                 aidoc_id = ACCORDIAN_DOC_ID
-            
+
             if aidoc_id:
                 resource = get_metadata_summary(op, aidoc_id, field_name)
                 if len(resource) == 0:
@@ -704,21 +705,21 @@ class DocumentprocessingAPI(Resource):
             aidoc_id = args.get('aidocId', '').strip()
             field_name = args.get('fieldName', '').strip()
             if not aidoc_id:
-                aidoc_id = ACCORDIAN_DOC_ID 
+                aidoc_id = ACCORDIAN_DOC_ID
             if not field_name:
-                field_name = "summary_extended"  
+                field_name = "summary_extended"
             attributes = args['attributes']
-            
+
             if attributes:
                 for attrs in attributes:
                     attribute_name = attrs.get('attr_name').strip() if isinstance(attrs.get('attr_name'), str) else ''
                     attribute_type = attrs.get('attr_type').strip() if isinstance(attrs.get('attr_type'), str) else ''
-                    attribute_value = attrs.get('attr_value', None) 
+                    attribute_value = attrs.get('attr_value', None)
                     note_value = attrs.get('note').strip() if isinstance(attrs.get('note'), str) else ''
                     confidence_value = attrs.get('confidence').strip() if isinstance(attrs.get('confidence'), str) else ''
                     user_id = attrs.get('user_id').strip() if isinstance(attrs.get('user_id'), str) else ''
                     display_name = attrs.get('display_name').strip() if isinstance(attrs.get('display_name'), str) else ''
-                    
+
                     attr_list.append({"attribute_name": attribute_name,
                                         "attribute_type": attribute_type,
                                         "attribute_value": attribute_value,
@@ -772,7 +773,7 @@ class DocumentprocessingAPI(Resource):
                     confidence_value = attrs.get('confidence').strip() if isinstance(attrs.get('confidence'), str) else ''
                     user_id = attrs.get('user_id').strip() if isinstance(attrs.get('user_id'), str) else ''
                     display_name = attrs.get('display_name').strip() if isinstance(attrs.get('display_name'), str) else ''
-                    
+
                     attr_list.append({"attribute_name": attribute_name,
                                         "attribute_type": attribute_type,
                                         "attribute_value": attribute_value,
@@ -790,7 +791,7 @@ class DocumentprocessingAPI(Resource):
                 return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
             else:
                 return resource
-           
+
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
@@ -819,7 +820,7 @@ class DocumentprocessingAPI(Resource):
             attribute_ids=[] if not attribute_ids else attribute_ids
             data, attr_list = {}, []
             attr_id_len = len(attribute_ids)
-            
+
             if attributes:
                 for attr_idx,attrs in enumerate(attributes):
                     attr_id = None if (not attr_id_len or attr_idx > attr_id_len) else attribute_ids[attr_idx]
@@ -833,7 +834,7 @@ class DocumentprocessingAPI(Resource):
                 return abort(HTTPStatus.NOT_FOUND, DOCUMENT_NOT_FOUND.format(args))
             else:
                 return resource
-            
+
         except ValueError as e:
             logger.error(SERVER_ERROR.format(e))
             return abort(HTTPStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR.format(e))
