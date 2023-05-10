@@ -31,7 +31,7 @@ class NlpEntityCrud(CRUDBase[NlpEntityDb, NlpEntityCreate, NlpEntityUpdate]):
             user_ids = [user_id, f"u{user_id}", f"q{user_id}"]
             all_term_data = db.query(NlpEntityDb).filter(
                 NlpEntityDb.doc_id == doc_id,NlpEntityDb.standard_entity_name != "",
-                NlpEntityDb.hierarchy != 'document', NlpEntityDb.user_id == NlpEntityDb.user_id.in_(user_ids)).distinct(NlpEntityDb.standard_entity_name,NlpEntityDb.dts).order_by(asc(NlpEntityDb.dts)).all()
+                NlpEntityDb.hierarchy != 'document', NlpEntityDb.user_id.in_(user_ids)).distinct(NlpEntityDb.standard_entity_name,NlpEntityDb.dts).order_by(asc(NlpEntityDb.dts)).all()
         except Exception as ex:
             all_term_data = []
             logger.exception("Exception in retrieval of data from table", ex)
