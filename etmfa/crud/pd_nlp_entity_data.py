@@ -5,6 +5,7 @@ from etmfa.db.models import NlpEntityDb
 from etmfa.schemas.pd_nlp_entity_db import NlpEntityCreate, NlpEntityUpdate
 from sqlalchemy.orm import Session
 from etmfa.consts import Consts as consts
+from sqlalchemy import asc
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -17,7 +18,7 @@ class NlpEntityCrud(CRUDBase[NlpEntityDb, NlpEntityCreate, NlpEntityUpdate]):
         try:
             all_term_data = db.query(NlpEntityDb).filter(
                 NlpEntityDb.doc_id == doc_id, NlpEntityDb.link_id == link_id,
-                NlpEntityDb.hierarchy != 'document', NlpEntityDb.user_id == user_id).order_by(NlpEntityDb.dts).all()
+                NlpEntityDb.hierarchy != 'document', NlpEntityDb.user_id == user_id).distinct(NlpEntityDb.parent_id,NlpEntityDb.dts).order_by(asc(NlpEntityDb.dts)).all()
 
         except Exception as ex:
             all_term_data = []
@@ -28,7 +29,7 @@ class NlpEntityCrud(CRUDBase[NlpEntityDb, NlpEntityCreate, NlpEntityUpdate]):
         try:
             all_term_data = db.query(NlpEntityDb).filter(
                 NlpEntityDb.doc_id == doc_id,NlpEntityDb.standard_entity_name != "",
-                NlpEntityDb.hierarchy != 'document', NlpEntityDb.user_id == user_id).distinct(NlpEntityDb.standard_entity_name).order_by(NlpEntityDb.dts).all()
+                NlpEntityDb.hierarchy != 'document', NlpEntityDb.user_id == user_id).distinct(NlpEntityDb.parent_id,NlpEntityDb.dts).order_by(asc(NlpEntityDb.dts)).all()
         except Exception as ex:
             all_term_data = []
             logger.exception("Exception in retrieval of data from table", ex)
