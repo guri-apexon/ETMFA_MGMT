@@ -80,23 +80,23 @@ def get_document_terms_data(db: Session, aidoc_id: str,
     if "preferred_terms" in config_variables:
         if link_dict:
             all_term_data = db.query(IqvdocumentlinkDb).filter(
-                IqvdocumentlinkDb.doc_id == aidoc_id).filter_by(
+                IqvdocumentlinkDb.doc_id == aidoc_id, IqvdocumentlinkDb.iqv_standard_term != "", IqvdocumentlinkDb.LinkText != "").filter_by(
                 **link_dict).all()
             all_term_data_from_tables = db.query(DocumenttablesDb).filter(
-                DocumenttablesDb.doc_id == aidoc_id).filter_by(
+                DocumenttablesDb.doc_id == aidoc_id, DocumenttablesDb.iqv_standard_term != "",DocumenttablesDb.strText != "").filter_by(
                 **link_dict).all()
         elif link_id:
             all_term_data = db.query(IqvdocumentlinkDb).filter(
-                IqvdocumentlinkDb.doc_id == aidoc_id,
+                IqvdocumentlinkDb.doc_id == aidoc_id, IqvdocumentlinkDb.iqv_standard_term != "", IqvdocumentlinkDb.LinkText != "",
                 IqvdocumentlinkDb.link_id == link_id).all()
             all_term_data_from_tables = db.query(DocumenttablesDb).filter(
                 DocumenttablesDb.doc_id == aidoc_id,
-                DocumenttablesDb.link_id == link_id).all()
+                DocumenttablesDb.link_id == link_id, DocumenttablesDb.iqv_standard_term != "",DocumenttablesDb.strText != "").all()
         else:
             all_term_data = db.query(IqvdocumentlinkDb).filter(
-                IqvdocumentlinkDb.doc_id == aidoc_id).all()
+                IqvdocumentlinkDb.doc_id == aidoc_id, IqvdocumentlinkDb.iqv_standard_term != "", IqvdocumentlinkDb.LinkText != "").all()
             all_term_data_from_tables = db.query(DocumenttablesDb).filter(
-                DocumenttablesDb.doc_id == aidoc_id).all()
+                DocumenttablesDb.doc_id == aidoc_id, DocumenttablesDb.iqv_standard_term != "",DocumenttablesDb.strText != "").all()
 
         preferred_values = [{"id": term_record.id,
                              "preferred_term": term_record.iqv_standard_term,
