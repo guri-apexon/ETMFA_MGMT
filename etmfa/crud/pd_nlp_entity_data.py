@@ -16,9 +16,10 @@ class NlpEntityCrud(CRUDBase[NlpEntityDb, NlpEntityCreate, NlpEntityUpdate]):
     """
     def get(self, db: Session, doc_id: str, link_id: str, user_id:str):
         try:
+            user_ids = [user_id, f"u{user_id}", f"q{user_id}"]
             all_term_data = db.query(NlpEntityDb).filter(
                 NlpEntityDb.doc_id == doc_id, NlpEntityDb.link_id == link_id,
-                NlpEntityDb.hierarchy != 'document', NlpEntityDb.user_id == user_id).distinct(NlpEntityDb.standard_entity_name,NlpEntityDb.dts).order_by(asc(NlpEntityDb.dts)).all()
+                NlpEntityDb.hierarchy != 'document', NlpEntityDb.user_id.in_(user_ids)).distinct(NlpEntityDb.standard_entity_name,NlpEntityDb.dts).all()
 
         except Exception as ex:
             all_term_data = []
@@ -27,9 +28,10 @@ class NlpEntityCrud(CRUDBase[NlpEntityDb, NlpEntityCreate, NlpEntityUpdate]):
 
     def get_with_doc_id(self, db: Session, doc_id: str, user_id:str):
         try:
+            user_ids = [user_id, f"u{user_id}", f"q{user_id}"]
             all_term_data = db.query(NlpEntityDb).filter(
                 NlpEntityDb.doc_id == doc_id,NlpEntityDb.standard_entity_name != "",
-                NlpEntityDb.hierarchy != 'document', NlpEntityDb.user_id == user_id).distinct(NlpEntityDb.standard_entity_name,NlpEntityDb.dts).order_by(asc(NlpEntityDb.dts)).all()
+                NlpEntityDb.hierarchy != 'document', NlpEntityDb.user_id == NlpEntityDb.user_id.in_(user_ids)).distinct(NlpEntityDb.standard_entity_name,NlpEntityDb.dts).order_by(asc(NlpEntityDb.dts)).all()
         except Exception as ex:
             all_term_data = []
             logger.exception("Exception in retrieval of data from table", ex)
