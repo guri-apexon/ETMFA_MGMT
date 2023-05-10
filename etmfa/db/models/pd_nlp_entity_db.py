@@ -1,4 +1,3 @@
-import datetime
 from sqlalchemy import Column, String
 from etmfa.db.db import db_context
 
