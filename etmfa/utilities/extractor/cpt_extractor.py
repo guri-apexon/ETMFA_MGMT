@@ -9,6 +9,7 @@ from etmfa.utilities.table_extractor import SOAResponse as soa
 from etmfa.consts.constants import ModuleConfig
 from etmfa.consts import Consts as consts
 import base64
+import re
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -37,7 +38,8 @@ class CPTExtractor:
         self.good_file_section_count_min = ModuleConfig.GENERAL.GOOD_FILE_SECTION_COUNT_MIN
         self.profile_details = profile_details
         self.entity_profile_genre = entity_profile_genre
-        self.header_values = [header_val.LinkText.strip() for header_val in
+        self.regex = re.compile(r'<[^>]+>')
+        self.header_values = [self.regex.sub('', header_val.LinkText.strip()) for header_val in
                               iqv_document.DocumentLinks]
 
     def read_cpt_tags(self) -> Tuple[list, int, int]:
@@ -62,7 +64,7 @@ class CPTExtractor:
             master_dict['para_master_roi_id'] = master_roi.id
             master_dict['image_content'] = ''
             # For header identification
-            master_dict['font_heading_flg'] = (master_roi.Value.strip() in self.header_values)
+            master_dict['font_heading_flg'] = (self.regex.sub('', master_roi.Value.strip()) in self.header_values)
             # Collect tags
             master_dict['table_index'] = master_roi_dict.get(self.table_index_tag, '')
             master_dict['not_footnote_flg'] = False if self.footnote_tag in all_roi_tags else True
