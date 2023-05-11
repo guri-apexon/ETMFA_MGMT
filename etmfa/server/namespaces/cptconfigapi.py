@@ -189,7 +189,7 @@ class SectionDataConfigAPI(Resource):
                                                             config_variables,
                                                             {})
 
-                enriched_data = get_enriched_data_with_doc_id(aidoc_id=aidoc_id,)
+                enriched_data = get_enriched_data_with_doc_id(aidoc_id=aidoc_id)
                 return [section_header, terms_values, enriched_data]
             else:
                 link_id, link_level, link_dict = crud.link_id_link_level_based_on_section_text(
@@ -217,7 +217,7 @@ class SectionDataConfigAPI(Resource):
 
                 # enriched data from existing end point
                 enriched_data = get_enriched_data(aidoc_id=aidoc_id,
-                                                  link_id=link_id,)
+                                                  link_id=link_id)
                 logger.info(f"config api process completed")
 
                 return [section_res, terms_values, enriched_data]
