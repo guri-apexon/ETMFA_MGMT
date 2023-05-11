@@ -74,7 +74,6 @@ def get_section_data(aidoc_id, link_level, link_id, user_id, protocol):
     iqv_document, imagebinaries = crud.get_document_object(aidoc_id, link_level,
                                                            link_id)
     if iqv_document is None:
-        logger.info(f"Doc_id {aidoc_id} does not exists")
         message = json.dumps(
             {'message': "This document is not available in our database"})
         return Response(message, status=404, mimetype='application/json')
@@ -217,7 +216,6 @@ class SectionDataConfigAPI(Resource):
                 enriched_data = get_enriched_data(aidoc_id=aidoc_id,
                                                   link_id=link_id,
                                                   user_id=user_id)
-                logger.info(f"config api process completed")
 
                 return [section_res, terms_values, enriched_data]
         except Exception as e:

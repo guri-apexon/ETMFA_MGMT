@@ -170,7 +170,6 @@ class Redactor:
                 try:
                     if entity.get('subcategory', '') in redact_profile_entities and len(
                             constants.REGEX_SPECIAL_CHAR_REPLACE.sub(r"", entity['text'])) != 0:
-                        logger.debug(f"Processing for idx[{idx}] with entity:{entity}")
                         entity_adjusted_text = constants.REGEX_SPECIAL_CHAR_REPLACE.sub(r".{1}", entity['text'])
                         redacted_text = re.sub(entity_adjusted_text, constants.REDACT_PARAGRAPH_STR, redacted_text)
                 except Exception as exc:

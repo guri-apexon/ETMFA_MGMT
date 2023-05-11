@@ -55,7 +55,6 @@ def get_document_terms_data(db: Session, aidoc_id: str,
                                "table_roi_id": iqvvisit_record.table_roi_id} for
                               iqvvisit_record in iqv_time_point_visit_records]
         terms_values.update({'time_points': time_points_values})
-        logger.info(f"time points results fetched successfuly for doc id {aidoc_id}")
 
     if "clinical_terms" in config_variables:
         if link_dict:
@@ -75,7 +74,6 @@ def get_document_terms_data(db: Session, aidoc_id: str,
              "entity_key": clinical_term.entity_key, "text": clinical_term.text}
             for clinical_term in clinical_terms]
         terms_values.update({'clinical_terms': clinical_values})
-        logger.info(f"clinical terms results fetched successfuly for doc id {aidoc_id}")
 
     if "preferred_terms" in config_variables:
         if link_dict:
@@ -111,7 +109,6 @@ def get_document_terms_data(db: Session, aidoc_id: str,
                                         all_term_data_from_tables]
         all_term_records = preferred_values + preferred_values_from_tables
         terms_values.update({'preferred_terms': all_term_records})
-        logger.info(f"preferred terms results fetched successfuly for doc id {aidoc_id}")
 
     if "references" in config_variables:
         if link_dict:
@@ -136,7 +133,6 @@ def get_document_terms_data(db: Session, aidoc_id: str,
              "destination_link_text": reference_link.destination_link_text} for
             reference_link in reference_links]
         terms_values.update({'references': references_values})
-        logger.info(f"references results fetched successfuly for doc id {aidoc_id}")
 
     if "properties" in config_variables:
         if link_dict:
@@ -155,7 +151,6 @@ def get_document_terms_data(db: Session, aidoc_id: str,
             {"id": property.id, "key": property.key, "value": property.value,
              "parent_id": property.parent_id} for property in property_data]
         terms_values.update({'properties': properties_values})
-        logger.info(f"properties results fetched successfuly for doc id {aidoc_id}")
 
     if "redaction_attributes" in config_variables:
         if link_dict:
@@ -179,7 +174,6 @@ def get_document_terms_data(db: Session, aidoc_id: str,
              "parent_id": redaction_record.parent_id} for redaction_record in
             redaction_values]
         terms_values.update({'redaction_attributes': redaction_att_values})
-        logger.info(f"redaction attributes results fetched successfuly for doc id {aidoc_id}")
 
     return [terms_values]
 

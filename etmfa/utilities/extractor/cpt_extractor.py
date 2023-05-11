@@ -297,7 +297,6 @@ class CPTExtractor:
             except Exception as exc:
                 logger.warning(f"Exception while writing INFO log on display/search section. Most likely evasive unicode chars display error")
         except Exception as exc:
-            logger.exception("Exception received in cpt section iqvdata")
             logger.exception(f"Exception message: {exc}")
             return None, None, None, None, None
 

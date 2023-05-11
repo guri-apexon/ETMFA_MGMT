@@ -81,7 +81,6 @@ class PrepareUpdateData:
                                                      self.entity_profile_genre)
             display_df, search_df, _, _, _ = cpt_iqvdata.get_cpt_iqvdata()
             db_data, summary_entities = ei.ingest_doc_elastic(iqv_document, search_df)
-            logger.info("Elastic search ingestion step completed")
             db_data["summary_entities"] = json.dumps(summary_entities)
             db_data['ProtocolName'] = db_data.get("protocol_name", "")
             db_data['Activity_Status'] = ''
@@ -98,7 +97,6 @@ class PrepareUpdateData:
                 metadata_fields[ModuleConfig.GENERAL.es_metadata_mapping[key]] = db_data.get(key, '')
 
             metadata_fields['accuracy'] = ''
-            logger.info(f"metadata: {metadata_fields}")
         except Exception as exc:
             logger.exception(f"Exception received in building metadata_fields step: {exc}")
 
@@ -112,8 +110,6 @@ class PrepareUpdateData:
                 display_dict = display_df.to_dict(orient=self.dict_orient_type)
                 display_dict['metadata'] = metadata_fields
                 db_data['toc'] = json.dumps(display_dict)
-                logger.info("CPT extraction step completed")
-
             else:
                 logger.error("No data received at CPT extraction step. display_df is empty")
         except Exception as exc:
@@ -122,14 +118,12 @@ class PrepareUpdateData:
         try:
             normalized_soa = self.normalized_soa_extraction(iqv_document)
             db_data['normalized_soa'] = json.dumps(normalized_soa)
-            logger.info("Normalized SOA json extraction step completed")
         except Exception as exc:
             logger.exception(f"Exception received in normalized soa extraction: {exc}")
 
         try:
             soa = table_extractor.SOAResponse(iqv_document, self.profile_details, self.entity_profile_genre)
             db_data['soa'] = json.dumps(soa.getTOIfromProprties(roi=None, toi='SOA')[0])
-            logger.info("SOA extraction step completed")
         except Exception as exc:
             logger.exception(f"Exception received in SOA: {exc}")
 
@@ -147,7 +141,6 @@ class PrepareUpdateData:
             summary_dict = summary_dict.to_dict(orient=self.dict_orient_type)
             summary_dict['metadata'] = {"accuracy": ""}
             db_data['summary'] = json.dumps(summary_dict)
-            logger.info("Summary extraction step completed")
         except Exception as exc:
             logger.exception(f"Exception received in Summary extraction step: {exc}")
 
