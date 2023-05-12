@@ -39,6 +39,7 @@ class DipaViewHelper:
             obj = session.query(PDDipaViewdata).get(_id)
             obj.editCount = int(obj.editCount) + 1
             obj.editorUserId = data_dict['editorUserId']
+            obj.lastEditedBy = data_dict['user_name']
             for attr, value in data_dict.items():
                 if value:
                     setattr(obj, attr, value)
