@@ -201,13 +201,3 @@ class Iqvvisitrecord():
         except Exception as exc:
             logger.exception(
                 f"Exception received  for visitdata [aidoc_id: {self.aidoc_id}]. Exception: {str(exc)}")
-
-
-@dataclass
-class IqvvisitrecordDeleteDbMapper:
-    id: str = None
-    table_column_index: int = None
-    table_roi_id: str = None
-
-
-mapper_registry.map_imperatively(IqvvisitrecordDeleteDbMapper, IqvvisitrecordDb)
