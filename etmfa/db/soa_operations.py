@@ -57,7 +57,7 @@ def add_normalized_data_for_study_procedure(session, table_props):
                 table_roi_id,table_sequence_index,study_cohort,visit_type,visit_timepoint,week_timepoint,window_timepoint,\
                     year_timepoint,footnote_0,footnote_1,footnote_2,footnote_3, footnote_4, footnote_5,\
             footnote_6,footnote_7,footnote_8,footnote_9 ) VALUES('{uuid.uuid4()}','{doc_id}','','','','',\
-                '','','',{data.get('value')},'','','','','','','',{new_table_row_index}, {data.get('table_column_index')},\
+                '','','','{data.get('value')}','','','','','','','',{new_table_row_index}, {data.get('table_column_index')},\
                 '','',-1,'{table_roi_id}',-1,'','','','','','','','','','','','','','','','')"""
             session.execute(sql_add_data)
         return True
