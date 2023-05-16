@@ -30,7 +30,7 @@ class Redactor:
         self.redact_dict = self.get_all_profiles_dict()
         self.legacy_protocol_upload_date = pd.to_datetime(
             constants.LEGACY_PROTOCOL_UPLOAD_DATE).date()
-        
+
     def get_all_profiles_df(self) -> pd.DataFrame:
         """
         Convert profile entries to dataframe
@@ -53,7 +53,7 @@ class Redactor:
             redact_dict = genre_grouped['subCategory'].apply(lambda sub_cat: sub_cat.tolist()).to_dict()
             redact_dict = {**empty_profile_dict, **redact_dict}
             all_redaction_dict[redaction_profile] = redact_dict
-        
+
         return all_redaction_dict
 
     def get_profiles(self):
@@ -71,9 +71,12 @@ class Redactor:
             if user_protocol_obj:
                 profile_name = user_protocol_obj.redactProfile
 
+            if user_protocol_obj and user_protocol_obj.userRole == 'QC1':
+                profile_name = constants.USERROLE_REDACTPROFILE_MAP['primary']
+
         valid_profile_name = profile_name if profile_name in constants.USERROLE_REDACTPROFILE_MAP.values() \
             else constants.USERROLE_REDACTPROFILE_MAP['default']
-        profile = self.redact_dict.get(valid_profile_name) 
+        profile = self.redact_dict.get(valid_profile_name)
         profile_genre = profile.get(genre, [])
         return valid_profile_name, profile, profile_genre
 
@@ -116,7 +119,7 @@ class Redactor:
             nonredact_attr = {name: value for name, value in doc_attributes.items() if name not in profile_attributes}
             redact_attr = {**default_redact_attr, **nonredact_attr}
             redacted_multiple_doc_attributes.append(redact_attr)
-        
+
         return redacted_multiple_doc_attributes, redacted_multiple_doc_attributes[0]
 
     def redact_attribute_entity(self, attribute, doc_attributes, redacted_entities, summary_entities, redact_flg=True):
@@ -175,10 +178,10 @@ class Redactor:
                         redacted_text = re.sub(entity_adjusted_text, constants.REDACT_PARAGRAPH_STR, redacted_text)
                 except Exception as exc:
                     logger.warning(f"[entity# {idx}] subtext: {text}; font_info: {font_info}; Exception message: {str(exc)}")
-            
+
         if exclude_redact_property_flg:
             _ = redacted_property.pop('entity', "entity is not present")
-            
+
         return redacted_text, redacted_property
 
 

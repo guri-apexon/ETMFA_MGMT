@@ -39,12 +39,20 @@ LEGACY_PROTOCOL_UPLOAD_DATE = "2021-09-19"
 LEGACY_QUEUE_NAMES = ['triage', 'digitizer1', 'digitizer2', 'i2e_omop_update', 'digitizer2_omopupdate', 'extraction']
 
 # WF to be excluded
-EXCLUDED_WF = ['digitization', 'full_flow','email_notification']
-DEFAULT_WORKFLOW_NAME="Default_Workflow"
+EXCLUDED_WF = ['digitization', 'full_flow', 'email_notification']
+DEFAULT_WORKFLOW_NAME = "Default_Workflow"
 # used in LM mapped fields
 STUDY_ASSESSMENT_AND_PROCEDURE = 'Study Assessments And Procedure'
 PATIENT_COMPLEXITY = 'Patient Complexity'
 SUMMARY_EXTENDED = 'summary_extended'
+WORKFLOW_ORDER = ["triage", "digitizer1",
+                  "digitizer2", "extraction",
+                  "digitizer2_omopgenerate",
+                  "i2e_omop_update",
+                  "digitizer2_omopupdate",
+                  "digitizer2_compare",
+                  "meta_tagging", "meta_extraction", "analyzer", "es_ingestion",
+                  "email_notification"]
 
 @unique
 class QcStatus(Enum):
@@ -145,7 +153,8 @@ LM_MAPPED_FIELDS = {
     'vital_signs': ('vital_signs', 'Vital Signs', STUDY_ASSESSMENT_AND_PROCEDURE),
     'total_num_pro': ('total_num_pro', 'Total Num Pro', STUDY_ASSESSMENT_AND_PROCEDURE),
     'total_num_site_visit': ('total_num_site_visit', 'Total Num Site Visit', STUDY_ASSESSMENT_AND_PROCEDURE),
-    'total_num_site_visit_list': ('total_num_site_visit_list', 'Total Num Site Visit List', STUDY_ASSESSMENT_AND_PROCEDURE),
+    'total_num_site_visit_list': (
+    'total_num_site_visit_list', 'Total Num Site Visit List', STUDY_ASSESSMENT_AND_PROCEDURE),
     'exclusion_section': ('exclusionCriteria', 'Exclusion Criteria', SUMMARY_EXTENDED),
     'inclusion_section': ('inclusionCriteria', 'Inclusion Criteria', SUMMARY_EXTENDED),
     'indication': ('indication', 'Indication', SUMMARY_EXTENDED),
@@ -160,47 +169,47 @@ LM_MAPPED_FIELDS = {
     'sponsor': ('sponsor', 'Sponsor', SUMMARY_EXTENDED),
     'population': ('population', 'Study Population', SUMMARY_EXTENDED),
     'soa_footnotes': ('soa_footnotes', 'Soa Footnotes', ''),
-    'molecule_device':('moleculeDevice','Molecule Device',SUMMARY_EXTENDED),
+    'molecule_device': ('moleculeDevice', 'Molecule Device', SUMMARY_EXTENDED),
     'pro_list': ('pro_list', 'Pro List', PATIENT_COMPLEXITY)
 }
 
+EXCLUDED_LM_ACCORDIANS = []
 
-EXCLUDED_LM_ACCORDIANS=[]
-
-SUMMARY_TYPES={
-    'versionDate':('date','%Y%m%d'),
-    'approvalDate':('date','%Y%m%d'),
-    'uploadDate':('date','%Y%m%d%H%M%S')
+SUMMARY_TYPES = {
+    'versionDate': ('date', '%Y%m%d'),
+    'approvalDate': ('date', '%Y%m%d'),
+    'uploadDate': ('date', '%Y%m%d%H%M%S')
 }
 
 SUMMARY_FIELDS = {"Protocol Name": "fileName",
-                         "Protocol Number": "protocol",
-                         "Protocol title": "protocolTitle",
-                         "Protocol Title Short": "shortTitle",
-                         "Is Amendment": "isAmendment",
-                         "Amendment Number": "amendment",
-                         "Trial Phase": "phase",
-                         "Sponsor": "sponsor",
-                         "Sponsor Address": "sponsorAddress",
-                         "Drug": "drug",
-                         "Approval Date": "approvalDate",
-                         "Version Number": "versionNumber",
-                         "Version Date": "versionDate",
-                         "Blinded": "blinded",
-                         "Compound Number": "compoundNumber",
-                         "Control": "control",
-                         "Investigator": "investigator",
-                         "Study Id": "studyId",
-                         "Number of Subjects": "numOfSubjects",
-                         "Participant Age": "participantAge",
-                         "Participant Sex": "participantSex",
-                         "Trial Type randomized":"trialTypeRandomized",
-                         "Molecule Device": "moleculeDevice",
-                         "Document Status": "documentStatus",
-                         "Indication": "indication",
-                         "Study Population": "population"
-                         }
-SUMMARY_ATTR_REV_MAP={v:k for k,v in SUMMARY_FIELDS.items()}
+                  "Protocol Number": "protocol",
+                  "Protocol title": "protocolTitle",
+                  "Protocol Title Short": "shortTitle",
+                  "Is Amendment": "isAmendment",
+                  "Amendment Number": "amendment",
+                  "Trial Phase": "phase",
+                  "Sponsor": "sponsor",
+                  "Sponsor Address": "sponsorAddress",
+                  "Drug": "drug",
+                  "Approval Date": "approvalDate",
+                  "Version Number": "versionNumber",
+                  "Version Date": "versionDate",
+                  "Blinded": "blinded",
+                  "Compound Number": "compoundNumber",
+                  "Control": "control",
+                  "Investigator": "investigator",
+                  "Study Id": "studyId",
+                  "Number of Subjects": "numOfSubjects",
+                  "Participant Age": "participantAge",
+                  "Participant Sex": "participantSex",
+                  "Trial Type randomized": "trialTypeRandomized",
+                  "Molecule Device": "moleculeDevice",
+                  "Document Status": "documentStatus",
+                  "Indication": "indication",
+                  "Study Population": "population"
+                  }
+SUMMARY_ATTR_REV_MAP = {v: k for k, v in SUMMARY_FIELDS.items()}
+
 
 class _GeneralConfig:
     summary_std_tags = _SummaryConfig.summary_std_tags
@@ -308,4 +317,4 @@ EVENT_CONFIG = {"QC_COMPLETED": {
 
 LAST_PROTOCOL_ACCESS = 10
 
-XML_SUFFIX="*.xml*"
+XML_SUFFIX = "*.xml*"

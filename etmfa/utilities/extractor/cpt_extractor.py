@@ -38,8 +38,9 @@ class CPTExtractor:
         self.good_file_section_count_min = ModuleConfig.GENERAL.GOOD_FILE_SECTION_COUNT_MIN
         self.profile_details = profile_details
         self.entity_profile_genre = entity_profile_genre
-        self.regex = re.compile(r'<[^>]+>')
-        self.header_values = [self.regex.sub('', header_val.LinkText.strip()) for header_val in
+        # regex to remove spaces, html tags
+        self.regex = re.compile(r'\s*<[^>]+>\s*|\s+')
+        self.header_values = [self.regex.sub('', header_val.LinkText).lower() for header_val in
                               iqv_document.DocumentLinks]
 
     def read_cpt_tags(self) -> Tuple[list, int, int]:
@@ -52,6 +53,7 @@ class CPTExtractor:
         all_cpt_list = []
         tot_master_childbox_redaction_entity = 0
         tot_matching_master_childbox_redaction_entity = 0
+        first_header_type = True
         for master_roi in self.iqv_document.DocumentParagraphs:
 
             master_roi_dict = dict()
@@ -64,7 +66,8 @@ class CPTExtractor:
             master_dict['para_master_roi_id'] = master_roi.id
             master_dict['image_content'] = ''
             # For header identification
-            master_dict['font_heading_flg'] = (self.regex.sub('', master_roi.Value.strip()) in self.header_values)
+            master_dict['font_heading_flg'] = (self.regex.sub('', master_roi.Value.strip()).lower() in self.header_values) or first_header_type
+            first_header_type = False
             # Collect tags
             master_dict['table_index'] = master_roi_dict.get(self.table_index_tag, '')
             master_dict['not_footnote_flg'] = False if self.footnote_tag in all_roi_tags else True

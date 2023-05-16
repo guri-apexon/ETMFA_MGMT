@@ -14,7 +14,7 @@ from etmfa.db.models.pd_user_protocols import PDUserProtocols
 from etmfa.workflow.db import engine
 from etmfa.workflow.db.schemas import ServiceWorkflows
 from sqlalchemy import or_, and_, case, func, literal
-from etmfa.consts.constants import EXCLUDED_WF
+from etmfa.consts.constants import EXCLUDED_WF, WORKFLOW_ORDER
 
 
 class DbMixin:
@@ -96,9 +96,10 @@ def check_stale_work_flows_and_remove(max_service_execution_wait_time, logger):
     return stale_ids
 
 
-def create_doc_processing_status(work_flow_id, doc_id, doc_uid, work_flow_name, doc_file_path,protocol_name):
+def create_doc_processing_status(work_flow_id, doc_id, doc_uid, work_flow_name, doc_file_path, protocol_name):
     status = WorkFlowStatus(
-        work_flow_id=work_flow_id, doc_id=doc_id, doc_uid=doc_uid, work_flow_name=work_flow_name,protocol_name=protocol_name,
+        work_flow_id=work_flow_id, doc_id=doc_id, doc_uid=doc_uid, work_flow_name=work_flow_name,
+        protocol_name=protocol_name,
         documentFilePath=doc_file_path)
     with SessionLocal() as session:
         try:
@@ -156,6 +157,7 @@ def _update_running_finished_services(data, service_name, service_added, count):
             finished_services.append(service_name)
     return all_services, running_services, finished_services
 
+
 def update_doc_processing_status(id: str, service_name, service_added, work_flow_name, count=1):
     """
     count: few case mulitple parallel services are invoked
@@ -185,9 +187,9 @@ def update_doc_finished_status(id, work_flow_name):
         data.status = WorkFlowState.COMPLETED.value
         data.percent_complete = int(ProcessingStatus.PROCESS_COMPLETED.value)
         all_services = list(set(data.all_services.copy()))
-        data.finished_services=all_services
-        data.all_services=all_services
-        data.running_services=[]
+        data.finished_services = all_services
+        data.all_services = all_services
+        data.running_services = []
         data.isProcessing = False
         if work_flow_name == DWorkFLows.FULL_FLOW.value:
             data = session.query(PDProtocolMetadata).get(id)
@@ -215,6 +217,7 @@ def update_doc_error_status(id, work_flow_name, error_code, error_reason, error_
             data.isProcessing = False
         session.commit()
 
+
 def segregate_workflows(workflows):
     default_workflows = {}
     custom_workflows = {}
@@ -225,7 +228,7 @@ def segregate_workflows(workflows):
             if workflow_name not in EXCLUDED_WF:
                 default_workflows[workflow_name] = workflow['graph']
         else:
-            if workflow_name not in EXCLUDED_WF :
+            if workflow_name not in EXCLUDED_WF:
                 custom_workflows[workflow_name] = workflow['graph']
     return default_workflows, custom_workflows
 
@@ -252,7 +255,7 @@ def get_wf_by_doc_id(doc_id, days=None, wf_num=None):
                         WorkFlowStatus.percent_complete.label('wfPercentComplete'),
                         func.to_char(WorkFlowStatus.timeCreated, 'DD-Mon-YYYY').label('timeCreated')). \
         filter(WorkFlowStatus.doc_id == doc_id).order_by(
-                WorkFlowStatus.timeCreated.desc())
+        WorkFlowStatus.timeCreated.desc())
     if days:
         end_date = datetime.datetime.utcnow()
         start_date = end_date - datetime.timedelta(days=int(days))
@@ -263,4 +266,18 @@ def get_wf_by_doc_id(doc_id, days=None, wf_num=None):
         wfs = wfs.limit(wf_num)
     session.close()
     all_wf_data = [wf._asdict() for wf in wfs.all()]
-    return all_wf_data
+    sorted_all_wf_data = sort_all_services(all_wf_data)
+    return sorted_all_wf_data
+
+
+def sort_all_services(all_wf_data):
+    """This Function is used to sort all the workflows in correct sequence of execution"""
+    sorted_all_wf_data = []
+    for wf_data in all_wf_data:
+        sorted_wf_data = []
+        for service in WORKFLOW_ORDER:
+            if service in wf_data['wfAllServices']:
+                sorted_wf_data.append(service)
+        wf_data['wfAllServices'] = sorted_wf_data
+        sorted_all_wf_data.append(wf_data)
+    return sorted_all_wf_data
