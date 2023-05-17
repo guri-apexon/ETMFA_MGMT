@@ -181,7 +181,7 @@ def delete_normalized_soa_cell_value_by_row(session, table_props):
         for table_name in [("iqvassessmentrecord_db"), ("iqvassessmentvisitrecord_db")]:
             sql = f'Delete from {table_name} where table_roi_id = \'{table_roi_id}\' and table_row_index = {table_row_index}'
             session.execute(sql)
-            op_code = '-'
+        op_code = '-'
         for table_name in [("iqvassessmentrecord_db"), ("iqvassessmentvisitrecord_db")]:
             sql = f'Update {table_name} SET "table_row_index" = "table_row_index" {op_code} 1  where "table_row_index" > {table_row_index} and table_roi_id = \'{table_roi_id}\''
             session.execute(sql)
