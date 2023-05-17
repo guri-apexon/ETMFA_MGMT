@@ -5,7 +5,6 @@ from etmfa.utilities.elastic_utilities import ingest_elastic
 from datetime import datetime
 from etmfa.consts import Consts as consts
 
-
 logger = logging.getLogger(consts.LOGGING_NAME)
 
 """
@@ -38,7 +37,6 @@ summary_sec_pat = ['IsObjectiveAndEndpoint',
                    'IsDataMonitoringCommittee',
                    'IsSchema']
 
-
 ling_es_mapping = {
     "ProtocolTitle": "ProtocolTitle",
     "short_title": "ShortTitle",
@@ -68,13 +66,11 @@ ling_es_mapping = {
     "soa_footnotes": "SoaFootnote"
 }
 
-intake_field_list_priority = ["SponsorName", "Indication"]
 
+def save_elastic_doc(host, port, index, es_sec_dict):
+    if es_sec_dict:
+        return ingest_elastic(host, port, index, es_sec_dict)
 
-
-def save_elastic_doc(host,port,index,es_sec_dict):
-    if  es_sec_dict:
-        return ingest_elastic(host,port,index,es_sec_dict)
 
 def ingest_doc_elastic(iqv_document, search_df):
     """
@@ -117,19 +113,18 @@ def ingest_doc_elastic(iqv_document, search_df):
         es_sec_dict['is_active'] = 1
         for IQVDocumentFeedbackResults in iqv_document.IQVDocumentFeedbackResultsList:
             intake_dict['ProtocolNo'] = IQVDocumentFeedbackResults.protocol.strip()
-            intake_dict['MoleculeDevice'] = IQVDocumentFeedbackResults.molecule_device.strip()
-            intake_dict['SponsorName'] = IQVDocumentFeedbackResults.sponsor.strip()
             intake_dict['SourceFileName'] = IQVDocumentFeedbackResults.source_filename.split("\\")[-1]
             intake_dict['DocumentStatus'] = IQVDocumentFeedbackResults.document_status.strip()
             intake_dict['VersionNumber'] = IQVDocumentFeedbackResults.version_number.strip()
             intake_dict['UserId'] = IQVDocumentFeedbackResults.user_id.strip()
-            intake_dict['UserModified'] = "" # IQVDocumentFeedbackResults.user_id
+            intake_dict['UserModified'] = ""  # IQVDocumentFeedbackResults.user_id
             intake_dict['ProjectId'] = IQVDocumentFeedbackResults.project_id.strip()
-            intake_dict['IsAmendment'] = IQVDocumentFeedbackResults.amendment_number.strip()  # This is Yes, No Flag from UI
+            intake_dict[
+                'IsAmendment'] = IQVDocumentFeedbackResults.amendment_number.strip()  # This is Yes, No Flag from UI
             intake_dict['Indication'] = IQVDocumentFeedbackResults.indication.strip()
             intake_dict['uploadDate'] = IQVDocumentFeedbackResults.date_time_stamp.strip()  # YYYYMMDDHHMMSS
-            intake_dict['TimeCreated'] = "" # IQVDocumentFeedbackResults.date_time_stamp # YYYYMMDDHHMMSS
-            intake_dict['TimeUpdated'] = "" # IQVDocumentFeedbackResults.date_time_stamp # YYYYMMDDHHMMSS
+            intake_dict['TimeCreated'] = ""  # IQVDocumentFeedbackResults.date_time_stamp # YYYYMMDDHHMMSS
+            intake_dict['TimeUpdated'] = ""  # IQVDocumentFeedbackResults.date_time_stamp # YYYYMMDDHHMMSS
             intake_dict['Environment'] = IQVDocumentFeedbackResults.environment.strip()
             intake_dict['SourceSystem'] = IQVDocumentFeedbackResults.source_system.strip()
             intake_dict['StudyStatus'] = IQVDocumentFeedbackResults.study_status.strip()
@@ -185,17 +180,16 @@ def ingest_doc_elastic(iqv_document, search_df):
                     summary_entities[kv.key] = subtext_redaction_entities
 
         for key in ling_es_mapping:
-            if ling_es_mapping[key] not in intake_field_list_priority:
-                if ling_es_mapping[key] in es_sec_dict and linguamatics_op_dict[key] != '':
-                    es_sec_dict[ling_es_mapping[key]] = linguamatics_op_dict[key]
-                elif ling_es_mapping[key] not in es_sec_dict:
-                    es_sec_dict[ling_es_mapping[key]] = linguamatics_op_dict[key]
+            if ling_es_mapping[key] in es_sec_dict and linguamatics_op_dict[key] != '':
+                es_sec_dict[ling_es_mapping[key]] = linguamatics_op_dict[key]
+            elif ling_es_mapping[key] not in es_sec_dict:
+                es_sec_dict[ling_es_mapping[key]] = linguamatics_op_dict[key]
 
-        if (es_sec_dict['approval_date'].isnumeric() and len(es_sec_dict['approval_date']) != 8) or (not es_sec_dict['approval_date'].isnumeric()):
+        if (es_sec_dict['approval_date'].isnumeric() and len(es_sec_dict['approval_date']) != 8) or (
+        not es_sec_dict['approval_date'].isnumeric()):
             es_sec_dict['approval_date'] = ''
 
     except Exception as exc:
         logger.exception(f"Exception received in ingest_doc_elastic, intake field extraction:{exc}")
-
 
     return es_sec_dict, summary_entities
