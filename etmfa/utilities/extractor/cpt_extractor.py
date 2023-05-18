@@ -226,12 +226,23 @@ class CPTExtractor:
         cpt_df['IsSectionHeader'] =	raw_cpt_df['IsSectionHeader']
         cpt_df['file_section'] =	raw_cpt_df['HeaderText']
         cpt_df['file_section_num'] = raw_cpt_df['HeaderNumericSection']
+        docu_para_headrs = [{"doc_id":j.doc_id,"link_id":j.link_id, "link_id_level2":j.link_id_level2,"link_id_level3":j.link_id_level3,"link_id_level4":j.link_id_level4,"link_id_level5":j.link_id_level5,"link_id_level6":j.link_id_level6} for j in self.iqv_document.DocumentParagraphs]
+        
+        # add header linklevel to response
+        new_headrs_list = []
+        for item in docu_para_headrs:
+            new_headrs_list.append("")
+            for jitem in self.iqv_document.DocumentLinks:
+                if item["link_id"] == jitem.link_id and item["link_id_level2"] == jitem.link_id_level2 and item["link_id_level3"] == jitem.link_id_level3 and item["link_id_level4"] == jitem.link_id_level4 and item["link_id_level5"] == jitem.link_id_level5 and item["link_id_level6"] == jitem.link_id_level6:
+                    new_headrs_list[-1] = jitem.LinkLevel
+
         cpt_df['file_section_level'] =	raw_cpt_df['LinkLevel']
         # Propogate level_1_cpt_section and file_section to its children levels
         file_section_columns = ['file_section', 'file_section_num', 'file_section_level']
         level1_cpt_section_list, file_section_list  = self.set_child_sections(cpt_df)
         cpt_df['level_1_CPT_section'] = level1_cpt_section_list
         cpt_df[file_section_columns] = file_section_list
+        cpt_df['file_section_level'] =	new_headrs_list
         # Build display data
         display_columns = ['section_level', 'CPT_section', 'type', 'content', 'font_info', 'level_1_CPT_section']  + file_section_columns
         display_df = cpt_df.loc[(cpt_df['keep_unique_table_flg']) & (cpt_df['not_merged_table_flg']), display_columns]
