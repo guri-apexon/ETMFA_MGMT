@@ -171,6 +171,12 @@ class NestedDict():
                 attr_value = getattr(attr_data, attr.name)
                 if attr_value != None:
                     return attr_value
+                
+    def get_file_name(self, file_name):
+        if file_name.endswith(".pdf") or file_name.endswith(".docx"):
+            file_name = file_name.rsplit(".", 1)[0]
+        return file_name
+
 
 MetaStatusResponse =lambda is_added,is_duplicate,error:{'isAdded':is_added,'isDuplicate':is_duplicate,'error':error}
 MetaDeleteResponse= lambda is_deleted,error:{'isDeleted':is_deleted,'error':error}
@@ -272,7 +278,10 @@ class MetaDataTableHelper():
 
 
     def get_result_list(self,doc_id,data, attr_list):
-
+        """
+        returns result list of attributes
+        """
+        nested_obj = NestedDict(self.max_level)
         attr_map={attr['attr_name']:attr  for attr in attr_list.get('_meta_data',[]) if attr.get('attr_name',None)}
         top_obj = {c.name: getattr(data, c.name) for c in data.__table__.columns}
         result_list = []
@@ -293,6 +302,9 @@ class MetaDataTableHelper():
             else:
                 attr_id = self._get_elements_hash([doc_id,MetaDataTableHelper.SUMMARY_EXTENDED,1,MetaDataTableHelper.SUMMARY_EXTENDED, attr_name])
                 value = top_obj.get(attr_name,'')
+                if attr_name == 'fileName':
+                    value = nested_obj.get_file_name(str(value))
+
             if not audit_info:
                 audit_info["last_updated"] = top_obj.get("lastUpdated")  
             result_list.append({'display_name':display_name,
@@ -355,7 +367,7 @@ class MetaDataTableHelper():
         curr_obj = nested_obj.data    
         if not field_name and _id!=ACCORDIAN_DOC_ID:
             result_list,extended_list = self.get_result_list(_id,data, curr_obj.get(MetaDataTableHelper.SUMMARY_EXTENDED,{}))
-            curr_obj.update({'summary':{'_meta_data':result_list}})
+            curr_obj.update({'Summary':{'_meta_data':result_list}})
             curr_obj[MetaDataTableHelper.SUMMARY_EXTENDED] = {'_meta_data':extended_list}
             
         if not curr_obj:
