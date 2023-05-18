@@ -12,7 +12,7 @@ from flask import request, g
 from flask_restplus import Resource, abort, reqparse
 from etmfa.auth import authenticate
 from etmfa.consts import Consts as consts
-from etmfa.db import feedback_utils as fb_utlis
+from etmfa.db import feedback_utils as fb_utlis, check_work_flow_name
 from etmfa.db.models import pd_dipa_view_data
 from etmfa.db.db import db_context
 from .confidence_metric import fetch_records_from_db
@@ -185,12 +185,12 @@ class DocumentprocessingAPI(Resource):
             logger.error(
                 'requested document is not in workflow status table' + str(doc_id) + str(e))
             abort(404, DOCUMENT_MISSING_FROM_METADATA_TABLE)
+
         doc_uid = None
         _id = str(uuid.uuid4())
-        message, response_status=register_custom_flows(work_flow_list,work_flow_name,_id,doc_id)
-        if work_flow_list:
-            if not response_status and Config.WORK_FLOW_RUNNER:
-                return abort(400, message)
+        message, response_status = register_custom_flows(work_flow_list,work_flow_name,_id,doc_id)
+        if not response_status and work_flow_list and Config.WORK_FLOW_RUNNER:
+            return abort(400, message)
 
         if not work_flow_list:
             work_flow_graph = DEFAULT_WORKFLOWS.get(work_flow_name, None)
@@ -200,6 +200,8 @@ class DocumentprocessingAPI(Resource):
             start_service_name = work_flow_graph[0].get('service_name', None)
             if not start_service_name:
                 abort(404, str(WorkFlowParamMissing(work_flow_name)))
+
+        work_flow_name = check_work_flow_name(work_flow_name, work_flow_list)
 
         create_doc_processing_status(
             _id, doc_id, doc_uid, work_flow_name, doc_file_path, protocol)
