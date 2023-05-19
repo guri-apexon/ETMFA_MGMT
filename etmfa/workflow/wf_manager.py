@@ -446,9 +446,6 @@ class WorkFlowController(Thread):
         param = msg['param']
         work_flow_list = param['work_flow_list']
         status = {}
-        is_valid, status = self.wfm.validate_workflow(msg['work_flow_name'], work_flow_list)
-        if not is_valid:
-            return status['Message'], is_valid
         work_flow_graph, service_list = [], []
         for wfs in work_flow_list:
             depends_graph = wfs['dependency_graph']
@@ -456,8 +453,8 @@ class WorkFlowController(Thread):
             for sr_info in depends_graph:
                 service_list.append(sr_info['service_name'])
         work_flow_graph.append({'service_name': TERMINATE_NODE, 'depends': service_list})
-        self.wfm.add_work_flow(CustomWorkFlow(DEFAULT_WORKFLOW_NAME, work_flow_graph))
-        return status, is_valid
+        self.wfm.add_work_flow(CustomWorkFlow(msg['work_flow_name'], work_flow_graph))
+        return status, True
     
     def on_msg(self, msg_obj):
         """
