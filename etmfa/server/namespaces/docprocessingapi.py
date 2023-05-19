@@ -151,7 +151,7 @@ def register_custom_flows(work_flow_list, work_flow_name, _id, doc_id):
                                                            "doc_id": doc_id},
                                                           MsqType.ADD_CUSTOM_WORKFLOW.value)
         else:
-            work_flow_name = DEFAULT_WORKFLOW_NAME
+            work_flow_name = check_work_flow_name(work_flow_name, work_flow_list)
             message, response_status = wf_client.send_msg(work_flow_name, _id, "",
                                                           {"work_flow_list": work_flow_list,
                                                            "doc_id": doc_id},

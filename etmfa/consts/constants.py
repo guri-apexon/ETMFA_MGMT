@@ -48,6 +48,7 @@ SUMMARY_EXTENDED = 'summary_extended'
 WORKFLOW_ORDER = ["triage", "digitizer1",
                   "digitizer2", "extraction",
                   "digitizer2_omopgenerate",
+                  "digitizer2_normsoa",
                   "i2e_omop_update",
                   "digitizer2_omopupdate",
                   "digitizer2_compare",
