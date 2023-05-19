@@ -1027,7 +1027,7 @@ def get_normalized_soa_table(aidoc_id, footnote) -> dict:
             normalized_soa["tableId"] = roi_id
             normalized_soa["studyVisit"] = study_visits.get(roi_id, [])
             normalized_soa["studyProcedure"] = study_procedures.get(roi_id)
-            normalized_soa["normalized_SOA"] = norm_dict.get(roi_id)
+            normalized_soa["normalized_SOA"] = norm_dict.get(roi_id, [])
             normalizedsoa_list.append(normalized_soa)
         normalizedsoa_data = {"id": aidoc_id, "soa_data": normalizedsoa_list}
 
