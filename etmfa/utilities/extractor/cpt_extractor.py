@@ -40,7 +40,7 @@ class CPTExtractor:
         self.entity_profile_genre = entity_profile_genre
         # regex to remove spaces, html tags
         self.regex = re.compile(r'\s*<[^>]+>\s*|\s+')
-        self.header_values = [self.regex.sub('', header_val.LinkText).lower() for header_val in
+        self.header_values = [{"text_value":self.regex.sub('', header_val.LinkText).lower(),"link_level":header_val.LinkLevel} for header_val in
                               iqv_document.DocumentLinks]
 
     def read_cpt_tags(self) -> Tuple[list, int, int]:
@@ -66,7 +66,13 @@ class CPTExtractor:
             master_dict['para_master_roi_id'] = master_roi.id
             master_dict['image_content'] = ''
             # For header identification
-            master_dict['font_heading_flg'] = (self.regex.sub('', master_roi.Value.strip()).lower() in self.header_values) or first_header_type
+            header_result = list(
+                filter(lambda item: item['text_value'] == self.regex.sub('', master_roi.Value.strip()).lower(),
+                       self.header_values))
+
+            master_dict['font_heading_flg'] = bool(header_result) or first_header_type
+            master_dict['link_level'] = header_result[0]["link_level"] if header_result else ""
+
             first_header_type = False
             # Collect tags
             master_dict['table_index'] = master_roi_dict.get(self.table_index_tag, '')
@@ -232,6 +238,7 @@ class CPTExtractor:
         level1_cpt_section_list, file_section_list  = self.set_child_sections(cpt_df)
         cpt_df['level_1_CPT_section'] = level1_cpt_section_list
         cpt_df[file_section_columns] = file_section_list
+        cpt_df['file_section_level'] = raw_cpt_df['link_level']
         # Build display data
         display_columns = ['section_level', 'CPT_section', 'type', 'content', 'font_info', 'level_1_CPT_section']  + file_section_columns
         display_df = cpt_df.loc[(cpt_df['keep_unique_table_flg']) & (cpt_df['not_merged_table_flg']), display_columns]
