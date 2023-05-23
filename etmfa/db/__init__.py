@@ -969,10 +969,10 @@ def delete_metadata_summary(op, **data):
             helper_obj = MetaDataTableHelper()
             if op == 'deleteAttribute':
                 metadata_response = helper_obj.delete_attribute(
-                    session, data.get("id"), data.get("fieldName"), data.get("attributes"))
+                    session, data.get("id"), data.get("fieldName"), data.get("attributes"), data.get("softDelete"))
             elif op == 'deleteField':
                 metadata_response = helper_obj.delete_field(
-                    session, data.get("id"), data.get("fieldName"))
+                    session, data.get("id"), data.get("fieldName"), data.get("softDelete"))
             else:
                 raise GenericMessageException("unknown operation received.")
         except Exception as exc:
