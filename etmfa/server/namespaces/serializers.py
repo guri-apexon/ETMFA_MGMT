@@ -640,6 +640,8 @@ metadata_detele_summary = reqparse.RequestParser()
 metadata_detele_summary.add_argument('op', type=str, required=True,
                                      help='Operation required to delete metadata(provide "deleteField" or "deleteAttribute")')
 metadata_detele_summary.add_argument(
+    'softDelete', type=bool, required=True, help='True or False value for soft delete')
+metadata_detele_summary.add_argument(
     'aidocId', type=str, required=False, help=UNIQUE_PROTOCOL_DOCUMENT_ID)
 metadata_detele_summary.add_argument(
     'fieldName', type=str, required=True, help=METADATA_FIELDNAME)
