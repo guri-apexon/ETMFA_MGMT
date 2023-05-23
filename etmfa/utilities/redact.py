@@ -74,6 +74,13 @@ class Redactor:
             if user_protocol_obj and user_protocol_obj.userRole == 'QC1':
                 profile_name = constants.USERROLE_REDACTPROFILE_MAP['primary']
 
+            # Here user type checking from user table if user_protocol_obj object
+            # is None from pd_user_protocol table
+            elif user_protocol_obj is None:
+                user_record = crud.pd_user_protocols.get_user_type_from_userid(current_db, userid=user_id)
+                if user_record and user_record.user_type == 'QC1':
+                    profile_name = constants.USERROLE_REDACTPROFILE_MAP['primary']
+
         valid_profile_name = profile_name if profile_name in constants.USERROLE_REDACTPROFILE_MAP.values() \
             else constants.USERROLE_REDACTPROFILE_MAP['default']
         profile = self.redact_dict.get(valid_profile_name)
