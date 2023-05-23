@@ -708,7 +708,7 @@ class DocumentprocessingAPI(Resource):
             field_name = args.get('fieldName', '').strip()
             if not aidoc_id:
                 aidoc_id = ACCORDIAN_DOC_ID
-            if not field_name:
+            if not field_name and aidoc_id != ACCORDIAN_DOC_ID:
                 field_name = "summary_extended"
             attributes = args['attributes']
 
@@ -761,7 +761,7 @@ class DocumentprocessingAPI(Resource):
             if not aidoc_id:
                 aidoc_id = ACCORDIAN_DOC_ID
             field_name = args.get('fieldName', '').strip()
-            if not field_name:
+            if not field_name and aidoc_id != ACCORDIAN_DOC_ID:
                 field_name = "summary_extended"
             attributes = args['attributes']
             data, attr_list = {}, []
@@ -813,6 +813,7 @@ class DocumentprocessingAPI(Resource):
         args = metadata_detele_summary.parse_args()
         try:
             op = args.get('op', '').strip()
+            soft_delete = args.get('softDelete')
             aidoc_id = args.get('aidocId').strip() if isinstance(args.get('aidocId'), str) else ''
             if not aidoc_id:
                 aidoc_id = ACCORDIAN_DOC_ID
@@ -829,7 +830,7 @@ class DocumentprocessingAPI(Resource):
                     attr_list.append({'attribute_name': attrs,'attr_id':attr_id})
 
             data = {'id': aidoc_id, 'fieldName': field_name,
-                    'attributes': attr_list}
+                    'attributes': attr_list, 'softDelete': soft_delete}
 
             resource = delete_metadata_summary(op, **data)
             if len(resource) == 0:
