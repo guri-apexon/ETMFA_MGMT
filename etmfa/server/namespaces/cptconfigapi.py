@@ -64,7 +64,7 @@ def get_enriched_data_with_doc_id(aidoc_id):
                 'medical_term': "",
                 'classification': entity.entity_class,
                 'clinical_terms': entity.text,
-                'link_id': entity.link_id,
+                'link_id': entity.link_id_level6 or entity.link_id_level5 or entity.link_id_level4 or entity.link_id_level3 or entity.link_id_level2 or entity.link_id,
             }}
             clinical_data.append(clinical_values)
             entity_names.append(entity.standard_entity_name)
