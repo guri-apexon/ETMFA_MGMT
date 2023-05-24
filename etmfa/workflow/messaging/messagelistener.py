@@ -16,7 +16,7 @@ class MessageListener(ConsumerMixin):
         self.queues_to_monitor=queues_to_monitor
         self.callback = callback
         self.logger = logger
-        self.is_consumer_ready=False
+        self.is_consumer_ready = True
 
         if logger is None:
             print("WARNING: No logger used in message listener.")
