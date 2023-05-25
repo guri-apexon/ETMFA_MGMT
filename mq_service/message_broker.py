@@ -72,7 +72,7 @@ class MessageListener(ConsumerMixin):
         self.output_queue_name = output_queue_name
         self.error_queue_name = error_queue_name
         self.service_name = service_name
-        self.is_ready = False
+        self.is_ready = True
         self.exchange = Exchange(exchange_name, type='direct', durable=True)
 
     def get_consumers(self, consumer, channel):

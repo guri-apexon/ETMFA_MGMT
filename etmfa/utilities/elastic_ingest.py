@@ -42,6 +42,7 @@ ling_es_mapping = {
     "short_title": "ShortTitle",
     "amendment_number": "AmendmentNumber",
     "phase": "phase",
+    "molecule_device": "MoleculeDevice",
     "sponsor": "SponsorName",
     "sponsor_address": "SponsorAddress",
     "drug": "Drug",
@@ -144,6 +145,7 @@ def ingest_doc_elastic(iqv_document, search_df):
     try:
         linguamatics_op_dict = {
             "ProtocolTitle": "",  # yes
+            "molecule_device":"",
             "amendment_number": "",  # yes
             "compound": "",  # yes
             "control": "",  # yes
