@@ -6,7 +6,7 @@ if __name__ == '__main__':
     config_name = 'development'
 
     app = create_app(config_name)
-    server = WSGIServer(('0.0.0.0', 9001), app)
+    server = WSGIServer(('0.0.0.0', 8002), app)
 
     try:
         server.serve_forever()

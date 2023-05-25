@@ -147,12 +147,18 @@ class CPTExtractor:
                 iqv_subtext_dict = dict()
                 iqv_subtext_dict['para_subtext_roi_id'] = ''
                 iqv_subtext_dict['para_subtext_text'] = (master_roi_fulltext if master_roi_fulltext != 'None' else '')
+                para_links = {'link_id': master_roi.link_id, 
+                        'link_id_level2': master_roi.link_id_level2, 
+                        'link_id_level3': master_roi.link_id_level3, 
+                        'link_id_level4': master_roi.link_id_level4, 
+                        'link_id_level5': master_roi.link_id_level5, 
+                        'link_id_level6': master_roi.link_id_level6 }
                 iqv_subtext_dict['para_subtext_font_details'] = dict(
                     {'IsBold': False, 'font_size': -1,
                      'font_style': master_font_style,
                      'entity': master_redaction_entities, 'roi_id': roi_id},
                     **master_roi.fontInfo.__dict__)
-
+                iqv_subtext_dict['para_subtext_font_details'].update(para_links)
                 iqv_subtext_dict.update(master_dict)
                 all_child_list.append(iqv_subtext_dict)
 
