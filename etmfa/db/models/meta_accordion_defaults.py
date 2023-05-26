@@ -1,7 +1,7 @@
 
 META_ACCORDION = [
     {
-        "fieldName": "pb_variable",
+        "fieldName": "pb_variables",
         "attributes": [
             {
             "attribute_name": "total_num_site_visit",
