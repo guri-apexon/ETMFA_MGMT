@@ -82,9 +82,9 @@ def send_event_based_mail(doc_id: str, event, send_mail_flag, test_case=False, u
                             PDProtocolMetadata.versionNumber,
                             PDProtocolMetadata.documentStatus,
                             PDUserProtocols.userId,
-                            
                             User.username,
                             User.email).join(PDUserProtocols, and_(PDProtocolMetadata.id == doc_id,
+                                                                   PDUserProtocols.follow == True,
                                                                    PDProtocolMetadata.protocol == PDUserProtocols.protocol)).join(
             User, User.username.in_(('q' + PDUserProtocols.userId, 'u' + PDUserProtocols.userId,
                                      PDUserProtocols.userId))).filter_by(**event_dict).all()
