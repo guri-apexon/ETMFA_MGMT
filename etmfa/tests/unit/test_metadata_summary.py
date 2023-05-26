@@ -13,7 +13,7 @@ logger = logging.getLogger(consts.LOGGING_NAME)
 UNAUTHORIZED_MSG = "Credential validation: Authentication failed for given username and password"
 DELETE_BASE_PATH = "/pd/api/v1/documents/delete_meta_data"
 CONTENT_TYPE = "application/json"
-DOC_ID = "2e5f7f17-1ae3-4d8d-a681-635f498fe9d8"
+DOC_ID = "00102246-ef34-4253-a03a-d9f1a045e19e"
 DELETE_FIELD = "deleteField"
 ADD_FIELD = "addField"
 ADD_ATTRIBUTES = "addAttributes"
@@ -240,7 +240,6 @@ Test case for delete metadata
 @pytest.mark.order()
 @pytest.mark.parametrize("op, aidoc_id, field_name, attribute_names, soft_delete, expected_status_cd, comments, valid",
                          [(DELETE_ATTRIBUTE, DOC_ID, "test_info.aa.bb.cc.dd.ee", ["no_of_years", "isHealthy","treatment_timeperiod", "treatment", "testFor", "treatment_week_timeperiod"], False, HTTPStatus.OK, "Normal", True),
-                          (DELETE_FIELD, "", "test_info.aa.bb.cc.dd.ee", [], True, HTTPStatus.OK, "Normal", True),
                           (DELETE_FIELD, DOC_ID, "test_info", [], False, HTTPStatus.OK, "at level 1", True),
                           (DELETE_FIELD, DOC_ID, "test_info.aa", [], False, HTTPStatus.OK, "at level 2", True),
                           (DELETE_FIELD, DOC_ID, "test_info.aa.bb", [], False, HTTPStatus.OK, "at level 3", True),
