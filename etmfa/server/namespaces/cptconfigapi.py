@@ -81,7 +81,7 @@ def get_section_data(aidoc_id, link_level, link_id, user_id, protocol):
         message = json.dumps(
             {'message': "This document is not available in our database"})
         return Response(message, status=404, mimetype='application/json')
-    protocol_view_redaction = ProtocolViewRedaction(user_id, protocol)
+    protocol_view_redaction = ProtocolViewRedaction(db, user_id, protocol)
     finalized_iqvxml = PrepareUpdateData(iqv_document, imagebinaries,
                                          protocol_view_redaction.profile_details,
                                          protocol_view_redaction.entity_profile_genre)

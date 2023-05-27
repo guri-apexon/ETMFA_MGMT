@@ -11,17 +11,13 @@ from etmfa import crud
 from etmfa.consts import Consts as consts, constants
 from etmfa.crud.pd_protocol_summary_entities import pd_protocol_summary_entities
 from etmfa.crud.pd_redact_profile import pd_redact_profile
-from etmfa.workflow.db import SessionLocal
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
-db = SessionLocal()
-
 
 class Redactor:
-    def __init__(self):
-        db = SessionLocal()
-        self.profile_entries = pd_redact_profile.get_all_active(db)
+    def __init__(self, db):
+        self.profile_entries = pd_redact_profile.get_all_active(db=db)
         if self.profile_entries is None or len(self.profile_entries) == 0:
             logger.exception(f'Active profile extraction failed')
             raise HTTPException(status_code=403, detail="No active profile details extracted")
@@ -191,5 +187,3 @@ class Redactor:
 
         return redacted_text, redacted_property
 
-
-redactor = Redactor()

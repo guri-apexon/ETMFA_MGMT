@@ -1,16 +1,13 @@
 import logging
-from etmfa.workflow.db import SessionLocal
-from etmfa.utilities.redact import redactor
+from etmfa.utilities.redact import Redactor
 from etmfa.utilities.pd_table_redaction import TableRedaction
 from etmfa.consts import Consts as consts, constants
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
-db = SessionLocal()
-
 
 class ProtocolViewRedaction:
-    def __init__(self, user_id: str, protocol: str):
+    def __init__(self, db, user_id: str, protocol: str):
         """
         Protocol view redaction with user id and protocal
 
@@ -22,6 +19,7 @@ class ProtocolViewRedaction:
         self.user_id = user_id
         self.protocol = protocol
 
+        redactor = Redactor(db)
         profile_name, profile_details, profile_genre = redactor.get_current_redact_profile(
             current_db=db, user_id=self.user_id, protocol=self.protocol)
         self.profile_name = profile_name

@@ -3,10 +3,11 @@ import re
 
 import pytest
 from etmfa.db.db import db_context
-from etmfa.utilities.redact import redactor
+from etmfa.utilities.redact import Redactor
 from etmfa.consts import Consts as consts, constants as config
 
 db = db_context.session
+redactor = Redactor(db)
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
