@@ -8,7 +8,7 @@ from etmfa.utilities.user_metrics import create_or_update_user_metrics
 
 
 @pytest.mark.parametrize("doc_id, link_level, toc, status_code, comments", [
-    ("5c784c05-fbd3-4786-b0e4-3afa0d1c61ac", "1", "1", 200,
+    ("ec06c44f-3f09-46f7-9fa8-547916ca89d9", "1", "1", 200,
      "doc is present and toc is 1 data"),
     ("1698be28-1cf3-466e-8f56-5fc9200290571", "1",
      "1", 404, "doc id does not exists partial data"),
