@@ -27,7 +27,7 @@ class SOAResponse:
 
     def drop_duplicate_header(self,df):
         row_header = list(pd.Series(
-            df[(df['RowIndex'] % 1000).isin([1, 2, 3, 4])][
+            df[(df['RowIndex'] % 1000).isin([1, 2])][
                 'RowIndex'].unique()).nsmallest(4, keep='first'))
         Header_rows_list = (df[df['RowIndex'].isin(row_header)].groupby(['RowIndex']))['FullText'].apply(list).astype(str)
         All_rows_list=(df[~(df['RowIndex'].isin(row_header))].groupby(['RowIndex']))['FullText'].apply(list).astype(str)
