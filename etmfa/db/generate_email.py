@@ -13,7 +13,7 @@ from email.mime.multipart import MIMEMultipart
 
 # added for notification part
 from etmfa.db import insert_into_alert_table
-from etmfa.consts.constants import EVENT_CONFIG
+from etmfa.consts.constants import EVENT_CONFIG, QC_USER_NOTIFICATION_MESSAGES, DIGITIZER_USER_NOTIFICATION_MESSAGES
 from etmfa.db.models.pd_email_templates import PdEmailTemplates
 from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
@@ -40,7 +40,7 @@ def send_mail(subject: str, to_mail: str, html_body_part: str, test_case: bool =
         part = MIMEText(html_body_part, "html")
         message.attach(part)
         if not test_case:
-            with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as server:            
+            with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as server:
                 server.sendmail(Config.FROM_EMAIL, to_mail, message.as_string())
                 server.quit()
         logger.info(f"mail sent sucess")
@@ -99,8 +99,8 @@ def send_event_based_mail(doc_id: str, event, send_mail_flag, test_case=False, u
             protocol_number = row.protocol
             indication = row.indication
             doc_status = row.documentStatus
-            doc_activity = row.status
-            doc_status_activity = row.qcStatus
+            doc_activity = DIGITIZER_USER_NOTIFICATION_MESSAGES.get(row.status, 'Digitization Error')
+            doc_status_activity = QC_USER_NOTIFICATION_MESSAGES.get(row.qcStatus, 'ERROR')
             version_number = row.versionNumber
 
             if event_dict.get("qc_complete") or event_dict.get("new_document_version"):

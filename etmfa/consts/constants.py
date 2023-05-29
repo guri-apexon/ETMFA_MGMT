@@ -319,3 +319,34 @@ EVENT_CONFIG = {"QC_COMPLETED": {
 LAST_PROTOCOL_ACCESS = 10
 
 XML_SUFFIX = "*.xml*"
+
+DIGITIZER_USER_NOTIFICATION_MESSAGES = {
+    "DIGITIZER1_STARTED": 'Digitization In Progress',
+    "DIGITIZER2_STARTED": 'Digitization In Progress',
+    "DIGITIZER1_COMPLETED": 'Digitization In Progress',
+    "DIGITIZER2_COMPLETED": 'Digitization In Progress',
+    "DIGITIZER2_OMOPUPDATE_STARTED": 'Digitization In Progress',
+    "DIGITIZER2_OMOPUPDATE_COMPLETED": 'Digitization In Progress',
+    "I2E_OMOP_UPDATE_STARTED": 'Digitization In Progress',
+    "I2E_OMOP_UPDATE_COMPLETED": 'Digitization In Progress',
+    "TRIAGE_STARTED": 'Upload Complete',
+    "TRIAGE_COMPLETED": 'Upload Complete',
+    "EXTRACTION_STARTED": 'Extraction In Progress',
+    "EXTRACTION_COMPLETED": 'Extraction In Progress',
+    "FINALIZATION_STARTED": 'Extraction In Progress',
+    "FINALIZATION_COMPLETED": 'Extraction In Progress',
+    "PROCESS_COMPLETED": 'Digitization Complete',
+    "ERROR": 'Digitization Error',
+    "COMPARISON_STARTED": 'Comparison In Progress',
+    "COMPARISON_COMPLETED": 'Comparison In Progress',
+    "QC1": 'QC Review',
+    "QC2": 'QC Review'
+}
+
+QC_USER_NOTIFICATION_MESSAGES = {
+    "QC_NOT_STARTED": 'QC Not Started',
+    "QC1": 'QC In Progress',
+    "QC2": 'QC In Progress',
+    "FEEDBACK_RUN": 'QC In Progress',
+    "QC_COMPLETED": 'QC Completed',
+}
