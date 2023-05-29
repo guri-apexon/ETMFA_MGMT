@@ -7,6 +7,7 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 from werkzeug.exceptions import HTTPException
+from sqlalchemy.orm import Session
 from etmfa import crud
 from etmfa.consts import Consts as consts, constants
 from etmfa.crud.pd_protocol_summary_entities import pd_protocol_summary_entities
@@ -16,7 +17,7 @@ logger = logging.getLogger(consts.LOGGING_NAME)
 
 
 class Redactor:
-    def __init__(self, db):
+    def __init__(self, db: Session):
         self.profile_entries = pd_redact_profile.get_all_active(db=db)
         if self.profile_entries is None or len(self.profile_entries) == 0:
             logger.exception(f'Active profile extraction failed')
