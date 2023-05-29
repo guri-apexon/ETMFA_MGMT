@@ -34,8 +34,8 @@ def test_document_object(new_app_context, user_id, protocol, doc_id, status_code
 @pytest.mark.parametrize("aidoc_id, link_level, link_id, user_id, protocol", [
     ("21cb6042-fe5f-4230-94f2-5593fb33f522", 3, "5449e3cc-ea85-11ed-8d56-005056ab6469", "Dig2_Batch_Tester",
      "cicl.06ed2096-0749-4ead-a892-9e57ead4fcbc"),
-    ("c4f39521-5708-4735-b458-654afee0ff77", 2, "3f1addb2-5ce8-4649-8541-4bd0c6478f61", "mgmt",
-         "00d9456f-b5d3-4045-b76f-3bdecbe99775")
+    ("4c7ea27b-8a6b-4bf0-a8ed-2c1e49bbdc8c", 2, "46bac1b7-9197-11ed-b507-005056ab6469", "mgmt",
+         "005")
 ])
 def test_get_section_data(new_app_context, aidoc_id, link_level, link_id, user_id, protocol):
     _, _app_context = new_app_context
