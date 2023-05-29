@@ -116,7 +116,7 @@ class ElasticIngestion(ExecutionContext):
             raise GenericException(f"{aidoc_id} is not present in database")
 
         protocol_view_redaction = ProtocolViewRedaction(
-            user_id='', protocol='')
+            db=msg_data.get('db'), user_id='', protocol='')
         finalized_iqvxml = PrepareUpdateData(iqv_document, {},
                                              protocol_view_redaction.profile_details,
                                              protocol_view_redaction.entity_profile_genre)
