@@ -239,7 +239,7 @@ def default_accordion():
             for accordion in META_ACCORDION:
                 field_name = accordion.get("fieldName",None)
                 if helper_obj.check_field_exist(session,default_id,field_name):
-                    helper_obj.delete_field(session,default_id,field_name)
+                   helper_obj.delete_field(session,default_id,field_name,soft_delete=False)
                 helper_obj.add_field(session,default_id, field_name)
                 helper_obj.add_default_data(session,default_id,field_name,accordion.get('attributes',[]))
     
@@ -287,6 +287,18 @@ class MetaDataTableHelper():
             self.add_child_info(value)
 
 
+    def _summary_attr_type(self, attr_name):
+        for accordion in META_ACCORDION:
+            field_name = accordion.get("fieldName",None)
+            if field_name == "Summary":
+                attributes = accordion.get("attributes",None)
+                for attr in attributes:
+                    if attr.get("attribute_name") == attr_name:
+                        atr_type = attr.get("attribute_type")
+                        return atr_type
+                    
+                    
+
     def get_result_list(self,doc_id,data, attr_list):
         """
         returns result list of attributes
@@ -309,11 +321,12 @@ class MetaDataTableHelper():
                 attr_id=curr_data.get('attr_id',None)
                 note = curr_data.get("note")
                 is_active = curr_data.get("is_active")
-                is_default = curr_data.get("is_default")
+                is_default = True
                 audit_info = curr_data.get("audit_info")
             else:
                 attr_id = self._get_elements_hash([doc_id,MetaDataTableHelper.SUMMARY_EXTENDED,1,MetaDataTableHelper.SUMMARY_EXTENDED, attr_name])
                 value = top_obj.get(attr_name,'')
+                _type = self._summary_attr_type(attr_name)
                 if attr_name == 'fileName':
                     value = nested_obj.get_file_name(str(value))
                 is_active = True
@@ -580,7 +593,7 @@ class MetaDataTableHelper():
         Delete metadata field
         """
         nested_obj = NestedDict(self.max_level)
-        deleted,error = True,''
+        deleted, error = True, ''
         nested_fields, _ = self._get_level(field_name)
         try:
             data = session.query(PDProtocolMetadata).get(_id)
@@ -592,7 +605,7 @@ class MetaDataTableHelper():
             else:
                 for lvl_data in data.levels:
                     _, field_list = nested_obj.add_level(lvl_data)
-                    if set(nested_fields).difference(set(field_list)):
+                    if set(field_list).difference(set(nested_fields)):
                         continue
                     lvl_id = self._get_level_id(_id,field_list[0],len(field_list), field_list[-1])
                     obj = session.query(PDProtocolMetaDataLevel).get(lvl_id)
@@ -600,6 +613,8 @@ class MetaDataTableHelper():
                         session.delete(obj)
                     else:
                         obj.is_active = False
+                if not self.check_field_exist(session,_id,field_name):
+                    raise ValueError("Provided fieldName does not exist.")    
             session.commit()
         except Exception as e:
                 deleted=False
@@ -690,37 +705,36 @@ class MetaDataTableHelper():
         """
         status, duplicate, error = True, False, False
         try:
+            if not field_name:
+                raise ValueError("requested fieldName is empty. Provide a valid fieldName.")
             nested_fields, level = self._get_level(field_name)
-            if level not in self.valid_level_range:
+            if level not in self.valid_level_range and field_name:
                 raise ValueError(f"requested level outside range. Max level is {self.valid_level_range[-1]}")
             pd = session.query(PDProtocolMetadata).get(_id)
-            if self.check_field_exist(session, _id, field_name):
-                nested_fields, level = self._get_level(field_name)
-                start_field, end_field = nested_fields[0],nested_fields[-1]
-                lvl_id = self._get_level_id(_id, start_field, level, end_field)
-                exist_obj = session.query(PDProtocolMetaDataLevel).get(lvl_id)
+            start_field, end_field = nested_fields[0], nested_fields[-1]
+            lvl_id = self._get_level_id(_id, start_field, level, end_field)
+            exist_obj = session.query(PDProtocolMetaDataLevel).get(lvl_id)
+            if exist_obj:
                 exist_obj.is_active = True
-                if _id==ACCORDIAN_DOC_ID:
-                    exist_obj.is_default = True
-            else: 
-                start_field, end_field = nested_fields[0], nested_fields[-1]
-                lvl_id = self._get_level_id(_id, start_field, level, end_field)
+            else:
                 l1 = PDProtocolMetaDataLevel(id=lvl_id)
                 if _id==ACCORDIAN_DOC_ID: 
                     l1.is_default = True
                 if self.check_level_default(session, field_name): 
-                   l1.is_default = True
+                    l1.is_default = True
                 for idx, field in enumerate(nested_fields):
                     setattr(l1, 'level'+str(idx+1), field)
                 pd.levels.append(l1)
             session.commit()
-        except ValueError:
+       
+        except ValueError as e:
             status = False
-            error = f"requested level outside range. Max level is {self.valid_level_range[-1]}"    
+            error = str(e) 
         except IntegrityError as e:
             status = False
             error = str(e)
             if isinstance(e.orig, UniqueViolation):
                 error = DUPLICATION_ERROR
                 duplicate = True
+       
         return MetaStatusResponse(status,duplicate,error)
