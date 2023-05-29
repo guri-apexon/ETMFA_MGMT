@@ -3,6 +3,7 @@ import pytz
 from etmfa_core.postgres_db_schema import NlpEntityDb, IqvkeyvaluesetDb
 from etmfa.db.models.pd_documenttables_db import DocumenttablesDb
 from etmfa.db.models.pd_iqvdocumentlink_db import IqvdocumentlinkDb
+from etmfa.db.models.pd_users import User
 from etmfa.db.models.pd_iqvexternallink_db import IqvexternallinkDb
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 from sqlalchemy.orm import Session
@@ -204,17 +205,24 @@ def get_section_audit_info(psdb: Session, aidoc_id: str, link_ids: list,
                            5: IqvdocumentlinkDb.link_id_level5,
                            6: IqvdocumentlinkDb.link_id_level6}
 
-        obj = psdb.query(IqvdocumentlinkDb).filter(
+        if str(link_level) == '1':
+            obj = psdb.query(IqvdocumentlinkDb).filter(
             IqvdocumentlinkDb.doc_id == aidoc_id,
             link_level_dict[link_level] == link_id,
             IqvdocumentlinkDb.LinkLevel == link_level,
             IqvdocumentlinkDb.DocumentSequenceIndex == seq).first()
 
-        current_timezone = obj.last_updated
-        est_datetime = current_timezone.astimezone(timezone.utc)
-        response.append({"last_reviewed_date": str(est_datetime).replace('+00:00',''),
-                         "last_reviewed_by": obj.userId or '',
-                         "total_no_review": obj.num_updates})
+            full_name = obj.userId
+            user = psdb.query(User).filter(User.username == obj.userId).first()
+            if user:
+                full_name = (user.first_name + " " + user.last_name).strip()
+            current_timezone = obj.last_updated
+            est_datetime = current_timezone.astimezone(timezone.utc)
+            response.append({"last_reviewed_date": str(est_datetime).replace('+00:00',''),
+                            "last_reviewed_by": full_name,
+                            "total_no_review": obj.num_updates})
+        else:
+            response.append({})
 
     return response
 
