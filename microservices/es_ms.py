@@ -115,18 +115,19 @@ class ElasticIngestion(ExecutionContext):
         if iqv_document is None:
             raise GenericException(f"{aidoc_id} is not present in database")
 
-        protocol_view_redaction = ProtocolViewRedaction(
-            db=msg_data.get('db'), user_id='', protocol='')
-        finalized_iqvxml = PrepareUpdateData(iqv_document, {},
-                                             protocol_view_redaction.profile_details,
-                                             protocol_view_redaction.entity_profile_genre)
-        mcra_dict = finalized_iqvxml.get_norm_cpt(
-            self.elastic_host, self.elastic_port, self.elastic_index)
-        mcra_dict['columns'] = ["section_level", "CPT_section", "type", "content", "font_info",
-                                "level_1_CPT_section", "file_section", "file_section_num", "file_section_level", "seq_num"]
-        protocol_data_str = str(json.dumps(mcra_dict))
-        self.update_data_to_tables(
-            aidoc_id,protocol_data_str,mapped_meta_fields,accordians)
+        with self.SessionLocal() as session:
+            protocol_view_redaction = ProtocolViewRedaction(
+                db=session, user_id='', protocol='')
+            finalized_iqvxml = PrepareUpdateData(iqv_document, {},
+                                                 protocol_view_redaction.profile_details,
+                                                 protocol_view_redaction.entity_profile_genre)
+            mcra_dict = finalized_iqvxml.get_norm_cpt(
+                self.elastic_host, self.elastic_port, self.elastic_index)
+            mcra_dict['columns'] = ["section_level", "CPT_section", "type", "content", "font_info",
+                                    "level_1_CPT_section", "file_section", "file_section_num", "file_section_level", "seq_num"]
+            protocol_data_str = str(json.dumps(mcra_dict))
+            self.update_data_to_tables(
+                aidoc_id,protocol_data_str,mapped_meta_fields,accordians)
         return msg_data
 
     def on_release(self):
