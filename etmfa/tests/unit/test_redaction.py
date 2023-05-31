@@ -11,10 +11,6 @@ logger = logging.getLogger(consts.LOGGING_NAME)
 # Init
 sample_text = ": Efficacy and safety of GSK3196165 versus placebo and sarilumab in participants with moderately to severely active rheumatoid arthritis who have an inadequate response to biological DMARDs and/or Janus Kinase inhibitors. sarilumab(new compound) is beneficial"
 sample_font_info = {'IsBold': False, 'font_size': -1, 'font_style': '', 'entity': [{'start_idx': 25, 'end_idx': 34, 'subcategory': 'Molecule', 'confidence': 75.0, 'text': 'GSK3196165', 'debug_redact_text': 'GSK3196165', 'debug_redact_text_match_flg': True}, {'start_idx': 55, 'end_idx': 63, 'subcategory': 'Molecule', 'confidence': 75.0, 'text': 'sarilumab', 'debug_redact_text': 'sarilumab', 'debug_redact_text_match_flg': True}, {'start_idx': 0, 'end_idx': 0, 'subcategory': 'Molecule', 'confidence': 75.0, 'text': 'sarilumab(new'}], 'Bold': False, 'Caps': False, 'ColorRGB': 0, 'DStrike': False, 'Emboss': False, 'Highlight': '', 'Imprint': False, 'Italics': False, 'Outline': False, 'rFonts': '', 'rStyle': '', 'Shadow': False, 'Size': -1, 'SmallCaps': False, 'Strike': False, 'Underline': '', 'Vanish': False, 'VertAlign': ''}
-profile_entities = ['Sponsor Name', 'Sponsor Address', 'Molecule', 'PRIMARY INVESTIGATOR: Person Name', 'PRIMARY INVESTIGATOR: Person Title', 'PRIMARY INVESTIGATOR: Affiliation', 'PRIMARY INVESTIGATOR: Address', 'PRIMARY INVESTIGATOR: Email', 'PRIMARY INVESTIGATOR: Telephone/Fax', 'INVESTIGATOR: Person Name', 'INVESTIGATOR: Person Title', 'INVESTIGATOR: Affiliation', 'INVESTIGATOR: Address', 'INVESTIGATOR: Email', 'INVESTIGATOR: Telephone/Fax', 'QUALIFIED PHYSICIAN: Person Name', 'QUALIFIED PHYSICIAN: Person Title', 'QUALIFIED PHYSICIAN: Affiliation', 'QUALIFIED PHYSICIAN: Address', 'QUALIFIED PHYSICIAN: Email', 'QUALIFIED PHYSICIAN: Telephone/Fax', 'SPONSORS MEDICAL EXPERT: Person Name', 'SPONSORS MEDICAL EXPERT: Person Title', 'SPONSORS MEDICAL EXPERT: Affiliation', 'SPONSORS MEDICAL EXPERT: Address', 'SPONSORS MEDICAL EXPERT: Email', 'SPONSORS MEDICAL EXPERT: Telephone/Fax', 'SPONSOR MONITOR: Person Name', 'SPONSOR MONITOR: Person Title', 'SPONSOR MONITOR: Affiliation', 'SPONSOR MONITOR: Address', 'SPONSOR MONITOR: Email', 'SPONSOR MONITOR: Telephone/Fax', 'SPONSOR SIGNATORY: Person Name', 'SPONSOR SIGNATORY: Person Title', 'SPONSOR SIGNATORY: Affiliation', 'SPONSOR SIGNATORY: Address', 'SPONSOR SIGNATORY: Email', 'SPONSOR SIGNATORY: Telephone/Fax', 'OTHER: Person Name', 'OTHER: Person Title', 'OTHER: Affiliation', 'OTHER: Address', 'OTHER: Email', 'OTHER: Telephone/Fax', 'ANY: Address', 'ANY: Email', 'ANY: Organization', 'ANY: Telephone/Fax']
-profile_1_entities = profile_entities
-profile_0_entities = profile_entities
-
 
 @pytest.mark.parametrize("expected_profiles", [
     (set(config.USERROLE_REDACTPROFILE_MAP.values()))
@@ -61,20 +57,20 @@ def test_current_redact_genre(new_app_context, redact_profile, genre, max_genre_
 
 
 @pytest.mark.parametrize("text, font_info, redact_profile_entities, redact_flg, exclude_redact_property_flg, comments", [
-    (sample_text, sample_font_info, profile_0_entities, True, True, "Ideal secondary profile"),
-    (sample_text, sample_font_info, profile_0_entities, False, True, "Do not redact text but exclude property"),
-    (sample_text, sample_font_info, profile_0_entities, True, False, "Redact text and include property"),
-    (sample_text, sample_font_info, profile_0_entities, False, False, "Do not redact text and include property"),
-    (sample_text, sample_font_info, profile_1_entities, True, True, "Ideal primary profile"),
-    (sample_text, sample_font_info, profile_1_entities, False, True, "Do not redact text but exclude property"),
-    (sample_text, sample_font_info, profile_1_entities, True, False, "Redact text and include property"),
-    (sample_text, sample_font_info, profile_1_entities, False, False, "Do not redact text and include property"),
-    ("", sample_font_info, profile_1_entities, True, True, "Empty text"),
-    (sample_text, {}, profile_1_entities, True, True, "Empty font_info"),
-    ("", {}, profile_1_entities, True, True, "Empty text AND font_info"),
-    (sample_text, {"entity": []}, profile_1_entities, True, True, "Empty entity"),
-    ("", {"entity": []}, profile_1_entities, True, True, "Empty text AND Empty entity"),
-    ("", {"entity": []}, profile_1_entities, True, False, "Empty text AND Empty entity but include property")
+    (sample_text, sample_font_info, "profile_0_entities", True, True, "Ideal secondary profile"),
+    (sample_text, sample_font_info, "profile_0_entities", False, True, "Do not redact text but exclude property"),
+    (sample_text, sample_font_info, "profile_0_entities", True, False, "Redact text and include property"),
+    (sample_text, sample_font_info, "profile_0_entities", False, False, "Do not redact text and include property"),
+    (sample_text, sample_font_info, "profile_1_entities", True, True, "Ideal primary profile"),
+    (sample_text, sample_font_info, "profile_1_entities", False, True, "Do not redact text but exclude property"),
+    (sample_text, sample_font_info, "profile_1_entities", True, False, "Redact text and include property"),
+    (sample_text, sample_font_info, "profile_1_entities", False, False, "Do not redact text and include property"),
+    ("", sample_font_info, "profile_1_entities", True, True, "Empty text"),
+    (sample_text, {}, "profile_1_entities", True, True, "Empty font_info"),
+    ("", {}, "profile_1_entities", True, True, "Empty text AND font_info"),
+    (sample_text, {"entity": []}, "profile_1_entities", True, True, "Empty entity"),
+    ("", {"entity": []}, "profile_1_entities", True, True, "Empty text AND Empty entity"),
+    ("", {"entity": []}, "profile_1_entities", True, False, "Empty text AND Empty entity but include property")
 ])
 def test_redact_text(new_app_context, text, font_info, redact_profile_entities, redact_flg, exclude_redact_property_flg, comments):
     """
@@ -84,6 +80,11 @@ def test_redact_text(new_app_context, text, font_info, redact_profile_entities, 
     with _app_context:
         db = db_context.session
         redactor = Redactor(db)
+        if redact_profile_entities == "profile_0_entities":
+            _, _, redact_profile_entities = redactor.get_current_redact_profile(current_db=db, profile_name='secondary', genre=config.GENRE_ENTITY_NAME)
+        elif redact_profile_entities == "profile_1_entities":
+            _, _, redact_profile_entities = redactor.get_current_redact_profile(current_db=db, profile_name='primary',
+                                                                           genre=config.GENRE_ENTITY_NAME)
         redacted_text, redacted_property = redactor.on_paragraph(text, font_info, redact_profile_entities, redact_flg, exclude_redact_property_flg)
 
         for each_entity in font_info.get('entity', []):
@@ -97,20 +98,3 @@ def test_redact_text(new_app_context, text, font_info, redact_profile_entities, 
             assert redacted_property.get('entity') is None
         else:
             assert redacted_property.get('entity') is not None
-
-
-def test_genre_entities(new_app_context):
-    _, _app_context = new_app_context
-    with _app_context:
-        db = db_context.session
-        redactor = Redactor(db)
-        _, _, profile_1_entities_val = redactor.get_current_redact_profile(
-            current_db=db, profile_name='primary',
-            genre=config.GENRE_ENTITY_NAME)
-        _, _, profile_0_entities_val = redactor.get_current_redact_profile(
-            current_db=db, profile_name='secondary',
-            genre=config.GENRE_ENTITY_NAME)
-        assert all(
-            item in profile_1_entities for item in profile_1_entities_val)
-        assert all(
-            item in profile_0_entities for item in profile_0_entities_val)
