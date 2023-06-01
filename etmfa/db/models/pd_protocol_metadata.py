@@ -122,10 +122,11 @@ class PDProtocolMetaDataAttribute(db_context.Model):
     attribute_value_boolean= Column(Boolean)
     attribute_value_array=Column(ARRAY(String))
     attribute_value_float=Column(Float)
-    confidence=Column(String)
-    note=Column(String)
+    confidence = Column(String)
+    note = Column(String)
     parent_id = Column(String, ForeignKey('pd_protocol_metadata_level.id', ondelete="CASCADE"))
-    user_id=Column(VARCHAR(100))
+    user_id = Column(VARCHAR(100))
+    last_edited_by = Column(VARCHAR(200))
     last_updated = Column(DateTime(timezone=False))
     display_name = Column(VARCHAR(100))
     num_updates = Column(Integer, default=1)
@@ -384,7 +385,7 @@ class MetaDataTableHelper():
             attribute_info = []
             for attr in lvl_data.attributes:
                 audit_info = {
-                    "user_id":attr.user_id,
+                    "last_edited_by":attr.last_edited_by,
                     "last_updated":attr.last_updated,
                     "num_updates":attr.num_updates
                 }
@@ -466,6 +467,7 @@ class MetaDataTableHelper():
         meta_data_attr.attribute_name = name
         meta_data_attr.attribute_type = _type
         meta_data_attr.user_id = data.get('user_id', None)
+        meta_data_attr.last_edited_by = data.get('last_edited_by', None)
         meta_data_attr.display_name = data.get('display_name',None)
         meta_data_attr.last_updated = datetime.datetime.utcnow()
         meta_data_attr.confidence = data.get('confidence', None)
@@ -631,14 +633,14 @@ class MetaDataTableHelper():
                 setattr(obj, m_field, None)
             setattr(obj, col.name, val)
         elif (col_name.startswith('num_updates')):
-            if attr.user_id:
+            if attr.last_edited_by:
                 val = obj.num_updates+1
                 setattr(obj, col.name, val)
         elif ((col_name == 'attribute_type') or
               (col_name == 'confidence') or
                 (col_name == 'note') or
                 (col_name == 'display_name') or
-                (col_name == 'user_id')) and val != None:
+                (col_name == 'last_edited_by')) and val != None:
             setattr(obj, col.name, val)
         elif (col_name.startswith('is_active')) and val != None:
             setattr(obj, col.name, True)
