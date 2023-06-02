@@ -43,6 +43,34 @@ class CPTExtractor:
         self.header_values = [{"text_value":self.regex.sub('', header_val.LinkText).lower(),"link_level":header_val.LinkLevel} for header_val in
                               iqv_document.DocumentLinks]
 
+    def create_table_data(self, table_sequence_index ,table_heading, master_dict):
+        table_sequence_index = table_sequence_index - 1
+        for item in self.iqv_document.DocumentTables:
+            if item.DocumentSequenceIndex == table_sequence_index:
+                master_dict['table_type'] = "table"
+                master_dict['type'] = "table"
+                row_data_count = 0
+                table_data = []
+                for j in item.ChildBoxes:
+                    row_data = []
+                    col_data = []
+                    for k in j.ChildBoxes:
+                        new_value = ""
+                        for l in k.ChildBoxes:
+                            new_value += l.Value or l.strText
+                        cell_data = {"cell_id": l.ChildBoxes[0].id, "value": new_value, "op_type": None,
+                                     "col_index": len(col_data)}
+                        col_data.append(cell_data)
+                    row_data.append({"row_data": row_data_count, "roi_id": j.id, "op_type": None, "columns": col_data})
+                    row_data_count += 1
+                    table_data.append(row_data)
+                master_dict['para_subtext_text'] = item.GetFullText()
+                master_dict['table_content_from_master_roi'] = {"TableProperties": str(table_data),
+                                                                "Table": item.Value,
+                                                                "SectionHeaderPrintPage": "", "TableIndex": "",
+                                                                "TableName": table_heading}
+        return master_dict
+
     def read_cpt_tags(self) -> Tuple[list, int, int]:
         """
         Reads cpt tags from IQVDocument object and returns it
@@ -57,14 +85,16 @@ class CPTExtractor:
         for master_roi in self.iqv_document.DocumentParagraphs:
 
             master_roi_dict = dict()
-            for kv_obj in master_roi.Properties:
-                master_roi_dict[kv_obj.key] = kv_obj.value
+            # for kv_obj in master_roi.Properties:
+            #     master_roi_dict[kv_obj.key] = kv_obj.value
 
             all_roi_tags = master_roi_dict.keys()
             master_dict = dict()
             master_font_style = master_roi_dict.get('font_style', '')
             master_dict['para_master_roi_id'] = master_roi.id
             master_dict['image_content'] = ''
+            master_dict['table_type'] = ''
+            master_dict['table_content'] = ''
             # For header identification
             header_result = list(
                 filter(lambda item: item['text_value'] == self.regex.sub('', master_roi.Value.strip()).lower(),
@@ -106,6 +136,32 @@ class CPTExtractor:
                 if len(debug_notfound_entity) > 0 and len(all_child_list) != 0:
                     logger.debug(f"Debug report: [{master_roi.id}] [{level_roi.id}]: Missing entity idx: {debug_notfound_entity} \
                         level_roi text: {level_roi.GetFullText()} ; redaction_entities: {redaction_entities}")
+            if not master_roi.m_PARENT_ROI_TYPEVal == 501:
+                table_heading = master_roi.Value
+            master_dict = self.create_table_data(master_roi.DocumentSequenceIndex, table_heading, master_dict)
+            document_table_ids = [i.DocumentSequenceIndex for i in self.iqv_document.DocumentTables]
+            if master_roi.DocumentSequenceIndex-1 not in document_table_ids and master_roi.m_PARENT_ROI_TYPEVal == 501:
+                continue
+            # for item in self.iqv_document.DocumentTables[0:1]:
+            #     master_dict['table_type'] = "table"
+            #     row_data_count = 0
+            #     table_data = []
+            #     for j in item.ChildBoxes:
+            #         row_data = []
+            #         col_data = []
+            #         for k in j.ChildBoxes:
+            #             new_value = ""
+            #             for l in k.ChildBoxes:
+            #                 new_value += l.Value or l.strText
+            #             cell_data = {"cell_id": l.ChildBoxes[0].id, "value": new_value, "op_type": None,
+            #                          "col_index": len(col_data)}
+            #             col_data.append(cell_data)
+            #         row_data.append({"row_data": row_data_count, "roi_id": j.id, "op_type": None, "columns": col_data})
+            #         row_data_count += 1
+            #         table_data.append(row_data)
+            #     master_dict['para_subtext_text'] = master_roi.GetFullText()
+            #     master_dict['table_content_from_master_roi'] = {"TableProperties":table_data,"Table":master_roi.GetFullText(),"SectionHeaderPrintPage":"","TableIndex":"","TableName":master_roi.Value} # here we need to add full content now it's partial
+
 
             if self.imagebinaries.get(master_roi.id):
                 imagebinary_list = self.imagebinaries[master_roi.id]
@@ -223,9 +279,10 @@ class CPTExtractor:
         cpt_df['table_index'] = raw_cpt_df['table_index']
         cpt_df['para_text'] = raw_cpt_df['para_subtext_text']
         cpt_df['content'] = np.where(raw_cpt_df['type'] == "image",
-                                     raw_cpt_df['image_content'], (np.where(
+                                     raw_cpt_df['image_content'],
+                                     (np.where(
                 raw_cpt_df['type'].isin(['header', 'text']),
-                raw_cpt_df['para_subtext_text'], raw_cpt_df['table_content'])))
+                raw_cpt_df['para_subtext_text'], raw_cpt_df['table_content_from_master_roi'])))
         cpt_df['font_info'] = raw_cpt_df['para_subtext_font_details']
         # Default CPT_section
         cpt_df['CPT_section'] = cpt_df['CPT_section'].apply(lambda section_name: ModuleConfig.GENERAL.UNMAPPED_SECTION_NAME if section_name == '' else section_name)
@@ -297,7 +354,7 @@ class CPTExtractor:
             raw_cpt_df['table_content'] = raw_cpt_df['table_index'].apply(lambda col: table_index_dict.get(col, ''))
             del table_list
             # Identify type of contents
-            type_conditions = [raw_cpt_df['table_index'] > 0,
+            type_conditions = [raw_cpt_df['table_type'] == 'table',
                                (raw_cpt_df[self.hdr_tag_name] != '') | (
                                raw_cpt_df['font_heading_flg']),
                                raw_cpt_df['image_content'] > ""]
