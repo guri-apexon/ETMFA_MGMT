@@ -1,12 +1,12 @@
 import time
 import re
 import numpy as np
-from sqlalchemy import text
+from sqlalchemy import text, desc
 from multiprocessing import Process
-from sqlalchemy import create_engine, and_
+from sqlalchemy import create_engine, and_, func
 from sqlalchemy.orm import sessionmaker
 from etmfa.db.models.qc_edit_metric import QcEditMetric
-from etmfa_core.postgres_db_schema import DocumentparagraphsDb, DocumenttablesDb
+from etmfa_core.postgres_db_schema import DocumentparagraphsDb, DocumenttablesDb, IqvpageroiDb
 from etmfa.db.models.audit_schemas import AuditParagraphDb, AuditTablesDb
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
 from ..config import Config
@@ -18,7 +18,6 @@ import logging
 from etmfa.consts import Consts
 import json
 from ...workflow.exceptions import SendExceptionMessages
-
 logger = logging.getLogger(Consts.LOGGING_NAME)
 
 
@@ -143,8 +142,10 @@ class ConfidenceMatrix():
     def get_num_pages(self, session, doc_id):
         """ Fetch number of pages from database"""
 
-        doc_obj = session.query(DocumentparagraphsDb.PageSequenceIndex).filter(DocumentparagraphsDb.doc_id == doc_id). \
-            order_by(DocumentparagraphsDb.PageSequenceIndex.desc()).first()
+        doc_obj = session.query(IqvpageroiDb.PageSequenceIndex) \
+            .filter(IqvpageroiDb.doc_id == doc_id) \
+            .order_by(desc(IqvpageroiDb.PageSequenceIndex)).first()
+
         return doc_obj[0] if doc_obj else None
 
     def get_tbl_changes(self, session, doc_id, tbl, audit_tbl, prefix):
