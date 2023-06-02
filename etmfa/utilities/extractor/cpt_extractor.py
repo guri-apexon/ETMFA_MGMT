@@ -59,7 +59,7 @@ class CPTExtractor:
                         new_value = ""
                         # for l in k.ChildBoxes:
                         #     new_value += l.Value or l.strText
-                        cell_data = {"cell_id": k.id, "value": k.GetFullText(), "op_type": None,
+                        cell_data = {"cell_id": "l.ChildBoxes[0].id", "value": k.GetFullText(), "op_type": None,
                                      "col_index": len(col_data)}
                         col_data.append(cell_data)
                     row_data.append({"row_data": row_data_count, "roi_id": j.id, "op_type": None, "columns": col_data})
