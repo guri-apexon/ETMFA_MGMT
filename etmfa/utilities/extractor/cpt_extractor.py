@@ -1,3 +1,4 @@
+import json
 import logging
 from collections import Counter
 from typing import Optional, Tuple
@@ -65,7 +66,7 @@ class CPTExtractor:
                     row_data_count += 1
                     table_data.append(row_data)
                 master_dict['para_subtext_text'] = item.GetFullText()
-                master_dict['table_content_from_master_roi'] = {"TableProperties": str(table_data),
+                master_dict['table_content_from_master_roi'] = {"TableProperties": json.dumps(table_data),
                                                                 "Table": item.Value,
                                                                 "SectionHeaderPrintPage": "", "TableIndex": "",
                                                                 "TableName": table_heading}
