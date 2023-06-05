@@ -219,7 +219,7 @@ class SOAResponse:
                     resulttable=df[(df.TableIndex==tabseq)]
                     drop_rows,keep_header=self.header_finder(df=resulttable)
                     drop_rows.extend(self.drop_duplicate_header(df=resulttable))
-                    resulttable=df[(df.TableIndex==tabseq) & (~(df.RowIndex.isin(drop_rows)))]
+                    resulttable=df[(df.TableIndex==tabseq)]
                     resulttable=resulttable.reset_index(drop=True)
                     resulttable_redact = resulttable.copy(deep=True)
                     # Generating table structure
