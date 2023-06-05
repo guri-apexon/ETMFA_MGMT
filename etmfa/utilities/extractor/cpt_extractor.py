@@ -59,16 +59,17 @@ class CPTExtractor:
                         new_value = ""
                         # for l in k.ChildBoxes:
                         #     new_value += l.Value or l.strText
-                        cell_data = {"cell_id": "l.ChildBoxes[0].id", "value": k.GetFullText(), "op_type": None,
-                                     "col_index": len(col_data)}
+                        cell_data = {"cell_id": k.ChildBoxes[0].id if k.ChildBoxes else "", "value": k.GetFullText(True), "op_type": None,
+                                     "col_indx": len(col_data)}
                         col_data.append(cell_data)
-                    row_data.append({"row_data": row_data_count, "roi_id": j.id, "op_type": None, "columns": col_data})
+                    row_data.append({"row_indx": row_data_count, "roi_id": j.id, "op_type": None, "columns": col_data})
                     row_data_count += 1
                     table_data.append(row_data)
-                master_dict['para_subtext_text'] = item.GetFullText()
+                master_dict['para_subtext_text'] = item.GetFullText(True)
+                table_data = [i[0] for i in table_data]
                 master_dict['table_content_from_master_roi'] = {"TableProperties": json.dumps(table_data),
                                                                 "Table": item.Value,
-                                                                "SectionHeaderPrintPage": "", "TableIndex": "",
+                                                                "SectionHeaderPrintPage": "", "TableIndex": "1",
                                                                 "TableName": table_heading}
         return master_dict
 
@@ -351,7 +352,9 @@ class CPTExtractor:
             raw_cpt_df['table_index'] = raw_cpt_df['table_index'].apply(lambda x: int(float(x)) if len(x)> 0 else -1)
             unique_table_index = [table_index for table_index in set(raw_cpt_df['table_index']) if table_index > 0]
             # Populate table contents
-            table_list, table_redaction_count = soa.getTOIfromProprties(soa(self.iqv_document, self.profile_details, self.entity_profile_genre), table_indexes=unique_table_index)
+            # commenting getting data from top level data
+            # table_list, table_redaction_count = soa.getTOIfromProprties(soa(self.iqv_document, self.profile_details, self.entity_profile_genre), table_indexes=unique_table_index)
+            table_list, table_redaction_count = ([], 0)
             table_index_dict = {int(float(item['TableIndex'])):item for item in table_list}
             raw_cpt_df['table_content'] = raw_cpt_df['table_index'].apply(lambda col: table_index_dict.get(col, ''))
             del table_list
