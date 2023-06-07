@@ -719,7 +719,7 @@ class DocumentprocessingAPI(Resource):
                     attribute_value = attrs.get('attr_value', None)
                     note_value = attrs.get('note').strip() if isinstance(attrs.get('note'), str) else ''
                     confidence_value = attrs.get('confidence').strip() if isinstance(attrs.get('confidence'), str) else ''
-                    last_edited_by = attrs.get('last_edited_by').strip() if isinstance(attrs.get('last_edited_by'), str) else ''
+                    user_id = attrs.get('user_id').strip() if isinstance(attrs.get('user_id'), str) else ''
                     display_name = attrs.get('display_name').strip() if isinstance(attrs.get('display_name'), str) else ''
 
                     attr_list.append({"attribute_name": attribute_name,
@@ -728,7 +728,7 @@ class DocumentprocessingAPI(Resource):
                                         "note": note_value,
                                         "confidence": confidence_value,
                                         "display_name": display_name,
-                                        "last_edited_by":last_edited_by})
+                                        "user_id": user_id})
 
             data = {'id': aidoc_id, 'fieldName': field_name,
                     'attributes': attr_list}
@@ -773,7 +773,7 @@ class DocumentprocessingAPI(Resource):
                     attribute_value = attrs.get('attr_value', None)
                     note_value = attrs.get('note').strip() if isinstance(attrs.get('note'), str) else ''
                     confidence_value = attrs.get('confidence').strip() if isinstance(attrs.get('confidence'), str) else ''
-                    last_edited_by = attrs.get('last_edited_by').strip() if isinstance(attrs.get('last_edited_by'), str) else ''
+                    user_id = attrs.get('user_id').strip() if isinstance(attrs.get('user_id'), str) else ''
                     display_name = attrs.get('display_name').strip() if isinstance(attrs.get('display_name'), str) else ''
 
                     attr_list.append({"attribute_name": attribute_name,
@@ -783,7 +783,7 @@ class DocumentprocessingAPI(Resource):
                                         "note": note_value,
                                         "confidence": confidence_value,
                                         "display_name": display_name,
-                                        "last_edited_by": last_edited_by})
+                                        "user_id": user_id})
 
             data = {'id': aidoc_id, 'fieldName': field_name,
                     'attributes': attr_list}
