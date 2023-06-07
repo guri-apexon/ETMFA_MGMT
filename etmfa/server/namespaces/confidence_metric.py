@@ -249,7 +249,7 @@ class ConfidenceMatrix():
         with self.session_local() as session:
             logger.info(
                 'updating information of num of edits for latest documents')
-            last_start_timestamp = datetime.utcnow()
+            last_start_timestamp = datetime.now()
             last_run_timestamp = self.get_last_run_timestamp(session)
             qc_doc_ids = self.get_latest_qc_complete_ids(
                 session, last_run_timestamp)
