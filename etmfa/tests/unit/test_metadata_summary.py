@@ -72,15 +72,13 @@ Test cases for add metadata
                              (ADD_FIELD, DOC_ID,  "test_info.aa.bb.cc", [],  HTTPStatus.OK, "at level 4", True),
                              (ADD_FIELD, DOC_ID,  "test_info.aa.bb.cc.dd", [],  HTTPStatus.OK, "at level 5", True),
                              (ADD_FIELD, DOC_ID,  "test_info.aa.bb.cc.dd.ee", [], HTTPStatus.OK, "at level 6", True),
-                             (ADD_ATTRIBUTES, DOC_ID, "test_info.aa.bb.cc.dd.ee", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "sugar"},
-                                                                                                                    {"attr_name": "isHealthy", "attr_type": "boolean", "attr_value": True},
-                                                                                                                    {"attr_name": "no_of_years", "attr_type": "integer", "attr_value": 29},
-                                                                                                                    {"attr_name": "patient_weight", "attr_type": "float", "attr_value": 62.80},                                                                                                          
-                                                                                                                    {"attr_name": "treatment_timeperiod",
-                                                                                                                     "attr_type": "date", "attr_value": "20Mar1999"},
-                                                                                                                    {"attr_name": "treatment", "attr_type": "string", "attr_value": "diabetics",
-                                                                                                                     "note": "test in every 3 months", "confidence": "sugar_within_control", "last_edited_by": "IQVIA"},
-                                                                                                                    {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "at level 6", True),
+                             (ADD_ATTRIBUTES, DOC_ID, "test_info.aa.bb.cc.dd.ee", [{"attr_name": "isHealthy", "attr_type": "boolean", "attr_value": True},
+                                                                                    {"attr_name": "no_of_years", "attr_type": "integer", "attr_value": 29},
+                                                                                    {"attr_name": "patient_weight", "attr_type": "float", "attr_value": 62.80},                                                                                                          
+                                                                                    {"attr_name": "treatment_timeperiod", "attr_type": "date", "attr_value": "20Mar1999"},
+                                                                                    {"attr_name": "treatment", "attr_type": "string", "attr_value": "diabetics",
+                                                                                    "note": "test in every 3 months", "confidence": "sugar_within_control"},
+                                                                                    {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "at level 6", True),
                              (ADD_ATTRIBUTES, DOC_ID, "level.a.b",
                               [{"attr_name": "", "attr_type": "", "attr_value": "", "note": "", "confidence": ""}],  HTTPStatus.OK, "Field level.a.b does not exist", False),
                              ("", DOC_ID, "test_info.aa.bb.cc.dd.ee", [],  HTTPStatus.NOT_FOUND, "Missing op", False),
@@ -126,9 +124,8 @@ Test cases for duplicate data check
 """
 @pytest.mark.order(4)
 @pytest.mark.parametrize("op, aidoc_id, field_name, attributes, expected_status_cd, comments, valid",
-                          [(ADD_ATTRIBUTES, DOC_ID, "test_info.aa.bb.cc.dd.ee", [{"attr_name": "testFor", "attr_type": "string", "attr_value": "sugar"},
-                                                                                {"attr_name": "treatment_timeperiod", "attr_type": "date", "attr_value": "20Mar1999"},
-                                                                                {"attr_name": "treatment_week_timeperiod", "attr_type": "array", "attr_value": ["mon", "thu"]}], HTTPStatus.OK, "Normal",True)
+                          [(ADD_ATTRIBUTES, DOC_ID, "test_info.aa.bb.cc.dd.ee", [{"attr_name": "patient_weight", "attr_type": "float", "attr_value": 62.80},
+                                                                                {"attr_name": "no_of_years", "attr_type": "integer", "attr_value": 29}], HTTPStatus.OK, "Normal",True)
                           ])
 def test_add_metadata_duplicate(new_app_context, op, aidoc_id, field_name, attributes, expected_status_cd, comments, valid):
     new_app, _ = new_app_context
