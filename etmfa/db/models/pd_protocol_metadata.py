@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from dataclasses import dataclass
 from etmfa.consts import  DUPLICATION_ERROR,ACCORDIAN_DOC_ID
 from etmfa.db.models.meta_accordion_defaults import META_ACCORDION
+from etmfa.db.models.pd_users import User
 import hashlib
 from etmfa.consts.constants import SUMMARY_FIELDS,SUMMARY_ATTR_REV_MAP
 
@@ -122,10 +123,11 @@ class PDProtocolMetaDataAttribute(db_context.Model):
     attribute_value_boolean= Column(Boolean)
     attribute_value_array=Column(ARRAY(String))
     attribute_value_float=Column(Float)
-    confidence=Column(String)
-    note=Column(String)
+    confidence = Column(String)
+    note = Column(String)
     parent_id = Column(String, ForeignKey('pd_protocol_metadata_level.id', ondelete="CASCADE"))
-    user_id=Column(VARCHAR(100))
+    user_id = Column(VARCHAR(100))
+    last_edited_by = Column(VARCHAR(200))
     last_updated = Column(DateTime(timezone=False))
     display_name = Column(VARCHAR(100))
     num_updates = Column(Integer, default=1)
@@ -241,7 +243,7 @@ def default_accordion():
                 if helper_obj.check_field_exist(session,default_id,field_name):
                    helper_obj.delete_field(session,default_id,field_name,soft_delete=False)
                 helper_obj.add_field(session,default_id, field_name)
-                helper_obj.add_default_data(session,default_id,field_name,accordion.get('attributes',[]))
+                helper_obj.add_field_data(session,default_id,field_name,accordion.get('attributes',[]))
     
 
 class MetaDataTableHelper():
@@ -258,7 +260,18 @@ class MetaDataTableHelper():
                             'float':'attribute_value_float'
                             }
        
+    
+    def get_user_name(self, session, user_id=None):
+        """
+        gets the user name from User table through user_id
+        """
+        user_obj = session.query(User).filter(User.username==user_id).first()
+        if user_obj:
+            return user_obj.first_name + " " + user_obj.last_name
+        else:
+            return None
         
+           
     def get_variable_types(self):
         return list(self.variable_type_map.keys())
 
@@ -384,7 +397,7 @@ class MetaDataTableHelper():
             attribute_info = []
             for attr in lvl_data.attributes:
                 audit_info = {
-                    "user_id":attr.user_id,
+                    "last_edited_by":attr.last_edited_by,
                     "last_updated":attr.last_updated,
                     "num_updates":attr.num_updates
                 }
@@ -466,6 +479,8 @@ class MetaDataTableHelper():
         meta_data_attr.attribute_name = name
         meta_data_attr.attribute_type = _type
         meta_data_attr.user_id = data.get('user_id', None)
+        user_name = self.get_user_name(session, data.get('user_id', None))
+        meta_data_attr.last_edited_by = None if not(data.get('user_id', None)) else user_name
         meta_data_attr.display_name = data.get('display_name',None)
         meta_data_attr.last_updated = datetime.datetime.utcnow()
         meta_data_attr.confidence = data.get('confidence', None)
@@ -474,44 +489,7 @@ class MetaDataTableHelper():
         meta_data_attr.is_default = True if _id==ACCORDIAN_DOC_ID else False
         return meta_data_attr
     
-    
-    def add_default_data(self,session,_id, field_name = None, data_list=[]):
-        """
-        Add default metadata field attributes
-        """
-        status, duplicate, error = True, False, False
-        try:
-            nested_fields, level = self._get_level(field_name)
-            start_field, end_field = nested_fields[0],nested_fields[-1]
-            lvl_id = self._get_level_id(_id, start_field, level, end_field)
-            meta_data_level = session.query(
-                PDProtocolMetaDataLevel).get(lvl_id)
-            if not meta_data_level:
-                status=False
-                error= str(f"Field {field_name} does not exist")
-                data_list=[]
-            for data in data_list:
-                attr_id = self._get_elements_hash(
-                        [_id, start_field, level, end_field, data["attribute_name"]])
-                obj = session.query(PDProtocolMetaDataAttribute).get(attr_id)
-                if obj:
-                    session.delete(obj)
-                    meta_data_attr = self._get_meta_data_attr(session, _id, data, start_field, end_field, level)
-                    meta_data_level.attributes.append(meta_data_attr) 
-                else:
-                    meta_data_attr = self._get_meta_data_attr(session, _id, data, start_field, end_field, level)
-                    meta_data_level.attributes.append(meta_data_attr)
-            session.commit()            
-        except IntegrityError as e:
-            status = False
-            if isinstance(e.orig, UniqueViolation):
-                error = DUPLICATION_ERROR
-                duplicate = True
-            else:
-                error=str(e)
-        return MetaStatusResponse(status,duplicate,error)
-        
-        
+          
         
     def add_field_data(self,session,_id, field_name = None, data_list=[]):
         """
@@ -533,9 +511,9 @@ class MetaDataTableHelper():
                 data_list=[]
             for data in data_list:
                 meta_data_attr = self._get_meta_data_attr(session, _id, data, start_field, end_field, level)
-                if self.check_attr_default(session, field_name, meta_data_attr.attribute_name):
-                   meta_data_attr.is_default = True
-                meta_data_level.attributes.append(meta_data_attr)        
+                if _id!=ACCORDIAN_DOC_ID:
+                    meta_data_attr.is_default = True if self.check_attr_default(session, field_name, meta_data_attr.attribute_name) else False
+                meta_data_level.attributes.append(meta_data_attr)         
             session.commit()
         except IntegrityError as e:
             status = False
@@ -599,9 +577,8 @@ class MetaDataTableHelper():
             data = session.query(PDProtocolMetadata).get(_id)
             if data == None:
                 return {}
-            if not field_name:
-                if soft_delete == False:
-                    session.delete(data)
+            if not field_name and soft_delete == False:
+                session.delete(data)
             else:
                 for lvl_data in data.levels:
                     _, field_list = nested_obj.add_level(lvl_data)
@@ -631,14 +608,15 @@ class MetaDataTableHelper():
                 setattr(obj, m_field, None)
             setattr(obj, col.name, val)
         elif (col_name.startswith('num_updates')):
-            if attr.user_id:
+            if attr.last_edited_by:
                 val = obj.num_updates+1
                 setattr(obj, col.name, val)
         elif ((col_name == 'attribute_type') or
               (col_name == 'confidence') or
                 (col_name == 'note') or
                 (col_name == 'display_name') or
-                (col_name == 'user_id')) and val != None:
+                (col_name == 'user_id') or 
+                (col_name == 'last_edited_by')) and val != None:
             setattr(obj, col.name, val)
         elif (col_name.startswith('is_active')) and val != None:
             setattr(obj, col.name, True)
@@ -657,8 +635,7 @@ class MetaDataTableHelper():
         parent_id = self._get_elements_hash([_id, start_field, level, end_field])
         for data in data_list:
             attr = self._get_meta_data_attr(session, _id, data, start_field, end_field, level) 
-            if self.check_attr_default(session, field_name, attr.attribute_name):
-                   attr.is_default = True 
+            attr.is_default = True if self.check_attr_default(session, field_name, attr.attribute_name) else False
             if field_name==MetaDataTableHelper.SUMMARY_EXTENDED:
                 attr.display_name=SUMMARY_ATTR_REV_MAP.get(attr.attribute_name,attr.display_name)
             obj = session.query(PDProtocolMetaDataAttribute).get(attr.id)
@@ -705,8 +682,6 @@ class MetaDataTableHelper():
         """
         status, duplicate, error = True, False, False
         try:
-            if not field_name:
-                raise ValueError("requested fieldName is empty. Provide a valid fieldName.")
             nested_fields, level = self._get_level(field_name)
             if level not in self.valid_level_range and field_name:
                 raise ValueError(f"requested level outside range. Max level is {self.valid_level_range[-1]}")
@@ -716,12 +691,10 @@ class MetaDataTableHelper():
             exist_obj = session.query(PDProtocolMetaDataLevel).get(lvl_id)
             if exist_obj:
                 exist_obj.is_active = True
+                exist_obj.is_default = True if self.check_level_default(session, field_name) or _id==ACCORDIAN_DOC_ID else False
             else:
                 l1 = PDProtocolMetaDataLevel(id=lvl_id)
-                if _id==ACCORDIAN_DOC_ID: 
-                    l1.is_default = True
-                if self.check_level_default(session, field_name): 
-                    l1.is_default = True
+                l1.is_default = True if self.check_level_default(session, field_name) or _id==ACCORDIAN_DOC_ID else False
                 for idx, field in enumerate(nested_fields):
                     setattr(l1, 'level'+str(idx+1), field)
                 pd.levels.append(l1)
