@@ -99,7 +99,7 @@ def send_event_based_mail(doc_id: str, event, send_mail_flag, test_case=False, u
             protocol_number = row.protocol
             indication = row.indication
             doc_status = row.documentStatus
-            doc_activity = DIGITIZER_USER_NOTIFICATION_MESSAGES.get(row.status, 'Digitization Error')
+            doc_activity = DIGITIZER_USER_NOTIFICATION_MESSAGES.get('PROCESS_COMPLETED') if event == 'NEW_DOCUMENT_VERSION' else DIGITIZER_USER_NOTIFICATION_MESSAGES.get(row.status, 'Digitization Error')
             doc_status_activity = QC_USER_NOTIFICATION_MESSAGES.get(row.qcStatus, 'ERROR')
             version_number = row.versionNumber
 
