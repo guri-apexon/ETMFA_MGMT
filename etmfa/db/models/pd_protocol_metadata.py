@@ -582,14 +582,15 @@ class MetaDataTableHelper():
             else:
                 for lvl_data in data.levels:
                     _, field_list = nested_obj.add_level(lvl_data)
-                    if set(field_list).difference(set(nested_fields)):
-                        continue
-                    lvl_id = self._get_level_id(_id,field_list[0],len(field_list), field_list[-1])
-                    obj = session.query(PDProtocolMetaDataLevel).get(lvl_id)
-                    if soft_delete == False:
-                        session.delete(obj)
-                    else:
-                        obj.is_active = False
+                    if (len(list(set(nested_fields).difference(set(field_list))))==0) and\
+                        (set(nested_fields)==set(field_list)):
+                      
+                        lvl_id = self._get_level_id(_id,field_list[0],len(field_list), field_list[-1])
+                        obj = session.query(PDProtocolMetaDataLevel).filter(PDProtocolMetaDataLevel.id == lvl_id).first()
+                        if obj and soft_delete == True:
+                            obj.is_active = False
+                        elif obj and soft_delete == False:
+                            session.delete(obj)
                 if not self.check_field_exist(session,_id,field_name):
                     raise ValueError("Provided fieldName does not exist.")    
             session.commit()
