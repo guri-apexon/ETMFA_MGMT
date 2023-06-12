@@ -295,9 +295,10 @@ class MetaDataTableHelper():
             return
         obj['_childs']=[]
         for key, value in obj.items():
-            if isinstance(value, dict):
-                obj['_childs'].append(key)
-            self.add_child_info(value)
+            if key != "field_audit_info":
+                if isinstance(value, dict):
+                    obj['_childs'].append(key)
+                self.add_child_info(value)
 
 
     def _summary_attr_type(self, attr_name):
@@ -312,14 +313,18 @@ class MetaDataTableHelper():
                     
                     
 
-    def get_result_list(self,doc_id,data, attr_list):
+    def get_result_list(self, session, doc_id, data, attr_list):
         """
         returns result list of attributes
         """
         nested_obj = NestedDict(self.max_level)
         attr_map={attr['attr_name']:attr  for attr in attr_list.get('_meta_data',[]) if attr.get('attr_name',None)}
         top_obj = {c.name: getattr(data, c.name) for c in data.__table__.columns}
-        result_list = []
+        result_list, summary_audit_info  = [],{}
+        summary_audit_info = {
+            "last_edited_by":self.get_user_name(session,data.userId),
+            "last_updated":data.lastUpdated
+        } 
         for display_name, attr_name in SUMMARY_FIELDS.items():
             value, confidence, note, _type, attr_id, is_active, is_default = "", "", "", None, None, None, None
             audit_info = {}
@@ -356,7 +361,8 @@ class MetaDataTableHelper():
                                     "is_active":is_active,
                                     "is_default":is_default,
                                     'audit_info':audit_info})
-        extended_list=[]  
+        extended_list=[]
+        
         for attr_name,curr_data in attr_map.items():
             if attr_name not in SUMMARY_ATTR_REV_MAP:
                 value = curr_data.get("attr_value")
@@ -378,13 +384,14 @@ class MetaDataTableHelper():
                         "is_active":is_active,
                         "is_default":is_default,
                         'audit_info':audit_info})
-        return  result_list,extended_list           
+        return  result_list,extended_list, summary_audit_info       
     
                        
     def get_data(self,session,_id, field_name=None):
         """
         Get all metadata
         """
+        field_audit_info = {}
         nested_obj = NestedDict(self.max_level)
         nested_fields, _ = self._get_level(field_name)
         data = session.query(PDProtocolMetadata).get(_id)
@@ -395,6 +402,14 @@ class MetaDataTableHelper():
             if set(nested_fields).difference(set(field_list)):
                 continue
             attribute_info = []
+            recent_updated = session.query(PDProtocolMetaDataAttribute).filter(\
+                PDProtocolMetaDataAttribute.parent_id==lvl_data.id,PDProtocolMetaDataAttribute.user_id!=None).order_by(\
+                    PDProtocolMetaDataAttribute.last_updated.desc()).first()
+            
+            field_audit_info = {
+                "last_edited_by":recent_updated.last_updated if recent_updated else None,
+                "last_updated":recent_updated.last_edited_by if recent_updated else None
+            } 
             for attr in lvl_data.attributes:
                 audit_info = {
                     "last_edited_by":attr.last_edited_by,
@@ -411,11 +426,24 @@ class MetaDataTableHelper():
             curr_nested_obj['_meta_data'] = attribute_info
             curr_nested_obj['is_active'] = getattr(lvl_data, "is_active")
             curr_nested_obj['is_default'] = getattr(lvl_data, "is_default")
-        curr_obj = nested_obj.data    
+            curr_nested_obj['field_audit_info'] = field_audit_info
+        curr_obj = nested_obj.data  
+        extended_audit_info = {}
+        extended_obj = session.query(PDProtocolMetaDataLevel).filter(PDProtocolMetaDataLevel.level1=='summary_extended',\
+                    PDProtocolMetaDataLevel.parent_id==_id).first()
+        if extended_obj:
+            extended_updated = session.query(PDProtocolMetaDataAttribute).filter(\
+                    PDProtocolMetaDataAttribute.parent_id==extended_obj.id,PDProtocolMetaDataAttribute.user_id!=None).order_by(\
+                        PDProtocolMetaDataAttribute.last_updated.desc()).first()
+            
+            extended_audit_info = {
+                    "last_edited_by":extended_updated.last_updated if extended_updated else None,
+                    "last_updated":extended_updated.last_edited_by if extended_updated else None
+                }  
         if not field_name and _id!=ACCORDIAN_DOC_ID:
-            result_list,extended_list = self.get_result_list(_id,data, curr_obj.get(MetaDataTableHelper.SUMMARY_EXTENDED,{}))
-            curr_obj.update({'Summary':{'_meta_data':result_list, 'is_active':True, 'is_default':True}})
-            curr_obj[MetaDataTableHelper.SUMMARY_EXTENDED] = {'_meta_data':extended_list, 'is_active':True, 'is_default':False}
+            result_list,extended_list,summary_audit_info = self.get_result_list(session,_id,data, curr_obj.get(MetaDataTableHelper.SUMMARY_EXTENDED,{}))
+            curr_obj.update({'Summary':{'_meta_data':result_list, 'is_active':True, 'is_default':True, 'field_audit_info':summary_audit_info}})
+            curr_obj[MetaDataTableHelper.SUMMARY_EXTENDED] = {'_meta_data':extended_list, 'is_active':True, 'is_default':False, 'field_audit_info':extended_audit_info}
             
         if not curr_obj:                
             return curr_obj
@@ -584,7 +612,6 @@ class MetaDataTableHelper():
                     _, field_list = nested_obj.add_level(lvl_data)
                     if (len(list(set(nested_fields).difference(set(field_list))))==0) and\
                         (set(nested_fields)==set(field_list)):
-                      
                         lvl_id = self._get_level_id(_id,field_list[0],len(field_list), field_list[-1])
                         obj = session.query(PDProtocolMetaDataLevel).filter(PDProtocolMetaDataLevel.id == lvl_id).first()
                         if obj and soft_delete == True:
@@ -690,7 +717,7 @@ class MetaDataTableHelper():
             start_field, end_field = nested_fields[0], nested_fields[-1]
             lvl_id = self._get_level_id(_id, start_field, level, end_field)
             exist_obj = session.query(PDProtocolMetaDataLevel).get(lvl_id)
-            if exist_obj:
+            if exist_obj and _id!=ACCORDIAN_DOC_ID:
                 exist_obj.is_active = True
                 exist_obj.is_default = True if self.check_level_default(session, field_name) or _id==ACCORDIAN_DOC_ID else False
             else:
