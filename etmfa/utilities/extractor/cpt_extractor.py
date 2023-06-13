@@ -56,7 +56,14 @@ class CPTExtractor:
         tot_matching_master_childbox_redaction_entity = 0
         first_header_type = True
         link_levels_val = ""
-        for master_roi in self.iqv_document.DocumentParagraphs:
+
+        docparts_index_id_list = {roi_id: index for index, roi_id in enumerate(self.iqv_document.DocumentPartsList)}
+        doc_para_list = [(para, para.id, docparts_index_id_list[para.id]) for para in self.iqv_document.DocumentParagraphs if
+                    para.id in docparts_index_id_list] + [(table, table.id, docparts_index_id_list[table.id]) for table in self.iqv_document.DocumentTables if
+                         table.id in docparts_index_id_list]
+        indexed_records_list = sorted(doc_para_list, key=lambda record: record[2])
+
+        for master_roi, _, _ in indexed_records_list:
             master_roi_dict = dict()
 
             all_roi_tags = master_roi_dict.keys()
@@ -112,7 +119,7 @@ class CPTExtractor:
                         level_roi text: {level_roi.GetFullText()} ; redaction_entities: {redaction_entities}")
 
             # table part and footnote data creating
-            if not master_roi.m_PARENT_ROI_TYPEVal == 501:
+            if not master_roi.hierarchy == TABLE_DATA_TYPE:
                 table_heading = master_roi.Value
             master_dict = create_table_data(self.iqv_document, master_roi.DocumentSequenceIndex, table_heading, master_dict, self.entity_profile_genre)
             document_table_ids = [i.DocumentSequenceIndex for i in self.iqv_document.DocumentTables]

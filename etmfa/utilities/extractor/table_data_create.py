@@ -10,7 +10,6 @@ def create_table_data(iqv_document: IQVDocument, table_sequence_index: int, tabl
     Function creates table data and footnote from documenttablesm and Attachment list DB table with
     getting data from top levels
     """
-    table_sequence_index = table_sequence_index - 1
     for table in iqv_document.DocumentTables:
         table_foot_notes = []
         if table.DocumentSequenceIndex == table_sequence_index:
