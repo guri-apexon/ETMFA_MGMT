@@ -120,7 +120,9 @@ def get_document_terms_data(db: Session, aidoc_id: str,
                 IqvexternallinkDb.doc_id == aidoc_id).filter_by(
                 **link_dict).all()
         elif link_id:
-            reference_links = db.query(IqvexternallinkDb).filter(
+            reference_links = db.query(IqvexternallinkDb, IqvdocumentlinkDb.link_id.label('linkid')).outerjoin(IqvdocumentlinkDb,IqvdocumentlinkDb.id==IqvexternallinkDb.destination_link_id
+ ) \
+            .filter(
                 IqvexternallinkDb.doc_id == aidoc_id,
                 IqvexternallinkDb.link_id == link_id).all()
         else:
@@ -128,14 +130,16 @@ def get_document_terms_data(db: Session, aidoc_id: str,
                 IqvexternallinkDb.doc_id == aidoc_id).all()
 
         references_values = [
-            {"id": reference_link.id, "source_text": reference_link.source_text,
-             "link_id": reference_link.link_id,
-             "destination_url": reference_link.destination_url,
-             "destination_link_id": reference_link.destination_link_id,
-             "destination_link_prefix": reference_link.destination_link_prefix,
-             "parent_id": reference_link.parent_id,
-             "destination_link_text": reference_link.destination_link_text} for
-            reference_link in reference_links]
+            {"id": ref_link.IqvexternallinkDb.id, 
+             "source_text": ref_link.IqvexternallinkDb.source_text,
+             "link_id": ref_link.IqvexternallinkDb.link_id,
+             "destination_url": ref_link.IqvexternallinkDb.destination_url,
+             "destination_link_id": ref_link.IqvexternallinkDb.destination_link_id,
+             "dest_main_link_id": ref_link.linkid,
+             "destination_link_prefix": ref_link.IqvexternallinkDb.destination_link_prefix,
+             "parent_id": ref_link.IqvexternallinkDb.parent_id,
+             "destination_link_text": ref_link.IqvexternallinkDb.destination_link_text} for
+            ref_link in reference_links]
         terms_values.update({'references': references_values})
         logger.info(f"references results fetched successfuly for doc id {aidoc_id}")
 
