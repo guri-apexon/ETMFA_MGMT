@@ -73,7 +73,7 @@ def get_matched_redact_entity_roi(roi: IQVDocument) -> Tuple[int, int, list]:
     Input: ROI
     Ouput: Length of redaction entity, Length of matched redactin entity, list of redaction entity
     """
-    roi_fulltext = roi.GetFullText()
+    roi_fulltext = roi.Value
     len_redaction_entities, redaction_entities = get_redaction_entities(level_roi=roi)
     roi_entity_set = set(range(0, len_redaction_entities))
     roi_matched_entity_set = set()
