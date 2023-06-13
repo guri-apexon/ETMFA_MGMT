@@ -5,7 +5,6 @@ import pandas as pd
 import etmfa.utilities.elastic_ingest as ei
 from etmfa_core.aidoc.IQVDocumentFunctions import IQVDocument
 from etmfa.utilities.extractor import cpt_extractor
-from etmfa.utilities import table_extractor
 from etmfa.consts.constants import ModuleConfig
 from etmfa.consts import Consts as consts
 from etmfa.error import GenericMessageException
@@ -43,7 +42,7 @@ class PrepareUpdateData:
         customized reading for mcra attributes
         """
         cpt_iqvdata = cpt_extractor.CPTExtractor(self.iqv_document,self.imagebinaries,self.profile_details, self.entity_profile_genre)
-        display_df, search_df, _, _, _ = cpt_iqvdata.get_cpt_iqvdata()
+        display_df, search_df, _, _ = cpt_iqvdata.get_cpt_iqvdata()
         display_dict = display_df.to_dict(orient=self.dict_orient_type)
         db_data, _= ei.ingest_doc_elastic(self.iqv_document, search_df)
         status=ei.save_elastic_doc(host,port,index,db_data)
@@ -79,7 +78,7 @@ class PrepareUpdateData:
                                                      self.imagebinaries,
                                                      self.profile_details,
                                                      self.entity_profile_genre)
-            display_df, search_df, _, _, _ = cpt_iqvdata.get_cpt_iqvdata()
+            display_df, search_df, _, _ = cpt_iqvdata.get_cpt_iqvdata()
             db_data, summary_entities = ei.ingest_doc_elastic(iqv_document, search_df)
             logger.info("Elastic search ingestion step completed")
             db_data["summary_entities"] = json.dumps(summary_entities)
@@ -125,13 +124,6 @@ class PrepareUpdateData:
             logger.info("Normalized SOA json extraction step completed")
         except Exception as exc:
             logger.exception(f"Exception received in normalized soa extraction: {exc}")
-
-        try:
-            soa = table_extractor.SOAResponse(iqv_document, self.profile_details, self.entity_profile_genre)
-            db_data['soa'] = json.dumps(soa.getTOIfromProprties(roi=None, toi='SOA')[0])
-            logger.info("SOA extraction step completed")
-        except Exception as exc:
-            logger.exception(f"Exception received in SOA: {exc}")
 
         # Summary data
         try:
