@@ -1,3 +1,4 @@
+import json
 import logging
 from collections import Counter
 from typing import Optional, Tuple
@@ -5,11 +6,11 @@ import numpy as np
 import pandas as pd
 from etmfa_core.aidoc.io import IQVDocument
 from etmfa.utilities import data_extractor_utils as utils
-from etmfa.utilities.table_extractor import SOAResponse as soa
-from etmfa.consts.constants import ModuleConfig
+from etmfa.consts.constants import ModuleConfig, TABLE_DATA_TYPE
 from etmfa.consts import Consts as consts
 import base64
 import re
+from etmfa.utilities.extractor.table_data_create import create_table_data
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -54,25 +55,28 @@ class CPTExtractor:
         tot_master_childbox_redaction_entity = 0
         tot_matching_master_childbox_redaction_entity = 0
         first_header_type = True
+        link_levels_val = ""
         for master_roi in self.iqv_document.DocumentParagraphs:
-
             master_roi_dict = dict()
-            for kv_obj in master_roi.Properties:
-                master_roi_dict[kv_obj.key] = kv_obj.value
 
             all_roi_tags = master_roi_dict.keys()
             master_dict = dict()
             master_font_style = master_roi_dict.get('font_style', '')
             master_dict['para_master_roi_id'] = master_roi.id
             master_dict['image_content'] = ''
+            master_dict['table_type'] = ''
+            master_dict['table_roi_id'] = ''
+            master_dict['table_content'] = ''
+            master_dict['table_content_from_master_roi']=''
             # For header identification
             header_result = list(
                 filter(lambda item: item['text_value'] == self.regex.sub('', master_roi.Value.strip()).lower(),
                        self.header_values))
 
             master_dict['font_heading_flg'] = bool(header_result) or first_header_type
-            master_dict['link_level'] = header_result[0]["link_level"] if header_result else ""
-
+            if header_result:
+                link_levels_val = header_result[0]["link_level"]
+            master_dict['link_level'] = link_levels_val
             first_header_type = False
             # Collect tags
             master_dict['table_index'] = master_roi_dict.get(self.table_index_tag, '')
@@ -107,6 +111,15 @@ class CPTExtractor:
                     logger.debug(f"Debug report: [{master_roi.id}] [{level_roi.id}]: Missing entity idx: {debug_notfound_entity} \
                         level_roi text: {level_roi.GetFullText()} ; redaction_entities: {redaction_entities}")
 
+            # table part and footnote data creating
+            if not master_roi.m_PARENT_ROI_TYPEVal == 501:
+                table_heading = master_roi.Value
+            master_dict = create_table_data(self.iqv_document, master_roi.DocumentSequenceIndex, table_heading, master_dict, self.entity_profile_genre)
+            document_table_ids = [i.DocumentSequenceIndex for i in self.iqv_document.DocumentTables]
+            if master_roi.DocumentSequenceIndex-1 not in document_table_ids and master_roi.m_PARENT_ROI_TYPEVal == 501:
+                continue
+
+            # image part data creating
             if self.imagebinaries.get(master_roi.id):
                 imagebinary_list = self.imagebinaries[master_roi.id]
                 for imagebinary in imagebinary_list:
@@ -130,7 +143,8 @@ class CPTExtractor:
                     all_child_list.append(image_dict)
 
             # Handling roi not having IQVSubTextList
-            roi_id = {'para': master_roi.id, 'childbox': '', 'subtext': ''}
+            roi_id = {'para': master_dict['table_roi_id'] or master_roi.id, 'childbox': '', 'subtext': ''}
+            del  master_dict['table_roi_id']
             if len(all_child_list) == 0:
                 master_roi_fulltext = master_roi.Value
 
@@ -222,10 +236,14 @@ class CPTExtractor:
         cpt_df['type'] = raw_cpt_df['type']
         cpt_df['table_index'] = raw_cpt_df['table_index']
         cpt_df['para_text'] = raw_cpt_df['para_subtext_text']
+
+        # creating content for header, table, image, table and text type data
         cpt_df['content'] = np.where(raw_cpt_df['type'] == "image",
-                                     raw_cpt_df['image_content'], (np.where(
+                                     raw_cpt_df['image_content'],
+                                     (np.where(
                 raw_cpt_df['type'].isin(['header', 'text']),
-                raw_cpt_df['para_subtext_text'], raw_cpt_df['table_content'])))
+                raw_cpt_df['para_subtext_text'], raw_cpt_df['table_content_from_master_roi'])))
+
         cpt_df['font_info'] = raw_cpt_df['para_subtext_font_details']
         # Default CPT_section
         cpt_df['CPT_section'] = cpt_df['CPT_section'].apply(lambda section_name: ModuleConfig.GENERAL.UNMAPPED_SECTION_NAME if section_name == '' else section_name)
@@ -259,7 +277,7 @@ class CPTExtractor:
 
         return display_df, search_df
 
-    def get_cpt_iqvdata(self) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame], Optional[int], Optional[int], Optional[int]]:
+    def get_cpt_iqvdata(self) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame], Optional[int], Optional[int]]:
         """
         Input arguments:
         id: Unique ID of the document
@@ -272,7 +290,7 @@ class CPTExtractor:
         """
         try:
             if self.iqv_document is None:
-                return None, None, None, None, None
+                return None, None, None, None
 
             cpt_details, tot_redact_entity, matched_redact_entity = self.read_cpt_tags()
             raw_cpt_df = pd.DataFrame(cpt_details)
@@ -280,7 +298,7 @@ class CPTExtractor:
             len_cpt_details = len(cpt_details)
             if len_cpt_details == 0:
                 logger.warning(f"No cpt section tags are present: {len_cpt_details}")
-                return None, None, None, None, None
+                return None, None, None, None
 
             # Handling missing CPT tags
             if (not all(True if tag_name in raw_cpt_df.columns else False for tag_name in self.interested_tags)):
@@ -291,13 +309,8 @@ class CPTExtractor:
             raw_cpt_df.fillna(value='', inplace=True)
             raw_cpt_df['table_index'] = raw_cpt_df['table_index'].apply(lambda x: int(float(x)) if len(x)> 0 else -1)
             unique_table_index = [table_index for table_index in set(raw_cpt_df['table_index']) if table_index > 0]
-            # Populate table contents
-            table_list, table_redaction_count = soa.getTOIfromProprties(soa(self.iqv_document, self.profile_details, self.entity_profile_genre), table_indexes=unique_table_index)
-            table_index_dict = {int(float(item['TableIndex'])):item for item in table_list}
-            raw_cpt_df['table_content'] = raw_cpt_df['table_index'].apply(lambda col: table_index_dict.get(col, ''))
-            del table_list
             # Identify type of contents
-            type_conditions = [raw_cpt_df['table_index'] > 0,
+            type_conditions = [raw_cpt_df['table_type'] == TABLE_DATA_TYPE,
                                (raw_cpt_df[self.hdr_tag_name] != '') | (
                                raw_cpt_df['font_heading_flg']),
                                raw_cpt_df['image_content'] > ""]
@@ -317,6 +330,6 @@ class CPTExtractor:
         except Exception as exc:
             logger.exception("Exception received in cpt section iqvdata")
             logger.exception(f"Exception message: {exc}")
-            return None, None, None, None, None
+            return None, None, None, None
 
-        return display_df, search_df, tot_redact_entity, matched_redact_entity, table_redaction_count
+        return display_df, search_df, tot_redact_entity, matched_redact_entity

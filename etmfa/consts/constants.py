@@ -350,3 +350,5 @@ QC_USER_NOTIFICATION_MESSAGES = {
     "FEEDBACK_RUN": 'QC In Progress',
     "QC_COMPLETED": 'QC Completed',
 }
+
+TABLE_DATA_TYPE = 'table'
