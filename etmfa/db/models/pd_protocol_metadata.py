@@ -407,8 +407,8 @@ class MetaDataTableHelper():
                     PDProtocolMetaDataAttribute.last_updated.desc()).first()
             
             field_audit_info = {
-                "last_edited_by":recent_updated.last_updated if recent_updated else None,
-                "last_updated":recent_updated.last_edited_by if recent_updated else None
+                "last_edited_by":recent_updated.last_edited_by if recent_updated else None,
+                "last_updated":recent_updated.last_updated if recent_updated else None
             } 
             for attr in lvl_data.attributes:
                 audit_info = {
@@ -437,8 +437,8 @@ class MetaDataTableHelper():
                         PDProtocolMetaDataAttribute.last_updated.desc()).first()
             
             extended_audit_info = {
-                    "last_edited_by":extended_updated.last_updated if extended_updated else None,
-                    "last_updated":extended_updated.last_edited_by if extended_updated else None
+                    "last_edited_by":extended_updated.last_edited_by if extended_updated else None,
+                    "last_updated":extended_updated.last_updated if extended_updated else None
                 }  
         if not field_name and _id!=ACCORDIAN_DOC_ID:
             result_list,extended_list,summary_audit_info = self.get_result_list(session,_id,data, curr_obj.get(MetaDataTableHelper.SUMMARY_EXTENDED,{}))
@@ -644,6 +644,7 @@ class MetaDataTableHelper():
                 (col_name == 'note') or
                 (col_name == 'display_name') or
                 (col_name == 'user_id') or 
+                (col_name == 'last_updated') or
                 (col_name == 'last_edited_by')) and val != None:
             setattr(obj, col.name, val)
         elif (col_name.startswith('is_active')) and val != None:
