@@ -74,6 +74,7 @@ class CPTExtractor:
             master_dict['table_type'] = ''
             master_dict['table_roi_id'] = ''
             master_dict['table_content'] = ''
+            master_dict['inline_element'] = master_roi.SegmentationType != 1
             master_dict['table_content_from_master_roi']=''
             # For header identification
             header_result = list(
@@ -270,8 +271,9 @@ class CPTExtractor:
         cpt_df['level_1_CPT_section'] = level1_cpt_section_list
         cpt_df[file_section_columns] = file_section_list
         cpt_df['file_section_level'] = raw_cpt_df['link_level']
+        cpt_df['inline_element'] = raw_cpt_df['inline_element']
         # Build display data
-        display_columns = ['section_level', 'CPT_section', 'type', 'content', 'font_info', 'level_1_CPT_section']  + file_section_columns
+        display_columns = ['inline_element', 'section_level', 'CPT_section', 'type', 'content', 'font_info', 'level_1_CPT_section']  + file_section_columns
         display_df = cpt_df.loc[(cpt_df['keep_unique_table_flg']) & (cpt_df['not_merged_table_flg']), display_columns]
         display_df['seq_num'] = range(1, display_df.shape[0]+1)
         display_df['qc_change_type'] = ''
