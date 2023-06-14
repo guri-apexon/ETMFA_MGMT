@@ -29,3 +29,12 @@ SMTP_PORT: "25"
 ELASTIC_DETAILS: { 'ELASTIC_HOST':'ca2spdml04q',
                    'ELASTIC_PORT': '9200',
                    'ELASTIC_INDEX':"pd-index-3"}
+
+# This will enable create_schema function to not run alembic migration and CDC on local system is set to True.
+ENABLE_LOCAL_MODE: True
+
+# List of all IP addresses that will omit insert trigger in CDC .The CDC_OMIT_IP_LIST address
+#  should be an array and each ip address should be enclosed within single quote (eg. '1.1.1.1') seperated by comma (,)
+CDC_OMIT_IP_LIST: ['1.1.1.1']
+
+

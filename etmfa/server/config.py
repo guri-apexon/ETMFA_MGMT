@@ -23,6 +23,8 @@ class Config(object):
             DFS_UPLOAD_FOLDER = cfg["DFS_UPLOAD_FOLDER"]
             DEBUG = cfg["DEBUG"]
             SQLALCHEMY_DATABASE_URI = cfg["SQLALCHEMY_DATABASE_URI"]
+            CDC_OMIT_IP_LIST = cfg["CDC_OMIT_IP_LIST"]
+            ENABLE_LOCAL_MODE = cfg["ENABLE_LOCAL_MODE"]
             mquser = cfg["mquser"]
             mqpswd = cfg["mqpswd"]
             mqhost = cfg["mqhost"]
