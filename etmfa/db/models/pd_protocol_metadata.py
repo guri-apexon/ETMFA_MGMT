@@ -323,7 +323,7 @@ class MetaDataTableHelper():
         result_list, summary_audit_info  = [],{}
         summary_audit_info = {
             "last_edited_by":self.get_user_name(session,data.userId),
-            "last_updated":data.lastUpdated if self.get_user_name(session,data.userId) != None else None
+            "last_updated": data.lastUpdated if self.get_user_name(session,data.userId) else None
         } 
         for display_name, attr_name in SUMMARY_FIELDS.items():
             value, confidence, note, _type, attr_id, is_active, is_default = "", "", "", None, None, None, None
