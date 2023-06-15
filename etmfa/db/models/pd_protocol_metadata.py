@@ -323,7 +323,7 @@ class MetaDataTableHelper():
         result_list, summary_audit_info  = [],{}
         summary_audit_info = {
             "last_edited_by":self.get_user_name(session,data.userId),
-            "last_updated":data.lastUpdated
+            "last_updated":data.lastUpdated if self.get_user_name(session,data.userId) != None else None
         } 
         for display_name, attr_name in SUMMARY_FIELDS.items():
             value, confidence, note, _type, attr_id, is_active, is_default = "", "", "", None, None, None, None
@@ -439,7 +439,13 @@ class MetaDataTableHelper():
             extended_audit_info = {
                     "last_edited_by":extended_updated.last_edited_by if extended_updated else None,
                     "last_updated":extended_updated.last_updated if extended_updated else None
-                }  
+                }
+        else:
+            extended_audit_info = {
+                    "last_edited_by": None,
+                    "last_updated": None
+                }
+
         if not field_name and _id!=ACCORDIAN_DOC_ID:
             result_list,extended_list,summary_audit_info = self.get_result_list(session,_id,data, curr_obj.get(MetaDataTableHelper.SUMMARY_EXTENDED,{}))
             curr_obj.update({'Summary':{'_meta_data':result_list, 'is_active':True, 'is_default':True, 'field_audit_info':summary_audit_info}})
