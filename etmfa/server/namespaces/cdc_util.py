@@ -26,11 +26,12 @@ class CdcThread(Thread):
             session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
             try:
                 db_url = Config.SQLALCHEMY_DATABASE_URI
+                ip_list = Config.CDC_OMIT_IP_LIST
 
                 with session_local() as session:
                     latest_work = session.query(WorkFlowStatus).filter_by(work_flow_id=self.w_id).first()
                     try:
-                        run_cdc('audit',db_url)
+                        run_cdc('audit',db_url,ip_list)
                         latest_work.status = "COMPLETED"
                         session.commit()
                         session.close()
