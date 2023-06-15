@@ -18,6 +18,7 @@ from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata, SessionMana
 from etmfa.db.models.pd_protocol_qc_summary_data import PDProtocolQCSummaryData
 from etmfa.db.models.pd_protocol_qcdata import Protocolqcdata
 from etmfa.db.models.pd_user_protocols import PDUserProtocols
+from etmfa.db.models.pd_documenttables_db import DocumenttablesDb
 from etmfa.error import ErrorCodes, ManagementException
 from etmfa.workflow.messaging.models.processing_status import (FeedbackStatus,
                                                                ProcessingStatus, QcStatus)
@@ -345,7 +346,7 @@ def filter_user_with_usernames(pd_user_instances_list, user_id_list, user_id_exc
     for user_protocol_instance in pd_user_instances_list:
         if user_protocol_instance.userId.replace('u', '').replace('q',
                                                                   '') in user_id_list and user_protocol_instance.userId.replace(
-                'u', '').replace('q', '') != user_id_exclude:
+            'u', '').replace('q', '') != user_id_exclude:
             return_list.append(user_protocol_instance)
     return return_list
 
@@ -354,7 +355,7 @@ def insert_into_alert_table(finalattributes, event_dict, user_id_exclude='', db=
     if not db:
         db = db_context.session
     doc_status = db.query(PDProtocolMetadata).filter(
-            PDProtocolMetadata.id == finalattributes['AiDocId']).first()
+        PDProtocolMetadata.id == finalattributes['AiDocId']).first()
     doc_status_flag = doc_status and doc_status.documentStatus in config.VALID_DOCUMENT_STATUS_FOR_ALERT
     approval_date_flag = finalattributes['approval_date'] != '' and len(
         finalattributes['approval_date']) == 8 and finalattributes['approval_date'].isdigit()
@@ -363,11 +364,11 @@ def insert_into_alert_table(finalattributes, event_dict, user_id_exclude='', db=
         # The query below is to check if the approval date for protocol which alert needs to be generated
         # greater than all other approval dates for the protocols.
         resources = db.query(PDProtocolQCSummaryData,
-                                             PDProtocolQCSummaryData.source,
-                                             PDProtocolQCSummaryData.approvalDate,
-                                             func.rank().over(partition_by=PDProtocolQCSummaryData.aidocId,
-                                                              order_by=PDProtocolQCSummaryData.source.desc()).label(
-                                                 'rank')).filter(
+                             PDProtocolQCSummaryData.source,
+                             PDProtocolQCSummaryData.approvalDate,
+                             func.rank().over(partition_by=PDProtocolQCSummaryData.aidocId,
+                                              order_by=PDProtocolQCSummaryData.source.desc()).label(
+                                 'rank')).filter(
             and_(PDProtocolQCSummaryData.protocolNumber == finalattributes['ProtocolNo'],
                  PDProtocolQCSummaryData.aidocId != finalattributes['AiDocId'])).all()
 
@@ -413,8 +414,13 @@ def insert_into_alert_table(finalattributes, event_dict, user_id_exclude='', db=
                     pd_user_protocol_list, user_id_list, user_id_exclude)
 
             for pd_user_protocol in pd_user_protocol_list:
-                protocolalert_instance = db.query(Protocolalert).filter_by(id=pd_user_protocol.id, aidocId=finalattributes['AiDocId'], protocol=finalattributes[
-                    'ProtocolNo'], email_template_id=finalattributes.get('email_template_id')).update({'timeUpdated': datetime.now(timezone.utc),'notification_delete': False, "readFlag": False})
+                protocolalert_instance = db.query(Protocolalert).filter_by(id=pd_user_protocol.id,
+                                                                           aidocId=finalattributes['AiDocId'],
+                                                                           protocol=finalattributes[
+                                                                               'ProtocolNo'],
+                                                                           email_template_id=finalattributes.get(
+                                                                               'email_template_id')).update(
+                    {'timeUpdated': datetime.now(timezone.utc), 'notification_delete': False, "readFlag": False})
                 if not protocolalert_instance:
                     protocolalert = Protocolalert()
                     protocolalert.aidocId = finalattributes['AiDocId']
@@ -481,6 +487,7 @@ def received_documentprocessing_error_event(error_dict, session=None):
 def get_confidence_score(doc_status):
     confidence_score = fetch_records_from_db(doc_status=doc_status)
     return confidence_score['confidence_score']
+
 
 def save_doc_processing(request, _id, doc_path):
     resource = PDProtocolMetadata.from_post_request(request, _id)
@@ -707,7 +714,8 @@ def update_user_protocols(user_id, project_id, protocol_number):
                 logger.error(
                     "Error while updating record to PD_user_protocol file in DB for user id: {},{}".format(user_id, ex))
 
-def _get_active_protocol(aidoc_id,protocol_number):
+
+def _get_active_protocol(aidoc_id, protocol_number):
     try:
         active_protocol = PDProtocolMetadata.query.filter(
             and_(PDProtocolMetadata.id == aidoc_id, PDProtocolMetadata.protocol == protocol_number,
@@ -721,7 +729,8 @@ def _get_active_protocol(aidoc_id,protocol_number):
         logger.error(f"Exception message:\n{e}")
         return None
 
-def _get_norm_soa(session,aidoc_id,footnotes):
+
+def _get_norm_soa(session, aidoc_id, footnotes):
     norm_soa = []
     visitrecord_mapper = session.query(IqvassessmentvisitrecordDbMapper).filter(
         IqvassessmentvisitrecordDbMapper.doc_id == aidoc_id).all()
@@ -739,8 +748,8 @@ def _get_norm_soa(session,aidoc_id,footnotes):
 
         resource_dict.update({"footnotes": footnote_list})
         norm_soa.append(resource_dict)
-    norm_soa_str = json.loads(json.dumps(norm_soa)) 
-    return norm_soa_str 
+    norm_soa_str = json.loads(json.dumps(norm_soa))
+    return norm_soa_str
 
 
 def get_attr_soa_details(protocol_number, aidoc_id) -> dict:
@@ -871,7 +880,7 @@ def get_normalized_soa_details(aidoc_id) -> dict:
             return norm_dict
         for record in visitrecord_mapper:
             resource_dict = {key: value for key,
-                                value in record.__dict__.items()}
+                                            value in record.__dict__.items()}
             resource_dict.pop("_sa_instance_state")
             footnote_list = []
 
@@ -1029,7 +1038,8 @@ def get_normalized_soa_table(aidoc_id, footnote) -> dict:
             normalized_soa["studyProcedure"] = study_procedures.get(roi_id)
             normalized_soa["normalized_SOA"] = norm_dict.get(roi_id, [])
             normalizedsoa_list.append(normalized_soa)
-        normalizedsoa_data = {"id": aidoc_id, "soa_data": normalizedsoa_list}
+        foot_notes = get_foot_notes_sorted(aidoc_id)
+        normalizedsoa_data = {"id": aidoc_id, "soa_data": normalizedsoa_list, "foot_notes": foot_notes}
 
     except Exception as exc:
         logger.exception(
@@ -1089,3 +1099,23 @@ def get_dipa_data_by_category(_id, doc_id, category):
     except Exception as e:
         logger.error(f"Exception message:\n{e}")
     return response_list
+
+
+def get_foot_notes_sorted(aidoc_id):
+    """This Function is used to fetch footnotes from DB & return them in sorted order"""
+    try:
+        session = db_context.session()
+        result = session.query(DocumenttablesDb.Value).filter(DocumenttablesDb.doc_id
+                                                              == aidoc_id,
+                                                              DocumenttablesDb.group_type == 'Attachments',
+                                                              DocumenttablesDb.Value != '') \
+            .order_by(DocumenttablesDb.link_id, DocumenttablesDb.DocumentSequenceIndex) \
+            .all()
+
+        foot_notes = [list(value) for value in result]
+
+        return foot_notes
+    except Exception as exc:
+        logger.error(
+            f"Received exception while fetching footnotes from database for doc id: {aidoc_id}."
+            f"Reason: {str(exc)}")
