@@ -56,7 +56,7 @@ class CPTExtractor:
         tot_matching_master_childbox_redaction_entity = 0
         first_header_type = True
         link_levels_val = ""
-
+        table_heading = ""
         docparts_index_id_list = {roi_id: index for index, roi_id in enumerate(self.iqv_document.DocumentPartsList)}
         doc_para_list = [(para, para.id, docparts_index_id_list[para.id]) for para in self.iqv_document.DocumentParagraphs if
                     para.id in docparts_index_id_list] + [(table, table.id, docparts_index_id_list[table.id]) for table in self.iqv_document.DocumentTables if
@@ -122,7 +122,8 @@ class CPTExtractor:
             # table part and footnote data creating
             if not master_roi.hierarchy == TABLE_DATA_TYPE:
                 table_heading = master_roi.Value
-            master_dict = create_table_data(self.iqv_document, master_roi.DocumentSequenceIndex, table_heading, master_dict, self.entity_profile_genre)
+            if master_roi.hierarchy == TABLE_DATA_TYPE:
+                master_dict = create_table_data(self.iqv_document, master_roi.DocumentSequenceIndex, table_heading, master_dict, self.entity_profile_genre)
             document_table_ids = [i.DocumentSequenceIndex for i in self.iqv_document.DocumentTables]
             if master_roi.DocumentSequenceIndex-1 not in document_table_ids and master_roi.m_PARENT_ROI_TYPEVal == 501:
                 continue
