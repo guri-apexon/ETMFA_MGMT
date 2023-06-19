@@ -40,23 +40,20 @@ def create_or_update_user_metrics(user_id: str, aidoc_id: str):
                     return ex
             else:
                 # create new record with view count one
-                try:
-                    db_obj = UserMetrics(userid=user_id,
-                                         protocol=protocol_obj.protocol,
-                                         user_type=user.user_type,
-                                         userrole=user_role,
-                                         viewed_count=1,
-                                         timecreated=datetime.utcnow(),
-                                         accesstime=datetime.utcnow(),
-                                         isactive=True,
-                                         aidoc_id=aidoc_id,
-                                         document_version=protocol_obj.versionNumber)
-                    db_context.session.add(db_obj)
-                    db_context.session.commit()
-                    db_context.session.refresh(db_obj)
-                except Exception as ex:
-                    db_context.session.rollback()
-                    return ex
+                db_obj = UserMetrics(userid=user_id,
+                                     protocol=protocol_obj.protocol,
+                                     user_type=user.user_type,
+                                     userrole=user_role,
+                                     viewed_count=1,
+                                     timecreated=datetime.utcnow(),
+                                     accesstime=datetime.utcnow(),
+                                     isactive=True,
+                                     aidoc_id=aidoc_id,
+                                     document_version=protocol_obj.versionNumber)
+                db_context.session.add(db_obj)
+                db_context.session.commit()
+                db_context.session.refresh(db_obj)
+
 
         # To maintain only last N protocol access by user into database
         user_metrics = db_context.session.query(UserMetrics).filter(
