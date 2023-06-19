@@ -37,4 +37,7 @@ ENABLE_LOCAL_MODE: True
 #  should be an array and each ip address should be enclosed within single quote (eg. '1.1.1.1') seperated by comma (,)
 CDC_OMIT_IP_LIST: ['1.1.1.1']
 
+# list of tables for which CDC is not Required.
+NO_CDC_REQUIRED_TABLE_LIST: ["__migrationhistory",]
+
 
