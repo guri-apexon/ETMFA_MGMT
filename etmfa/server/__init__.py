@@ -86,7 +86,7 @@ def create_app(config_name, ssl_enabled=False):
     load_app_config(config_name)
     logger = logging.getLogger(Consts.LOGGING_NAME)
     if app.config['WORK_FLOW_RUNNER']:
-        create_schemas(app.config['SQLALCHEMY_DATABASE_URI'], app.config['CDC_OMIT_IP_LIST'], app.config['ENABLE_LOCAL_MODE'] )
+        create_schemas(app.config['SQLALCHEMY_DATABASE_URI'], app.config['CDC_OMIT_IP_LIST'], app.config['ENABLE_LOCAL_MODE'] , app.config['NO_CDC_REQUIRED_TABLE_LIST'] )
         start_workflow_runner(logger)
         start_runners(app.config)
     # register centralized logger

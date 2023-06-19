@@ -25,6 +25,7 @@ class Config(object):
             SQLALCHEMY_DATABASE_URI = cfg["SQLALCHEMY_DATABASE_URI"]
             CDC_OMIT_IP_LIST = cfg["CDC_OMIT_IP_LIST"]
             ENABLE_LOCAL_MODE = cfg["ENABLE_LOCAL_MODE"]
+            NO_CDC_REQUIRED_TABLE_LIST = cfg["NO_CDC_REQUIRED_TABLE_LIST"]
             mquser = cfg["mquser"]
             mqpswd = cfg["mqpswd"]
             mqhost = cfg["mqhost"]
