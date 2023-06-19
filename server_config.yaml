@@ -37,4 +37,24 @@ ENABLE_LOCAL_MODE: True
 #  should be an array and each ip address should be enclosed within single quote (eg. '1.1.1.1') seperated by comma (,)
 CDC_OMIT_IP_LIST: ['1.1.1.1']
 
+# list of tables for which CDC is not Required.
+NO_CDC_REQUIRED_TABLE_LIST: ["__migrationhistory", "alembic_version", "amp_server_run_info", "config_db",
+                                            "documentitems_db", "fontinfo_db", "iqvattribute_db",
+                                            "iqvattributecandidate_db", "iqvcharacter_db", "iqvclassifiermodel_db",
+                                            "iqvconceptrelation_db", "iqvconceptterm_db", "iqvcountrymapping_db",
+                                            "iqvdocumentcompare_db", "iqvdocumentdiff_db", "iqvdocumentfeedbackqc_db",
+                                            "iqvdocumentfeedbackresults_db", "iqvdocumentmapping_db",
+                                            "iqvdocumentprocess_db", "iqvfootnoterecord_db", "iqviecriteriarecord_db",
+                                            "iqvlanguagemapping_db", "iqvline_db", "iqvnumberinggroup_db",
+                                            "iqvnumberinglevel_db", "iqvqcupdatetracking_db", "iqvredactioncategory_db",
+                                            "iqvsectionlock_db", "iqvsubtext_db", "iqvtablecolumn_db",
+                                            "iqvtablecolumnheader_db", "iqvtablerow_db", "iqvword_db",
+                                            "languagecode_db", "nlp_attribute_db", "nlp_relation_db", "nlp_segment_db",
+                                            "nlp_system_mapping_db", "pd_protocol_compare", "pd_protocol_data",
+                                            "pd_protocol_document_process", "pd_protocol_document_status",
+                                            "pd_protocol_indications", "pd_protocol_qc_summary_data",
+                                            "pd_protocol_qcdata", "pd_protocol_saved_search", "pd_protocol_sponsor",
+                                            "q_event_log_entry_db", "sections_table", "tblMsRegistry",
+                                            "variableextractiontest", "work_flow_status"]
+
 

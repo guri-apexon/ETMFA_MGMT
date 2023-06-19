@@ -5,7 +5,7 @@ from etmfa.db.generate_email import send_event_based_mail, send_mail_on_edited_e
 from etmfa.server.api import api
 from flask_restplus import Resource
 from etmfa.consts import Consts as consts
-from etmfa.server.namespaces.serializers import notification_args
+from etmfa.server.namespaces.serializers import notification_args, edited_notification_args
 import logging
 
 logger = logging.getLogger(consts.LOGGING_NAME)
@@ -41,6 +41,7 @@ class SendNotifications(Resource):
 @ns.route("/send/edited/emails")
 @ns.response(500, 'Server error.')
 class SendEditNotifications(Resource):
+    @ns.expect(edited_notification_args)
     @ns.response(200, 'Success.')
     @ns.response(404, 'Notification issue')
     @api.doc(security='apikey')
@@ -49,5 +50,7 @@ class SendEditNotifications(Resource):
         """
         Send notification emails
         """
-        response = send_mail_on_edited_event(db)
+        args = edited_notification_args.parse_args()
+        test_case = args.get('test_case', False)
+        response = send_mail_on_edited_event(db, test_case=test_case)
         return response

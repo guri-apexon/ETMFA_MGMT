@@ -769,6 +769,10 @@ notification_args.add_argument('send_mail', type=inputs.boolean, default=False, 
 notification_args.add_argument('test_case', type=inputs.boolean, default=False, required=False,
                                help="This flag is used for test case execution time no mail send")
 
+edited_notification_args = reqparse.RequestParser()
+edited_notification_args.add_argument(
+    'test_case', type=inputs.boolean, required=False, help="This flag is used for test case execution time")
+
 
 fetch_workflows_by_doc_id = reqparse.RequestParser()
 fetch_workflows_by_doc_id.add_argument('doc_id', type=str, required=True,

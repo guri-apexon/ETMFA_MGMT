@@ -13,7 +13,7 @@ from email.mime.multipart import MIMEMultipart
 
 # added for notification part
 from etmfa.db import insert_into_alert_table
-from etmfa.consts.constants import EVENT_CONFIG, QC_USER_NOTIFICATION_MESSAGES, DIGITIZER_USER_NOTIFICATION_MESSAGES
+from etmfa.consts.constants import EVENT_CONFIG, QC_USER_NOTIFICATION_MESSAGES, DIGITIZER_USER_NOTIFICATION_MESSAGES, EDITED_EVENT_TEST_CASE_PROTOCOL
 from etmfa.db.models.pd_email_templates import PdEmailTemplates
 from etmfa.db.models.pd_protocol_alert import Protocolalert
 from etmfa.db.models.pd_protocol_metadata import PDProtocolMetadata
@@ -131,7 +131,7 @@ def send_event_based_mail(doc_id: str, event, send_mail_flag, test_case=False, u
     return True
 
 
-def send_mail_on_edited_event(db: db_context):
+def send_mail_on_edited_event(db: db_context, test_case:bool = False):
     """
         created function for tiggering email for EDITED event
     """
@@ -141,6 +141,11 @@ def send_mail_on_edited_event(db: db_context):
         Protocolalert.email_template_id == '3',
         Protocolalert.timeUpdated >= datetime.today().date(),
     ).with_entities(Protocolalert.aidocId).all()]
+
+    if test_case:
+        doc_ids = [doc_record[0] for doc_record in db.query(Protocolalert).filter(
+            Protocolalert.protocol == EDITED_EVENT_TEST_CASE_PROTOCOL
+        ).with_entities(Protocolalert.aidocId).all()]
 
     event_dict = EVENT_CONFIG.get(event)
 
@@ -208,7 +213,8 @@ def send_mail_on_edited_event(db: db_context):
         try:
             html_body = Template(html_record.email_body).render(
                 **{"username": email_val[0].get("username"), "email_body": email_val})
-            send_mail(subject, email, html_body, False)
+            if not test_case:
+                send_mail(subject, email, html_body, False)
             logger.info(
                 f"Edit event mail sent success {str(datetime.now())}")
         except Exception as ex:
