@@ -26,3 +26,17 @@ def test_email_notifications(new_app_context, doc_id, event, status_code, send_m
         get_cpt = client.get("/pd/api/v1/documents/notifications/send/email",
                              json={"doc_id": doc_id, "event": event, "send_mail":send_mail, "test_case":test_case}, headers=Config.UNIT_TEST_HEADERS)
         assert get_cpt.status_code == status_code
+
+
+def test_edited_event_notification(new_app_context):
+    """
+    Test case for edited event notification and event alert emails trigger
+    """
+    new_app, _ = new_app_context
+    client = new_app.test_client()
+    with client:
+        response = client.get("/pd/api/v1/documents/notifications/send/edited/emails",
+                              json={"test_case": True},
+                              headers=Config.UNIT_TEST_HEADERS
+                              )
+        assert response.status_code == 200

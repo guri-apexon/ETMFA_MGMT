@@ -97,7 +97,6 @@ class PrepareUpdateData:
                 metadata_fields[ModuleConfig.GENERAL.es_metadata_mapping[key]] = db_data.get(key, '')
 
             metadata_fields['accuracy'] = ''
-            logger.info(f"metadata: {metadata_fields}")
         except Exception as exc:
             logger.exception(f"Exception received in building metadata_fields step: {exc}")
 
