@@ -4,7 +4,7 @@ from etmfa.server.namespaces.cptconfigapi import get_section_data
 
 
 @pytest.mark.parametrize("doc_id, link_level, link_id, user_id, protocol, status_code, comments", [
-    ("272c5cab-fbf3-44f8-8afe-3b8d419618bf", '3', "0a55c528-fee8-11ed-af21-005056ab6469", "Dig2_Batch_Tester",
+    ("94770170-19c2-4a3e-9505-7e6b9c683b3d", '3', "b35b238a-89d3-11ed-a6e8-005056ab6469", "Dig2_Batch_Tester",
      "cicl.06ed2096-0749-4ead-a892-9e57ead4fcbc", 200, "doc id and with link id and link_level 3"),
     ("1698be28-1cf3-466e-8f56-5fc920029056", "1", "", "1036048",
      "FEED_TEST4", 404, "doc id changes"),
@@ -32,9 +32,9 @@ def test_document_object(new_app_context, user_id, protocol, doc_id, status_code
 
 
 @pytest.mark.parametrize("aidoc_id, link_level, link_id, user_id, protocol", [
-    ("272c5cab-fbf3-44f8-8afe-3b8d419618bf", 3, "0a55c528-fee8-11ed-af21-005056ab6469", "Dig2_Batch_Tester",
+    ("94770170-19c2-4a3e-9505-7e6b9c683b3d", 3, "b35b238a-89d3-11ed-a6e8-005056ab6469", "Dig2_Batch_Tester",
      "cicl.06ed2096-0749-4ead-a892-9e57ead4fcbc"),
-    ("272c5cab-fbf3-44f8-8afe-3b8d419618bf", 2, "0a55c528-fee8-11ed-af21-005056ab6469", "mgmt",
+    ("94770170-19c2-4a3e-9505-7e6b9c683b3d", 2, "b35b238a-89d3-11ed-a6e8-005056ab6469", "mgmt",
          "005")
 ])
 def test_get_section_data(new_app_context, aidoc_id, link_level, link_id, user_id, protocol):

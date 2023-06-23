@@ -10,7 +10,7 @@ from etmfa.utilities.user_metrics import create_or_update_user_metrics
 @pytest.mark.parametrize("doc_id, link_level, toc, status_code, comments", [
     ("ec06c44f-3f09-46f7-9fa8-547916ca89d9", "1", "1", 200,
      "doc is present and toc is 1 data"),
-    ("272c5cab-fbf3-44f8-8afe-3b8d419618bf", "1", "1", 200,
+    ("94770170-19c2-4a3e-9505-7e6b9c683b3d", "1", "1", 200,
      "doc is present and toc is 1 data"),
     ("580e2944-1d42-4df3-ae37-3cb59c483e4c", "2", "1", 200,
      "doc is present and toc is 1 data and link level is 2"),
