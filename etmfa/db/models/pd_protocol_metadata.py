@@ -418,11 +418,20 @@ class MetaDataTableHelper():
                 }
                 attr_value = nested_obj.get_attribute_value(
                     attr, 'attribute_value')
-                display_name= attr.display_name  if attr.display_name else attr.attribute_name
+                if attr.display_name:
+                    display_name = attr.display_name
+                else:
+                    search_key = 'attribute_name'
+                    search_value = attr.attribute_name
+                    display_name = attr.attribute_name
+                    if lvl_data.level1 =="pb_variables":
+                        for dic in META_ACCORDION[0]['attributes']:
+                            if search_key in dic and dic[search_key] == search_value:
+                                display_name = dic['display_name']
+                                break
                 attribute_info.append({'attr_id':attr.id,'attr_name': attr.attribute_name,'display_name':display_name,'attr_type':attr.attribute_type,
                                     'attr_value': attr_value, 'confidence': attr.confidence, 'note': attr.note, 'is_active':attr.is_active, 
                                     'is_default':attr.is_default, 'audit_info':audit_info})
-              
             curr_nested_obj['_meta_data'] = attribute_info
             curr_nested_obj['is_active'] = getattr(lvl_data, "is_active")
             curr_nested_obj['is_default'] = getattr(lvl_data, "is_default")
