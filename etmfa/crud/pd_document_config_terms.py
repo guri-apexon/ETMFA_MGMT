@@ -39,7 +39,6 @@ def get_document_terms_data(db: Session, aidoc_id: str,
     """
 
     terms_values = {}
-
     if config_variables is None:
         return []
 
@@ -115,6 +114,7 @@ def get_document_terms_data(db: Session, aidoc_id: str,
         logger.info(f"preferred terms results fetched successfuly for doc id {aidoc_id}")
 
     if "references" in config_variables:
+        references_values = None
         if link_dict:
             reference_links = db.query(IqvexternallinkDb).filter(
                 IqvexternallinkDb.doc_id == aidoc_id).filter_by(
@@ -125,21 +125,35 @@ def get_document_terms_data(db: Session, aidoc_id: str,
             .filter(
                 IqvexternallinkDb.doc_id == aidoc_id,
                 IqvexternallinkDb.link_id == link_id).all()
+
+            references_values = [
+                {"id": ref_link.IqvexternallinkDb.id,
+                 "source_text": ref_link.IqvexternallinkDb.source_text,
+                 "link_id": ref_link.IqvexternallinkDb.link_id,
+                 "destination_url": ref_link.IqvexternallinkDb.destination_url,
+                 "destination_link_id": ref_link.IqvexternallinkDb.destination_link_id,
+                 "dest_main_link_id": ref_link.linkid,
+                 "destination_link_prefix": ref_link.IqvexternallinkDb.destination_link_prefix,
+                 "parent_id": ref_link.IqvexternallinkDb.parent_id,
+                 "destination_link_text": ref_link.IqvexternallinkDb.destination_link_text} for
+                ref_link in reference_links]
+
         else:
             reference_links = db.query(IqvexternallinkDb).filter(
                 IqvexternallinkDb.doc_id == aidoc_id).all()
 
-        references_values = [
-            {"id": ref_link.IqvexternallinkDb.id, 
-             "source_text": ref_link.IqvexternallinkDb.source_text,
-             "link_id": ref_link.IqvexternallinkDb.link_id,
-             "destination_url": ref_link.IqvexternallinkDb.destination_url,
-             "destination_link_id": ref_link.IqvexternallinkDb.destination_link_id,
-             "dest_main_link_id": ref_link.linkid,
-             "destination_link_prefix": ref_link.IqvexternallinkDb.destination_link_prefix,
-             "parent_id": ref_link.IqvexternallinkDb.parent_id,
-             "destination_link_text": ref_link.IqvexternallinkDb.destination_link_text} for
-            ref_link in reference_links]
+        if not references_values:
+            references_values = [
+                {"id": ref_link.id,
+                 "source_text": ref_link.source_text,
+                 "link_id": ref_link.link_id,
+                 "destination_url": ref_link.destination_url,
+                 "destination_link_id": ref_link.destination_link_id,
+                 "destination_link_prefix": ref_link.destination_link_prefix,
+                 "parent_id": ref_link.parent_id,
+                 "destination_link_text": ref_link.destination_link_text} for
+                ref_link in reference_links]
+
         terms_values.update({'references': references_values})
         logger.info(f"references results fetched successfuly for doc id {aidoc_id}")
 
