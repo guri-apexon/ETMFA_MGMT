@@ -41,7 +41,7 @@ class CPTExtractor:
         self.entity_profile_genre = entity_profile_genre
         # regex to remove spaces, html tags
         self.regex = re.compile(r'\s*<[^>]+>\s*|\s+')
-        self.header_values = [{"text_value":self.regex.sub('', header_val.LinkText).lower(),"link_level":header_val.LinkLevel} for header_val in
+        self.header_values = [{"text_value":self.regex.sub('', header_val.LinkText).lower(),"link_level":header_val.LinkLevel,"Link_text":header_val.LinkText, "HeaderNumericSection":header_val.LinkPrefix} for header_val in
                               iqv_document.DocumentLinks]
 
     def read_cpt_tags(self) -> Tuple[list, int, int]:
@@ -56,6 +56,8 @@ class CPTExtractor:
         tot_matching_master_childbox_redaction_entity = 0
         first_header_type = True
         link_levels_val = ""
+        link_level_text = ""
+        link_level_numeric = ""
         table_heading = ""
         docparts_index_id_list = {roi_id: index for index, roi_id in enumerate(self.iqv_document.DocumentPartsList)}
         doc_para_list = [(para, para.id, docparts_index_id_list[para.id]) for para in self.iqv_document.DocumentParagraphs if
@@ -84,7 +86,12 @@ class CPTExtractor:
             master_dict['font_heading_flg'] = bool(header_result) or first_header_type
             if header_result:
                 link_levels_val = header_result[0]["link_level"]
+                link_level_text = header_result[0]["Link_text"]
+                link_level_numeric = header_result[0]["HeaderNumericSection"]
+
+            master_dict['HeaderText'] = link_level_text
             master_dict['link_level'] = link_levels_val
+            master_dict['HeaderNumericSection'] = link_level_numeric
             first_header_type = False
             # Collect tags
             master_dict['table_index'] = master_roi_dict.get(self.table_index_tag, '')
