@@ -8,7 +8,7 @@ from etmfa.server.namespaces.cptconfigapi import get_section_data
      "cicl.06ed2096-0749-4ead-a892-9e57ead4fcbc", 200, "doc id and with link id and link_level 3"),
     ("1698be28-1cf3-466e-8f56-5fc920029056", "1", "", "1036048",
      "FEED_TEST4", 404, "doc id changes"),
-    ("46d3456d-8aa2-4022-b251-b03271c151b3", "1", "c41f313b-9c40-456a-ac45-9c2e99aeabaa", "Dig2_Batch_Tester",
+    ("94770170-19c2-4a3e-9505-7e6b9c683b3d", "1", "b35b238a-89d3-11ed-a6e8-005056ab6469", "Dig2_Batch_Tester",
      "cicl.06ed2096-0749-4ead-a892-9e57ead4fcbc", 200, "doc id and link id present with level 1 all data"),
     ("4c7ea27b-8a6b-4bf0-a8ed-2c1e49bbdc8c", "1", "46bac1b7-9197-11ed-b507-005056ab6469", "Dig2_Batch_Tester",
      "005", 200, "doc id and link id with enriched data")
