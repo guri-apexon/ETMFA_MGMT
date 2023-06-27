@@ -52,7 +52,7 @@ def test_user_metrics(new_app_context, doc_id, user_id, results, comments):
                     UserMetrics.user_type == user.user_type,
                     UserMetrics.document_version == protocol_obj.versionNumber).first()
             assert user_metrics.protocol == protocol_obj.protocol
-            assert user_metrics.viewed_count >= str(results)
+            assert int(user_metrics.viewed_count) >= int(results)
 
             # To clean up the database entry
             if results == 2 and user_metrics:

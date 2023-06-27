@@ -4,6 +4,7 @@ from etmfa.utilities.data_extractor_utils import get_redaction_entities, align_r
 from etmfa.utilities.elastic_utilities import ingest_elastic
 from datetime import datetime
 from etmfa.consts import Consts as consts
+from etmfa.db.models.pd_protocol_metadata import MetaDataTableHelper
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -133,7 +134,7 @@ def ingest_doc_elastic(iqv_document, search_df):
         for sec in intake_dict:
             if sec not in es_sec_dict or es_sec_dict[sec] == '':
                 es_sec_dict[sec] = intake_dict[sec]
-        es_sec_dict['qcStatus'] = QcStatus.NOT_STARTED.value  # Default digitized protocol qcStatus from R1.4
+        es_sec_dict['qcStatus'] = MetaDataTableHelper().get_qc_status(iqv_document.id)
         es_sec_dict['QC_Flag'] = False
         es_sec_dict['TimeCreated'] = current_utc_num_format
         es_sec_dict['TimeUpdated'] = current_utc_num_format

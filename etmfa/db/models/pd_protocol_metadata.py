@@ -14,7 +14,9 @@ from etmfa.db.models.meta_accordion_defaults import META_ACCORDION
 from etmfa.db.models.pd_users import User
 import hashlib
 from etmfa.consts.constants import SUMMARY_FIELDS,SUMMARY_ATTR_REV_MAP
-
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+from mq_service.config import Config
     
 class PDProtocolMetadata(db_context.Model):
     __tablename__ = "pd_protocol_metadata"
@@ -259,6 +261,18 @@ class MetaDataTableHelper():
                             'array':'attribute_value_array',
                             'float':'attribute_value_float'
                             }
+        self.engine = create_engine(Config.SQLALCHEMY_DATABASE_URI, pool_pre_ping=True,
+                                    pool_size=1, max_overflow=-1, echo=False,
+                                    pool_use_lifo=True, pool_recycle=1800)
+        self.SessionLocal = sessionmaker(
+            autocommit=False, autoflush=False, bind=self.engine)
+
+    def get_qc_status(self, aidoc_id):
+        """fetch the latest status of QC completion from protocol metadata table"""
+        with self.SessionLocal() as session:
+            data = session.query(PDProtocolMetadata).get(aidoc_id)
+            qc_status = data.qcStatus
+        return qc_status
        
     
     def get_user_name(self, session, user_id=None):
