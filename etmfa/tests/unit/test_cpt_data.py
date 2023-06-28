@@ -12,7 +12,7 @@ from etmfa.utilities.user_metrics import create_or_update_user_metrics
      "doc is present and toc is 1 data"),
     ("94770170-19c2-4a3e-9505-7e6b9c683b3d", "1", "1", 200,
      "doc is present and toc is 1 data"),
-    ("580e2944-1d42-4df3-ae37-3cb59c483e4c", "2", "1", 200,
+    ("94770170-19c2-4a3e-9505-7e6b9c683b3d", "2", "1", 200,
      "doc is present and toc is 1 data and link level is 2"),
     ("1698be28-1cf3-466e-8f56-5fc9200290571", "1",
      "1", 404, "doc id does not exists partial data"),

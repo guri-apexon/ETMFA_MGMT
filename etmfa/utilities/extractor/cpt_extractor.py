@@ -42,7 +42,7 @@ class CPTExtractor:
         # regex to remove spaces, html tags
         self.regex = re.compile(r'\s*<[^>]+>\s*|\s+')
         self.header_values = [{"text_value":self.regex.sub('', header_val.LinkText).lower(),"link_level":header_val.LinkLevel,"Link_text":header_val.LinkText, "HeaderNumericSection":header_val.LinkPrefix} for header_val in
-                              iqv_document.DocumentLinks]
+                              iqv_document.DocumentLinks if header_val.LinkType == 'toc']
 
     def read_cpt_tags(self) -> Tuple[list, int, int]:
         """
