@@ -30,7 +30,8 @@ def create_table_data(iqv_document: IQVDocument, table_sequence_index: int, tabl
                                                                 redact_profile_entities=entity_profile_genre,
                                                                 redact_flg=True)
                     cell_data = {"cell_id": column.id, "value": master_roi_fulltext or column.Value, "op_type": None,
-                                 "col_indx": len(col_data)}
+                                 "col_indx": len(col_data),"row_span": column.BulletIndentationLevel or 0,
+                                 "col_span": column.m_WORD_LAYOUTVal or 0}
                     col_data.append(cell_data)
                 table_data.append({"row_indx": row_data_count, "roi_id": row.id, "op_type": None, "columns": col_data})
                 row_data_count += 1
