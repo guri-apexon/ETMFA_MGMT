@@ -133,7 +133,7 @@ class CPTExtractor:
                 master_dict = create_table_data(self.iqv_document, master_roi.DocumentSequenceIndex, table_heading, master_dict, self.entity_profile_genre)
 
             #  avoid duplicate content for table cell data
-            if master_roi.m_PARENT_ROI_TYPEVal == 501 and master_roi.IsTableCell == True:
+            if master_roi.m_ROI_TYPEVal == 501 and master_roi.IsTableCell == True:
                 continue
 
             # image part data creating
