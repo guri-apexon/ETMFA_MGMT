@@ -152,6 +152,7 @@ deploy-dev:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml01q:9001/pd/api/health"
+    VM_MIGRATION: $DEV_VM_MIGRATION
     
   before_script:
     - . $VE_PATH
@@ -197,6 +198,7 @@ DEV-Rollback:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml01q:9001/pd/api/health"
+    VM_MIGRATION: $DEV_VM_MIGRATION
  before_script:
    - . $VE_PATH
  script:
@@ -263,6 +265,7 @@ deploy-test:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml101q:9001/pd/api/health"
+    VM_MIGRATION: $TEST_VM_MIGRATION
   before_script:
     - . $VE_PATH
   script:
@@ -305,6 +308,7 @@ TEST-Rollback:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml101q:9001/pd/api/health"
+    VM_MIGRATION: $TEST_VM_MIGRATION
  before_script:
    - . $VE_PATH
  script:
@@ -370,6 +374,7 @@ deploy-svt:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml15q:9001/pd/api/health"
+    VM_MIGRATION: $SVT_VM_MIGRATION
   before_script:
     - . $VE_PATH
   script:
@@ -412,6 +417,7 @@ SVT-Rollback:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml15q:9001/pd/api/health"
+    VM_MIGRATION: $SVT_VM_MIGRATION
  before_script:
    - . $VE_PATH
  script:
@@ -477,6 +483,7 @@ deploy-uat:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml05c:9001/pd/api/health"
+    VM_MIGRATION: $UAT_VM_MIGRATION
   before_script:
     - . $VE_PATH
   script:
@@ -519,6 +526,7 @@ UAT-Rollback:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml05c:9001/pd/api/health"
+    VM_MIGRATION: $UAT_VM_MIGRATION
  before_script:
    - . $VE_PATH
  script:
@@ -585,6 +593,7 @@ deploy-uat1:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml101d:9001/pd/api/health"
+    VM_MIGRATION: $UAT1_VM_MIGRATION
   before_script:
     - . $VE_PATH
   script:
@@ -628,6 +637,7 @@ UAT1-Rollback:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml101d:9001/pd/api/health"
+    VM_MIGRATION: $UAT1_VM_MIGRATION
  before_script:
    - . $VE_PATH
  script:
@@ -693,6 +703,7 @@ deploy-prod:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml05p:9001/pd/api/health"
+    VM_MIGRATION: $PROD_VM_MIGRATION
   before_script:
     - . $VE_PATH
   script:
@@ -735,6 +746,7 @@ PROD-Rollback:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml05p:9001/pd/api/health"
+    VM_MIGRATION: $PROD_VM_MIGRATION
  before_script:
    - . $VE_PATH
  script:

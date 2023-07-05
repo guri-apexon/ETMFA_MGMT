@@ -209,19 +209,19 @@ def add_default_id():
     creates default id for accordion fields
     """
     try:
-        metadata_obj = PDProtocolMetadata()
         record_id = ACCORDIAN_DOC_ID
         with SessionManager() as session:
-            metadata_obj.id = record_id
-            metadata_obj.userId = 'mgmt'
-            metadata_obj.runId = '0'
             db_query = session.query(PDProtocolMetadata).get(record_id)
-            if db_query:
-                session.delete(db_query)
+            if not db_query:
+                metadata_obj = PDProtocolMetadata()
+                metadata_obj.id = record_id
+                metadata_obj.userId = 'mgmt'
+                metadata_obj.runId = '0'
+
                 session.add(metadata_obj)
-            session.commit()
+                session.commit()
             return True
-        
+
     except IntegrityError as e:
         error=str(e)
         if isinstance(e.orig, UniqueViolation):
