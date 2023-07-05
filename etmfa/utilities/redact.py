@@ -6,7 +6,7 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import Forbidden
 from etmfa import crud
 from etmfa.consts import Consts as consts, constants
 from etmfa.crud.pd_protocol_summary_entities import pd_protocol_summary_entities
@@ -24,7 +24,7 @@ class Redactor:
         self.profile_entries = pd_redact_profile.get_all_active(db)
         if self.profile_entries is None or len(self.profile_entries) == 0:
             logger.exception(f'Active profile extraction failed')
-            raise HTTPException(status_code=403, detail="No active profile details extracted")
+            raise Forbidden(response=403, description="No active profile details extracted")
 
         self.redact_df = self.get_all_profiles_df()
         self.redact_dict = self.get_all_profiles_dict()

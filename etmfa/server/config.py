@@ -41,6 +41,7 @@ class Config(object):
             FROM_EMAIL = cfg["FROM_EMAIL"]
             SMTP_HOST = cfg["SMTP_HOST"]
             SMTP_PORT = cfg["SMTP_PORT"]
+            MIGRATION = cfg['MIGRATION']
 
     except Exception as exp:
         logging.error("Loading Defaults due to exception when reading yaml from server_config {0}", exp)
