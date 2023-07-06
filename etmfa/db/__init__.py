@@ -171,23 +171,34 @@ def add_compare_event(session, compare_protocol_list, id_):
     try:
         if compare_protocol_list:
             compare_db_data = list()
+            compare_obj_list = list()
             for row in compare_protocol_list:
-                compare = Documentcompare()
-                compare.compareId = row['compare_id']
-                compare.id1 = row['id1']
-                compare.id2 = row['id2']
-                compare.protocolNumber = row['protocolNumber']
-                compare.redactProfile = row['redact_profile']
-                compare.compareRun = 0
-                compare.doc1runId = 0
-                compare.doc2runId = 0
-                compare.createdDate = datetime.utcnow()
-                compare.updatedDate = datetime.utcnow()
-                compare_db_data.append(compare)
+                compare_obj = session.query(Documentcompare).filter(and_(Documentcompare.id1 == row['id1'],
+                                                                         Documentcompare.id2 == row['id2'],
+                                                                         Documentcompare.redactProfile == row['redact_profile'])).first()
+
+                if compare_obj:
+                    row['compare_id'] = compare_obj.compareId
+                else:
+                    compare = Documentcompare()
+                    compare.compareId = row['compare_id']
+                    compare.id1 = row['id1']
+                    compare.id2 = row['id2']
+                    compare.protocolNumber = row['protocolNumber']
+                    compare.redactProfile = row['redact_profile']
+                    compare.compareRun = 0
+                    compare.doc1runId = 0
+                    compare.doc2runId = 0
+                    compare.createdDate = datetime.utcnow()
+                    compare.updatedDate = datetime.utcnow()
+                    compare_db_data.append(compare)
+
+                compare_obj_list.append(row)
 
             session.add_all(compare_db_data)
             session.commit()
-            return True
+            return compare_obj_list
+            # return True
     except Exception as ex:
         logger.error(
             "Error while writing record to PD_document_compare file in DB for ID: {},{}".format(id_, ex))
@@ -258,7 +269,9 @@ def document_compare_all_permutations(session, work_flow_id, flow_name):
                                          ).filter(and_(WorkFlowStatus.protocol_name == protocol_number,
                                                        WorkFlowStatus.work_flow_id != work_flow_id,
                                                        WorkFlowStatus.work_flow_name == DWorkFLows.FULL_FLOW.value,
-                                                       WorkFlowStatus.status == WorkFlowState.COMPLETED.value
+                                                       WorkFlowStatus.status == WorkFlowState.COMPLETED.value,
+                                                       WorkFlowStatus.doc_id != obj.doc_id,
+                                                       WorkFlowStatus.doc_uid != None
                                                        )).order_by(WorkFlowStatus.timeCreated.desc()).limit(3).all()
     iqvxml_path1 = get_latest_file_path(
         document_path, prefix="D2_", suffix=FILE_EXTENSION)
@@ -272,29 +285,28 @@ def document_compare_all_permutations(session, work_flow_id, flow_name):
         if iqvxml_path2:
             for redact_profile in redact_profile_list:
                 ids_compare_protocol_list.extend([{'compare_id': str(uuid.uuid4()),
-                                                   'id1': work_flow_id,
+                                                   'id1': obj.doc_id,
                                                    'flow_id': work_flow_id,
                                                    'flow_name': flow_name,
                                                    'IQVXMLPath1': iqvxml_path1,
-                                                   'id2': row['work_flow_id'],
+                                                   'id2': row['doc_id'],
                                                    'protocolNumber': protocol_number,
                                                    'IQVXMLPath2': iqvxml_path2,
                                                    'redact_profile': redact_profile
                                                    },
                                                   {'compare_id': str(uuid.uuid4()),
-                                                   'id1': row['work_flow_id'],
+                                                   'id1': row['doc_id'],
                                                    'flow_id': work_flow_id,
                                                    'flow_name': flow_name,
                                                    'IQVXMLPath1': iqvxml_path2,
-                                                   'id2': work_flow_id,
+                                                   'id2': obj.doc_id,
                                                    'protocolNumber': protocol_number,
                                                    'IQVXMLPath2': iqvxml_path1,
                                                    'redact_profile': redact_profile
                                                    }
                                                   ])
-    ret_val = add_compare_event(
-        session, ids_compare_protocol_list, work_flow_id)
-    return ids_compare_protocol_list if ret_val else []
+    ret_val = add_compare_event(session, ids_compare_protocol_list, work_flow_id)
+    return ret_val if ret_val else []
 
 
 def document_compare_tuple(session, work_flow_id, flow_name, id1, id2, document_path_1, document_path_2,
