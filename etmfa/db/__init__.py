@@ -265,7 +265,8 @@ def document_compare_all_permutations(session, work_flow_id, flow_name):
     # consider all workflows in which digitization runs.
     ids_compare_protocol = session.query(WorkFlowStatus.work_flow_id,
                                          WorkFlowStatus.protocol_name,
-                                         WorkFlowStatus.documentFilePath
+                                         WorkFlowStatus.documentFilePath,
+                                         WorkFlowStatus.doc_id
                                          ).filter(and_(WorkFlowStatus.protocol_name == protocol_number,
                                                        WorkFlowStatus.work_flow_id != work_flow_id,
                                                        WorkFlowStatus.work_flow_name == DWorkFLows.FULL_FLOW.value,
