@@ -58,3 +58,4 @@ NO_CDC_REQUIRED_TABLE_LIST: ["__migrationhistory", "alembic_version", "amp_serve
                                             "variableextractiontest", "work_flow_status"]
 
 
+MIGRATION: True

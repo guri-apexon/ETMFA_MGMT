@@ -125,6 +125,7 @@ def send_event_based_mail(doc_id: str, event, send_mail_flag, test_case=False, u
                 f"docid {doc_id} event {event} email sent success and updated protocol alert record for doc_id {doc_id} and protocol {protocol_meta_data.protocol}")
             db.commit()
     except Exception as ex:
+        db.rollback()
         logger.exception(
             f"exception occurend {event} mail send for doc_id {doc_id}")
         return False
@@ -169,35 +170,40 @@ def send_mail_on_edited_event(db: db_context, test_case:bool = False):
 
     subject = html_record.subject
     email_dict = {}
-    for row in row_data:
-        record = email_dict.get(row.email, [])
-        if record:
-            email_dict.get(row.email).append({
-                "to_mail": row.email,
-                "username": " ".join(row.email.split("@")[0].split(".")).title(),
-                "doc_link": f"{Config.UI_HOST_NAME}/protocols?protocolId={row.doc_id}",
-                "protocol_number": row.protocol,
-                "indication": row.indication,
-                "doc_status": row.documentStatus,
-                "doc_activity": row.status,  
-                "version_number": row.versionNumber,
-            })
-        else:
-            email_dict[row.email] = [{
-                "to_mail": row.email,
-                "username": " ".join(row.email.split("@")[0].split(".")).title(),
-                "doc_link": f"{Config.UI_HOST_NAME}/protocols?protocolId={row.doc_id}",
-                "protocol_number": row.protocol,
-                "indication": row.indication,
-                "doc_status": row.documentStatus,
-                "doc_activity": row.status,
-                "version_number": row.versionNumber,
-            }]
+    try:
+        for row in row_data:
+            record = email_dict.get(row.email, [])
+            if record:
+                email_dict.get(row.email).append({
+                    "to_mail": row.email,
+                    "username": " ".join(row.email.split("@")[0].split(".")).title(),
+                    "doc_link": f"{Config.UI_HOST_NAME}/protocols?protocolId={row.doc_id}",
+                    "protocol_number": row.protocol,
+                    "indication": row.indication,
+                    "doc_status": row.documentStatus,
+                    "doc_activity": row.status,
+                    "version_number": row.versionNumber,
+                })
+            else:
+                email_dict[row.email] = [{
+                    "to_mail": row.email,
+                    "username": " ".join(row.email.split("@")[0].split(".")).title(),
+                    "doc_link": f"{Config.UI_HOST_NAME}/protocols?protocolId={row.doc_id}",
+                    "protocol_number": row.protocol,
+                    "indication": row.indication,
+                    "doc_status": row.documentStatus,
+                    "doc_activity": row.status,
+                    "version_number": row.versionNumber,
+                }]
 
-        time_ = datetime.now(timezone.utc)
-        db.query(Protocolalert).filter(Protocolalert.id == row.id, Protocolalert.aidocId == row.doc_id, Protocolalert.protocol == row.protocol).update({Protocolalert.emailSentFlag: True,
-                                                                                                                                                        Protocolalert.timeUpdated: time_, Protocolalert.emailSentTime: time_})
-        db.commit()                                                                                                                                               
+            time_ = datetime.now(timezone.utc)
+            db.query(Protocolalert).filter(Protocolalert.id == row.id, Protocolalert.aidocId == row.doc_id, Protocolalert.protocol == row.protocol).update({Protocolalert.emailSentFlag: True,
+                                                                                                                                                            Protocolalert.timeUpdated: time_, Protocolalert.emailSentTime: time_})
+            db.commit()
+    except Exception as ex:
+        db.rollback()
+        logger.exception(
+            f"exception occured edited mail send")
     # remove duplicate dict in list
     result_dict = {}
     for k, v in email_dict.items():

@@ -243,9 +243,9 @@ class Digitizer2CompareHandler(DigitizationGenericMessageHandler):
         session.close()
 
         if not compare_request_list:
+            update_doc_processing_status(_id, service_name, True, flow_name, 1)
             return {}
-        update_doc_processing_status(
-            _id, service_name, True, flow_name, len(compare_request_list))
+        update_doc_processing_status(_id, service_name, True, flow_name, len(compare_request_list))
         return compare_request_list
 
 

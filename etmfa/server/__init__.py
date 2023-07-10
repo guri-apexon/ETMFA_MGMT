@@ -13,7 +13,7 @@ from etmfa.server.namespaces.confidence_metric import  ConfidenceMatrixRunner
 # api
 from etmfa.server.namespaces.docprocessingapi import ns as docprocessing_namespace
 from etmfa.server.namespaces.healthprocessingapi import ns as health_namespace
-from etmfa.server.namespaces.cptconfigapi import ns as config_namespace
+
 from etmfa.server.namespaces.pd_email_notification import ns as pd_notifications
 from flask import Blueprint, request, g
 from flask import Flask
@@ -21,10 +21,15 @@ from flask_cors import CORS
 from flask_restplus import Api
 from werkzeug.contrib.fixers import ProxyFix
 from etmfa_core.postgres_db_schema import create_schemas
-from microservices import ElasticIngestionRunner,EmailNotificationRunner
+
 from etmfa.workflow import  WorkFlowClient,WorkFlowRunner
 from etmfa.consts import Consts as consts
 from ..utilities.user_metrics import create_or_update_user_metrics
+
+if not Config.MIGRATION:
+    from etmfa.server.namespaces.cptconfigapi import ns as config_namespace
+    from microservices import EmailNotificationRunner, ElasticIngestionRunner
+
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 app = Flask(__name__, instance_relative_config=True, instance_path=dir_path)
@@ -73,10 +78,11 @@ def start_workflow_runner(logger):
 
 
 def start_runners(config):
-    es = ElasticIngestionRunner()
-    es.start()
-    em= EmailNotificationRunner()
-    em.start()
+    if not config['MIGRATION']:
+        es = ElasticIngestionRunner()
+        es.start()
+        em= EmailNotificationRunner()
+        em.start()
     cfr=ConfidenceMatrixRunner(config['AVG_NUM_CHANGE_PER_LINE'])
     cfr.start()
 

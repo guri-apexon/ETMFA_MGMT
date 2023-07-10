@@ -131,8 +131,9 @@ class CPTExtractor:
                 table_heading = master_roi.Value
             if master_roi.hierarchy == TABLE_DATA_TYPE:
                 master_dict = create_table_data(self.iqv_document, master_roi.DocumentSequenceIndex, table_heading, master_dict, self.entity_profile_genre)
-            document_table_ids = [i.DocumentSequenceIndex for i in self.iqv_document.DocumentTables]
-            if master_roi.DocumentSequenceIndex-1 not in document_table_ids and master_roi.m_PARENT_ROI_TYPEVal == 501:
+
+            #  avoid duplicate content for table cell data
+            if master_roi.m_ROI_TYPEVal == 501 and master_roi.IsTableCell == True:
                 continue
 
             # image part data creating

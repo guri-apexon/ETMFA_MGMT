@@ -265,13 +265,14 @@ class DocumentprocessingAPI(Resource):
         feedback_run_id = 0
 
         filepath = str(filepath)
+        doc_uid = generate_doc_meta_hash(filepath)
         if duplicate_check:
-            doc_uid = generate_doc_meta_hash(filepath)
+            # doc_uid = generate_doc_meta_hash(filepath)
             is_processed, duplicate_docs = check_if_document_processed(doc_uid)
             if is_processed:
                 return abort(409, json.dumps({'duplicate_docs': duplicate_docs}, default=str))
-        else:
-            doc_uid = _id
+        # else:
+        #     doc_uid = _id
 
         create_doc_processing_status(
             _id, _id, doc_uid, workflow_name, filepath, protocol)
