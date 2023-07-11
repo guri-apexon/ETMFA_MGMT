@@ -12,7 +12,7 @@ from flask import request, g
 from flask_restplus import Resource, abort, reqparse
 from etmfa.auth import authenticate
 from etmfa.consts import Consts as consts
-from etmfa.db import feedback_utils as fb_utlis, check_work_flow_name
+from etmfa.db import feedback_utils as fb_utlis
 from etmfa.db.models import pd_dipa_view_data
 from etmfa.db.db import db_context
 from .confidence_metric import fetch_records_from_db
@@ -151,12 +151,12 @@ def register_custom_flows(work_flow_list, work_flow_name, _id, doc_id):
                                                            "doc_id": doc_id},
                                                           MsqType.ADD_CUSTOM_WORKFLOW.value)
         else:
-            work_flow_name = check_work_flow_name(work_flow_name, work_flow_list)
+            work_flow_name = DEFAULT_WORKFLOW_NAME
             message, response_status = wf_client.send_msg(work_flow_name, _id, "",
                                                           {"work_flow_list": work_flow_list,
                                                            "doc_id": doc_id},
                                                           MsqType.RUN_DEFAULT_WORKFLOW.value)
-    return message, response_status
+    return message, response_status, work_flow_name
 
 @ns.route('/run_work_flow')
 @ns.response(500, 'Server error.')
@@ -188,7 +188,7 @@ class DocumentprocessingAPI(Resource):
 
         doc_uid = None
         _id = str(uuid.uuid4())
-        message, response_status = register_custom_flows(work_flow_list,work_flow_name,_id,doc_id)
+        message, response_status,work_flow_name = register_custom_flows(work_flow_list,work_flow_name,_id,doc_id)
         if not response_status and work_flow_list and Config.WORK_FLOW_RUNNER:
             return abort(400, message)
 
@@ -200,8 +200,6 @@ class DocumentprocessingAPI(Resource):
             start_service_name = work_flow_graph[0].get('service_name', None)
             if not start_service_name:
                 abort(404, str(WorkFlowParamMissing(work_flow_name)))
-
-        work_flow_name = check_work_flow_name(work_flow_name, work_flow_list)
 
         create_doc_processing_status(
             _id, doc_id, doc_uid, work_flow_name, doc_file_path, protocol)
@@ -265,14 +263,13 @@ class DocumentprocessingAPI(Resource):
         feedback_run_id = 0
 
         filepath = str(filepath)
-        doc_uid = generate_doc_meta_hash(filepath)
         if duplicate_check:
-            # doc_uid = generate_doc_meta_hash(filepath)
+            doc_uid = generate_doc_meta_hash(filepath)
             is_processed, duplicate_docs = check_if_document_processed(doc_uid)
             if is_processed:
                 return abort(409, json.dumps({'duplicate_docs': duplicate_docs}, default=str))
-        # else:
-        #     doc_uid = _id
+        else:
+            doc_uid = _id
 
         create_doc_processing_status(
             _id, _id, doc_uid, workflow_name, filepath, protocol)

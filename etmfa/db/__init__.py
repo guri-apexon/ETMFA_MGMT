@@ -134,7 +134,7 @@ def get_details_by_elm(table_name, elm_name, elm_val):
 def check_if_document_processed(doc_uid):
     """
     doc_uid: hashed value of document
-    return: True/False and if duplicate. list of documents to which its duplicate 
+    return: True/False and if duplicate. list of documents to which its duplicate
 
     """
     session = db_context.session
@@ -922,7 +922,7 @@ def get_normalized_soa_details(aidoc_id) -> dict:
 
 def get_metadata_summary(op, aidoc_id, field_name=None) -> dict:
     """
-    Get metadata summary fields 
+    Get metadata summary fields
     """
     response_dict = {}
     with SessionManager() as session:
@@ -945,7 +945,7 @@ def get_metadata_summary(op, aidoc_id, field_name=None) -> dict:
 
 def add_metadata_summary(op, **data):
     """
-    Add metadata summary fields 
+    Add metadata summary fields
     """
     metadata_response = {}
     with SessionManager() as session:
@@ -969,7 +969,7 @@ def add_metadata_summary(op, **data):
 
 def update_metadata_summary(field_name, **data):
     """
-    Update metadata summary fields 
+    Update metadata summary fields
     """
     metadata_response = {}
     with SessionManager() as session:
@@ -986,7 +986,7 @@ def update_metadata_summary(field_name, **data):
 
 def delete_metadata_summary(op, **data):
     """
-    Delete metadata summary fields 
+    Delete metadata summary fields
     """
     metadata_response = {}
     with SessionManager() as session:
@@ -1066,7 +1066,7 @@ def get_normalized_soa_table(aidoc_id, footnote) -> dict:
 # dipa view
 def get_dipaview_details_by_id(doc_id):
     """
-    Get dipa view details fields 
+    Get dipa view details fields
     """
     resource = None
     response_list = []
