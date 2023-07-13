@@ -45,7 +45,7 @@ flake8:
   allow_failure: true
   only:
     refs:
-      - /^develop-*
+      - /^develop-*/
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -67,7 +67,7 @@ unit-tests:
   allow_failure: true
   only:
     refs:
-      - /^develop-*
+      - /^develop-*/
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -92,7 +92,7 @@ Perform Sonarqube Analysis and quality gate:
     - ca2ugitla008p-D3
   only:
     refs:
-      - /^develop-*
+      - /^develop-*/
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -117,7 +117,7 @@ build:
       - dist/
   only:
     refs:
-      - /^develop-*
+      - /^develop-*/
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -162,54 +162,54 @@ deploy-dev:
     name: dev
   only:
     refs:
-      - /^develop-*
+      - /^develop-*/
       - merge_requests
       - /^pd-release/*/
     variables:
       - $ENVIRONMENT== "dev"
   when: manual
 
-#DEV-Rollback:
-# stage: rollback
-# tags:
-#   - pd-dev-windows-ml01q
-# variables:
-#    VM_DEBUG: $DEV_VM_DEBUG
-#    VM_MQUSER: $DEV_VM_MQUSER
-#    VM_MQPASS: $DEV_VM_MQPASS
-#    VM_MQHOST: $DEV_VM_MQHOST
-#    VM_LOGSTASH_HOST: $DEV_VM_LOGSTASH_HOST
-#    VM_DFS_UPLOAD_FOLDER: $DEV_VM_DFS_UPLOAD_FOLDER
-#    VM_SQLALCHEMY_DATABASE_URI: $DEV_VM_SQLALCHEMY_DATABASE_URI
-#    VM_PD_UI_LINK: $DEV_VM_PD_UI_LINK
-#    VM_AUTH_DETAILS: $DEV_VM_AUTH_DETAILS
-#    VM_UNIT_TEST_HEADERS: $DEV_VM_UNIT_TEST_HEADERS
-#    REGISTRY_PYPI_URL: $REGISTRY_PYPI_URL
-#    REGISTRY_SERVER: $REGISTRY_SERVER
-#    PACKAGE_VERSION: $DEV_ROLLBACK_VERSION
-#    VM_ENABLE_WORK_FLOW_RUNNER: $VM_ENABLE_WORK_FLOW_RUNNER
-#    VM_ELASTIC_DETAILS: $DEV_VM_ELASTIC_DETAILS
-#    VM_UI_HOST_NAME: $DEV_VM_UI_HOST_NAME
-#    VM_EMAILS_ENABLED: $DEV_VM_EMAILS_ENABLED
-#    VM_FROM_EMAIL: $VM_FROM_EMAIL
-#    VM_SMTP_HOST: $DEV_VM_SMTP_HOST
-#    VM_SMTP_PORT: $VM_SMTP_PORT
-#    VM_CDC_OMIT_IP_LIST: $DEV_VM_CDC_OMIT_IP_LIST
-#    VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
-#    VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
-#    VERIFICATION_URL: "http://ca2spdml01q:9001/pd/api/health"
-#    VM_MIGRATION: $DEV_VM_MIGRATION
-# before_script:
-#   - . $VE_PATH
-# script:
-#   - sh etmfa/ci_scripts/rollback.sh package
-# environment:
-#   name: dev
-# needs:
-#   - deploy-dev
-# rules:
-#   - if: $ENVIRONMENT == "dev"
-#     when: on_failure
+DEV-Rollback:
+ stage: rollback
+ tags:
+   - pd-dev-windows-ml01q
+ variables:
+    VM_DEBUG: $DEV_VM_DEBUG
+    VM_MQUSER: $DEV_VM_MQUSER
+    VM_MQPASS: $DEV_VM_MQPASS
+    VM_MQHOST: $DEV_VM_MQHOST
+    VM_LOGSTASH_HOST: $DEV_VM_LOGSTASH_HOST
+    VM_DFS_UPLOAD_FOLDER: $DEV_VM_DFS_UPLOAD_FOLDER
+    VM_SQLALCHEMY_DATABASE_URI: $DEV_VM_SQLALCHEMY_DATABASE_URI
+    VM_PD_UI_LINK: $DEV_VM_PD_UI_LINK
+    VM_AUTH_DETAILS: $DEV_VM_AUTH_DETAILS
+    VM_UNIT_TEST_HEADERS: $DEV_VM_UNIT_TEST_HEADERS
+    REGISTRY_PYPI_URL: $REGISTRY_PYPI_URL
+    REGISTRY_SERVER: $REGISTRY_SERVER
+    PACKAGE_VERSION: $DEV_ROLLBACK_VERSION
+    VM_ENABLE_WORK_FLOW_RUNNER: $VM_ENABLE_WORK_FLOW_RUNNER
+    VM_ELASTIC_DETAILS: $DEV_VM_ELASTIC_DETAILS
+    VM_UI_HOST_NAME: $DEV_VM_UI_HOST_NAME
+    VM_EMAILS_ENABLED: $DEV_VM_EMAILS_ENABLED
+    VM_FROM_EMAIL: $VM_FROM_EMAIL
+    VM_SMTP_HOST: $DEV_VM_SMTP_HOST
+    VM_SMTP_PORT: $VM_SMTP_PORT
+    VM_CDC_OMIT_IP_LIST: $DEV_VM_CDC_OMIT_IP_LIST
+    VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
+    VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
+    VERIFICATION_URL: "http://ca2spdml01q:9001/pd/api/health"
+    VM_MIGRATION: $DEV_VM_MIGRATION
+ before_script:
+   - . $VE_PATH
+ script:
+   - sh etmfa/ci_scripts/rollback.sh package
+ environment:
+   name: dev
+ needs:
+   - deploy-dev
+ rules:
+   - if: $ENVIRONMENT == "dev"
+     when: on_failure
 
 build-test:
   tags:
