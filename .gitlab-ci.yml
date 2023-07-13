@@ -45,7 +45,7 @@ flake8:
   allow_failure: true
   only:
     refs:
-      - develop
+      - /^develop-*
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -67,7 +67,7 @@ unit-tests:
   allow_failure: true
   only:
     refs:
-      - develop
+      - /^develop-*
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -92,7 +92,7 @@ Perform Sonarqube Analysis and quality gate:
     - ca2ugitla008p-D3
   only:
     refs:
-      - develop
+      - /^develop-*
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -117,7 +117,7 @@ build:
       - dist/
   only:
     refs:
-      - develop
+      - /^develop-*
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -162,7 +162,7 @@ deploy-dev:
     name: dev
   only:
     refs:
-      - develop
+      - /^develop-*
       - merge_requests
       - /^pd-release/*/
     variables:
