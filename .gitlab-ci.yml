@@ -241,6 +241,8 @@ build-test:
   only:
    refs:
       - develop
+      - develop-2.0.1
+      - develop-2.1
       - /^pd-release/*/
       - merge_requests
    variables:
@@ -285,6 +287,8 @@ deploy-test:
   only:
     refs:
       - develop
+      - develop-2.0.1
+      - develop-2.1
       - /^pd-release/*/
     variables:
       - $ENVIRONMENT== "test"
@@ -395,6 +399,8 @@ deploy-svt:
     refs:
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables:
       - $ENVIRONMENT== "svt"
 
@@ -461,6 +467,8 @@ build-uat:
     refs:
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables:
       - $ENVIRONMENT== "uat"
 
@@ -504,6 +512,8 @@ deploy-uat:
     refs:
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables: 
       - $ENVIRONMENT== "uat"
 
@@ -571,6 +581,8 @@ build-uat1:
       - feature/ci-cd-uat1
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables:
       - $ENVIRONMENT== "uat1"
 
@@ -615,6 +627,8 @@ deploy-uat1:
       - feature/ci-cd-uat1
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables:
       - $ENVIRONMENT== "uat1"
 
@@ -681,6 +695,8 @@ build-prod:
     refs:
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables:
       - $ENVIRONMENT== "prod"
 
@@ -724,6 +740,8 @@ deploy-prod:
     refs:
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables:
       - $ENVIRONMENT== "prod"
 
