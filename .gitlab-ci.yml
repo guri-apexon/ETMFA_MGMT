@@ -46,7 +46,8 @@ flake8:
   only:
     refs:
       - develop
-      - /^develop-?*/
+      - develop-2.0.1
+      - develop-2.1
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -69,7 +70,8 @@ unit-tests:
   only:
     refs:
       - develop
-      - /^develop-?*/
+      - develop-2.0.1
+      - develop-2.1
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -95,7 +97,8 @@ Perform Sonarqube Analysis and quality gate:
   only:
     refs:
       - develop
-      - /^develop-?*/
+      - develop-2.0.1
+      - develop-2.1
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -121,7 +124,8 @@ build:
   only:
     refs:
       - develop
-      - /^develop-?*/
+      - develop-2.0.1
+      - develop-2.1
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -167,7 +171,8 @@ deploy-dev:
   only:
     refs:
       - develop
-      - /^develop-?*/
+      - develop-2.0.1
+      - develop-2.1
       - merge_requests
       - /^pd-release/*/
     variables:
