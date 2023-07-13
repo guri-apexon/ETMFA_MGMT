@@ -235,7 +235,10 @@ def get_section_audit_info(psdb: Session, aidoc_id: str, link_ids: list,
             if user:
                 full_name = (user.first_name + " " + user.last_name).strip()
             current_timezone = obj.last_updated
-            est_datetime = current_timezone.astimezone(timezone.utc)
+            if current_timezone:
+                est_datetime = current_timezone.astimezone(timezone.utc)
+            else:
+                est_datetime = ""
             response.append({"last_reviewed_date": str(est_datetime).replace('+00:00',''),
                             "last_reviewed_by": full_name,
                             "total_no_review": obj.num_updates})
