@@ -183,7 +183,7 @@ class Iqvassessmentvisitrecord():
                 assessment_visit_obj = self.get_soatables_mapper()
                 table_roi_list = iqvassessment_obj.get_tableroi_list()
                 if assessment_visit_obj and table_roi_list:
-                    for roi_id in list(table_roi_list):
+                    for roi_id in table_roi_list:
                         norm_soa = []
                         norm_soa = self.get_normalized_soa_data(assessment_visit_obj, norm_soa, roi_id, footnote)                        
                         norm_dict[roi_id] = norm_soa  
