@@ -6,7 +6,7 @@ class NlpEntityDb(db_context.Model):
 
     __tablename__ = "nlp_entity_db"
 
-    id = Column(primary_key=True)
+    id = Column(String(128), primary_key=True)
     doc_id = Column(String, nullable=True)
     link_id = Column(String, nullable=True)
     link_id_level2 = Column(String, nullable=True)
@@ -17,7 +17,7 @@ class NlpEntityDb(db_context.Model):
     link_id_subsection1 = Column(String, nullable=True)
     link_id_subsection2 = Column(String, nullable=True)
     link_id_subsection3 = Column(String, nullable=True)
-    hierarchy = Column(primary_key=True)
+    hierarchy = Column(String(128), primary_key=True)
     iqv_standard_term = Column(String, nullable=True)
     parent_id = Column(String, nullable=True)
     group_type = Column(String, nullable=True)

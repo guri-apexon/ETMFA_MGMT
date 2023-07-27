@@ -134,7 +134,7 @@ def get_details_by_elm(table_name, elm_name, elm_val):
 def check_if_document_processed(doc_uid):
     """
     doc_uid: hashed value of document
-    return: True/False and if duplicate. list of documents to which its duplicate 
+    return: True/False and if duplicate. list of documents to which its duplicate
 
     """
     session = db_context.session
@@ -171,23 +171,34 @@ def add_compare_event(session, compare_protocol_list, id_):
     try:
         if compare_protocol_list:
             compare_db_data = list()
+            compare_obj_list = list()
             for row in compare_protocol_list:
-                compare = Documentcompare()
-                compare.compareId = row['compare_id']
-                compare.id1 = row['id1']
-                compare.id2 = row['id2']
-                compare.protocolNumber = row['protocolNumber']
-                compare.redactProfile = row['redact_profile']
-                compare.compareRun = 0
-                compare.doc1runId = 0
-                compare.doc2runId = 0
-                compare.createdDate = datetime.utcnow()
-                compare.updatedDate = datetime.utcnow()
-                compare_db_data.append(compare)
+                compare_obj = session.query(Documentcompare).filter(and_(Documentcompare.id1 == row['id1'],
+                                                                         Documentcompare.id2 == row['id2'],
+                                                                         Documentcompare.redactProfile == row['redact_profile'])).first()
+
+                if compare_obj:
+                    row['compare_id'] = compare_obj.compareId
+                else:
+                    compare = Documentcompare()
+                    compare.compareId = row['compare_id']
+                    compare.id1 = row['id1']
+                    compare.id2 = row['id2']
+                    compare.protocolNumber = row['protocolNumber']
+                    compare.redactProfile = row['redact_profile']
+                    compare.compareRun = 0
+                    compare.doc1runId = 0
+                    compare.doc2runId = 0
+                    compare.createdDate = datetime.utcnow()
+                    compare.updatedDate = datetime.utcnow()
+                    compare_db_data.append(compare)
+
+                compare_obj_list.append(row)
 
             session.add_all(compare_db_data)
             session.commit()
-            return True
+            return compare_obj_list
+            # return True
     except Exception as ex:
         logger.error(
             "Error while writing record to PD_document_compare file in DB for ID: {},{}".format(id_, ex))
@@ -254,11 +265,14 @@ def document_compare_all_permutations(session, work_flow_id, flow_name):
     # consider all workflows in which digitization runs.
     ids_compare_protocol = session.query(WorkFlowStatus.work_flow_id,
                                          WorkFlowStatus.protocol_name,
-                                         WorkFlowStatus.documentFilePath
+                                         WorkFlowStatus.documentFilePath,
+                                         WorkFlowStatus.doc_id
                                          ).filter(and_(WorkFlowStatus.protocol_name == protocol_number,
                                                        WorkFlowStatus.work_flow_id != work_flow_id,
                                                        WorkFlowStatus.work_flow_name == DWorkFLows.FULL_FLOW.value,
-                                                       WorkFlowStatus.status == WorkFlowState.COMPLETED.value
+                                                       WorkFlowStatus.status == WorkFlowState.COMPLETED.value,
+                                                       WorkFlowStatus.doc_id != obj.doc_id,
+                                                       WorkFlowStatus.doc_uid != None
                                                        )).order_by(WorkFlowStatus.timeCreated.desc()).limit(3).all()
     iqvxml_path1 = get_latest_file_path(
         document_path, prefix="D2_", suffix=FILE_EXTENSION)
@@ -272,29 +286,28 @@ def document_compare_all_permutations(session, work_flow_id, flow_name):
         if iqvxml_path2:
             for redact_profile in redact_profile_list:
                 ids_compare_protocol_list.extend([{'compare_id': str(uuid.uuid4()),
-                                                   'id1': work_flow_id,
+                                                   'id1': obj.doc_id,
                                                    'flow_id': work_flow_id,
                                                    'flow_name': flow_name,
                                                    'IQVXMLPath1': iqvxml_path1,
-                                                   'id2': row['work_flow_id'],
+                                                   'id2': row['doc_id'],
                                                    'protocolNumber': protocol_number,
                                                    'IQVXMLPath2': iqvxml_path2,
                                                    'redact_profile': redact_profile
                                                    },
                                                   {'compare_id': str(uuid.uuid4()),
-                                                   'id1': row['work_flow_id'],
+                                                   'id1': row['doc_id'],
                                                    'flow_id': work_flow_id,
                                                    'flow_name': flow_name,
                                                    'IQVXMLPath1': iqvxml_path2,
-                                                   'id2': work_flow_id,
+                                                   'id2': obj.doc_id,
                                                    'protocolNumber': protocol_number,
                                                    'IQVXMLPath2': iqvxml_path1,
                                                    'redact_profile': redact_profile
                                                    }
                                                   ])
-    ret_val = add_compare_event(
-        session, ids_compare_protocol_list, work_flow_id)
-    return ids_compare_protocol_list if ret_val else []
+    ret_val = add_compare_event(session, ids_compare_protocol_list, work_flow_id)
+    return ret_val if ret_val else []
 
 
 def document_compare_tuple(session, work_flow_id, flow_name, id1, id2, document_path_1, document_path_2,
@@ -909,7 +922,7 @@ def get_normalized_soa_details(aidoc_id) -> dict:
 
 def get_metadata_summary(op, aidoc_id, field_name=None) -> dict:
     """
-    Get metadata summary fields 
+    Get metadata summary fields
     """
     response_dict = {}
     with SessionManager() as session:
@@ -932,7 +945,7 @@ def get_metadata_summary(op, aidoc_id, field_name=None) -> dict:
 
 def add_metadata_summary(op, **data):
     """
-    Add metadata summary fields 
+    Add metadata summary fields
     """
     metadata_response = {}
     with SessionManager() as session:
@@ -956,7 +969,7 @@ def add_metadata_summary(op, **data):
 
 def update_metadata_summary(field_name, **data):
     """
-    Update metadata summary fields 
+    Update metadata summary fields
     """
     metadata_response = {}
     with SessionManager() as session:
@@ -973,7 +986,7 @@ def update_metadata_summary(field_name, **data):
 
 def delete_metadata_summary(op, **data):
     """
-    Delete metadata summary fields 
+    Delete metadata summary fields
     """
     metadata_response = {}
     with SessionManager() as session:
@@ -1020,16 +1033,15 @@ def get_normalized_soa_table(aidoc_id, footnote) -> dict:
     normalizedsoa_list = []
     study_visits = dict()
     normalizedsoa_data = dict()
-    roi_set = None
+    roi_list = None
 
     try:
         visits_obj = Iqvvisitrecord(aidoc_id)
         assessmentvisit_obj = Iqvassessmentvisitrecord(aidoc_id)
         assessment_obj = Iqvassessmentrecord(aidoc_id)
-        roi_set = assessment_obj.get_tableroi_list()
-        if roi_set is None:
-            raise GenericMessageException("roi set is None.")
-        roi_list = list(roi_set)
+        roi_list = assessment_obj.get_tableroi_list()
+        if roi_list is None:
+            raise GenericMessageException("roi list is None.")
         study_procedures = assessment_obj.get_assessment_text()
         norm_dict = assessmentvisit_obj.get_normalized_soa(footnote)
         study_visits = visits_obj.get_visit_records()
@@ -1040,9 +1052,9 @@ def get_normalized_soa_table(aidoc_id, footnote) -> dict:
             normalized_soa["studyVisit"] = study_visits.get(roi_id, [])
             normalized_soa["studyProcedure"] = study_procedures.get(roi_id)
             normalized_soa["normalized_SOA"] = norm_dict.get(roi_id, [])
+            normalized_soa["foot_notes"] = get_foot_notes_sorted(aidoc_id, roi_id)
             normalizedsoa_list.append(normalized_soa)
-        foot_notes = get_foot_notes_sorted(aidoc_id)
-        normalizedsoa_data = {"id": aidoc_id, "soa_data": normalizedsoa_list, "foot_notes": foot_notes}
+        normalizedsoa_data = {"id": aidoc_id, "soa_data": normalizedsoa_list}
 
     except Exception as exc:
         logger.exception(
@@ -1053,7 +1065,7 @@ def get_normalized_soa_table(aidoc_id, footnote) -> dict:
 # dipa view
 def get_dipaview_details_by_id(doc_id):
     """
-    Get dipa view details fields 
+    Get dipa view details fields
     """
     resource = None
     response_list = []
@@ -1104,16 +1116,12 @@ def get_dipa_data_by_category(_id, doc_id, category):
     return response_list
 
 
-def get_foot_notes_sorted(aidoc_id):
+def get_foot_notes_sorted(aidoc_id, roi_id):
     """This Function is used to fetch footnotes from DB & return them in sorted order"""
     try:
         session = db_context.session()
-        result = session.query(DocumenttablesDb.Value).filter(DocumenttablesDb.doc_id
-                                                              == aidoc_id,
-                                                              DocumenttablesDb.group_type == 'Attachments',
-                                                              DocumenttablesDb.Value != '') \
-            .order_by(DocumenttablesDb.link_id, DocumenttablesDb.DocumentSequenceIndex) \
-            .all()
+        result = session.query(DocumenttablesDb.Value).filter(and_(DocumenttablesDb.doc_id == aidoc_id, DocumenttablesDb.parent_id == roi_id,
+                                DocumenttablesDb.group_type == 'Attachments', DocumenttablesDb.Value != '')).order_by(DocumenttablesDb.DocumentSequenceIndex).all()
 
         foot_notes = [list(value) for value in result]
 

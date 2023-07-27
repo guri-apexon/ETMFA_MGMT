@@ -138,7 +138,8 @@ class I2eOmopMessageHandler(DigitizationGenericMessageHandler):
 
         request = DIG2OMAPRequest(
             _id, flow_id, flow_name, omop_xml_path, feedback_run_id, output_file_prefix)
-        update_doc_processing_status(_id, service_name,True,flow_name)
+        # update_doc_processing_status(_id, service_name,True,flow_name)
+        update_doc_processing_status(flow_id, service_name, True, flow_name)
         return request.__dict__
 
 
@@ -190,7 +191,8 @@ class Digitizer2OmopUpdateHandler(DigitizationGenericMessageHandler):
         out_queue_name = EtmfaQueues.DIGITIZER2_OMOPUPDATE.request
         request = I2eOmapRequest(_id,flow_id,flow_name, updated_omop_xml_path, _file,
                                  feedback_run_id, output_file_prefix, out_queue_name)
-        update_doc_processing_status(_id, service_name,True,msg.flow_name)
+        # update_doc_processing_status(_id, service_name,True,msg.flow_name)
+        update_doc_processing_status(flow_id, service_name, True, msg.flow_name)
         return request.__dict__
 
 
@@ -243,9 +245,9 @@ class Digitizer2CompareHandler(DigitizationGenericMessageHandler):
         session.close()
 
         if not compare_request_list:
+            update_doc_processing_status(_id, service_name, True, flow_name, 1)
             return {}
-        update_doc_processing_status(
-            _id, service_name, True, flow_name, len(compare_request_list))
+        update_doc_processing_status(_id, service_name, True, flow_name, len(compare_request_list))
         return compare_request_list
 
 

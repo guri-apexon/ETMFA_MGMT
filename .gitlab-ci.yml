@@ -46,6 +46,8 @@ flake8:
   only:
     refs:
       - develop
+      - develop-2.0.1
+      - develop-2.1
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -68,6 +70,8 @@ unit-tests:
   only:
     refs:
       - develop
+      - develop-2.0.1
+      - develop-2.1
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -93,6 +97,8 @@ Perform Sonarqube Analysis and quality gate:
   only:
     refs:
       - develop
+      - develop-2.0.1
+      - develop-2.1
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -118,6 +124,8 @@ build:
   only:
     refs:
       - develop
+      - develop-2.0.1
+      - develop-2.1
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -152,6 +160,7 @@ deploy-dev:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml01q:9001/pd/api/health"
+    VM_MIGRATION: $DEV_VM_MIGRATION
     
   before_script:
     - . $VE_PATH
@@ -162,6 +171,8 @@ deploy-dev:
   only:
     refs:
       - develop
+      - develop-2.0.1
+      - develop-2.1
       - merge_requests
       - /^pd-release/*/
     variables:
@@ -197,6 +208,7 @@ DEV-Rollback:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml01q:9001/pd/api/health"
+    VM_MIGRATION: $DEV_VM_MIGRATION
  before_script:
    - . $VE_PATH
  script:
@@ -229,6 +241,8 @@ build-test:
   only:
    refs:
       - develop
+      - develop-2.0.1
+      - develop-2.1
       - /^pd-release/*/
       - merge_requests
    variables:
@@ -263,6 +277,7 @@ deploy-test:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml101q:9001/pd/api/health"
+    VM_MIGRATION: $TEST_VM_MIGRATION
   before_script:
     - . $VE_PATH
   script:
@@ -272,6 +287,8 @@ deploy-test:
   only:
     refs:
       - develop
+      - develop-2.0.1
+      - develop-2.1
       - /^pd-release/*/
     variables:
       - $ENVIRONMENT== "test"
@@ -305,6 +322,7 @@ TEST-Rollback:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml101q:9001/pd/api/health"
+    VM_MIGRATION: $TEST_VM_MIGRATION
  before_script:
    - . $VE_PATH
  script:
@@ -370,6 +388,7 @@ deploy-svt:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml15q:9001/pd/api/health"
+    VM_MIGRATION: $SVT_VM_MIGRATION
   before_script:
     - . $VE_PATH
   script:
@@ -380,6 +399,8 @@ deploy-svt:
     refs:
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables:
       - $ENVIRONMENT== "svt"
 
@@ -412,6 +433,7 @@ SVT-Rollback:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml15q:9001/pd/api/health"
+    VM_MIGRATION: $SVT_VM_MIGRATION
  before_script:
    - . $VE_PATH
  script:
@@ -445,6 +467,8 @@ build-uat:
     refs:
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables:
       - $ENVIRONMENT== "uat"
 
@@ -477,6 +501,7 @@ deploy-uat:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml05c:9001/pd/api/health"
+    VM_MIGRATION: $UAT_VM_MIGRATION
   before_script:
     - . $VE_PATH
   script:
@@ -487,6 +512,8 @@ deploy-uat:
     refs:
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables: 
       - $ENVIRONMENT== "uat"
 
@@ -519,6 +546,7 @@ UAT-Rollback:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml05c:9001/pd/api/health"
+    VM_MIGRATION: $UAT_VM_MIGRATION
  before_script:
    - . $VE_PATH
  script:
@@ -553,6 +581,8 @@ build-uat1:
       - feature/ci-cd-uat1
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables:
       - $ENVIRONMENT== "uat1"
 
@@ -585,6 +615,7 @@ deploy-uat1:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml101d:9001/pd/api/health"
+    VM_MIGRATION: $UAT1_VM_MIGRATION
   before_script:
     - . $VE_PATH
   script:
@@ -596,6 +627,8 @@ deploy-uat1:
       - feature/ci-cd-uat1
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables:
       - $ENVIRONMENT== "uat1"
 
@@ -628,6 +661,7 @@ UAT1-Rollback:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml101d:9001/pd/api/health"
+    VM_MIGRATION: $UAT1_VM_MIGRATION
  before_script:
    - . $VE_PATH
  script:
@@ -661,6 +695,8 @@ build-prod:
     refs:
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables:
       - $ENVIRONMENT== "prod"
 
@@ -693,6 +729,7 @@ deploy-prod:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml05p:9001/pd/api/health"
+    VM_MIGRATION: $PROD_VM_MIGRATION
   before_script:
     - . $VE_PATH
   script:
@@ -703,6 +740,8 @@ deploy-prod:
     refs:
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables:
       - $ENVIRONMENT== "prod"
 
@@ -735,6 +774,7 @@ PROD-Rollback:
     VM_ENABLE_LOCAL_MODE: $VM_ENABLE_LOCAL_MODE
     VM_NO_CDC_REQUIRED_TABLE_LIST: $VM_NO_CDC_REQUIRED_TABLE_LIST
     VERIFICATION_URL: "http://ca2spdml05p:9001/pd/api/health"
+    VM_MIGRATION: $PROD_VM_MIGRATION
  before_script:
    - . $VE_PATH
  script:

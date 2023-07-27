@@ -1,6 +1,7 @@
-from sqlalchemy import Column,Index
+from sqlalchemy import Column,Index, and_
 from sqlalchemy.orm import registry
 from etmfa.db.db import db_context, SchemaBase
+from etmfa.db.models.documentpartlist_db import DocumentpartslistDb
 from sqlalchemy.dialects.postgresql import TEXT,VARCHAR,INTEGER
 from dataclasses import dataclass
 from typing import List
@@ -83,15 +84,23 @@ class Iqvassessmentrecord():
         """
         get set of table_roi_id for normSOA mapping
         """
-        table_roi = [] 
+        table_roi_list = [] 
         try:
+            table_roi_id_list = []
+            sorted_table_roi_id_list = []
             assessment_obj = self.get_soatables_mapper()
             if assessment_obj:
-                    for record in assessment_obj:
-                        assessment_dict = {key: value for key, value in record.__dict__.items()}
-                        table_roi_id = assessment_dict.get("table_roi_id")
-                        table_roi.append(table_roi_id) 
-                    table_roi_list = set(table_roi)
+                for row in assessment_obj:
+                    if row.table_roi_id not in table_roi_id_list:
+                        table_roi_id_list.append(row.table_roi_id)
+            if table_roi_id_list:
+                session = db_context.session()
+                sorted_table_roi_id_list = session.query(DocumentpartslistDb.id).filter(and_(
+                                            DocumentpartslistDb.doc_id == self.aidoc_id, DocumentpartslistDb.id.in_(table_roi_id_list))).order_by(DocumentpartslistDb.sequence_id).all()
+
+            if sorted_table_roi_id_list:
+                for table_roi in sorted_table_roi_id_list:
+                    table_roi_list.append(table_roi[0])
             else:
                 logger.error(f"Error in getting db object.")
                 return table_roi_list
@@ -109,7 +118,7 @@ class Iqvassessmentrecord():
             assessment_obj = self.get_soatables_mapper()
             table_roi_list = self.get_tableroi_list()
             if assessment_obj and table_roi_list:
-                for roi_id in  list(table_roi_list):
+                for roi_id in table_roi_list:
                     assessment_list = []
                     for record in assessment_obj:
                         assessment_dict = {key: value for key, value in record.__dict__.items()} 
