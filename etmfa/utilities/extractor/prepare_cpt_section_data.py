@@ -8,6 +8,7 @@ from etmfa.utilities.extractor import cpt_extractor
 from etmfa.consts.constants import ModuleConfig
 from etmfa.consts import Consts as consts
 from etmfa.error import GenericMessageException
+from etmfa.db.models.pd_protocol_summary_entities import ProtocolSummaryEntities
 
 logger = logging.getLogger(consts.LOGGING_NAME)
 
@@ -32,33 +33,56 @@ class PrepareUpdateData:
 
     def prepare_msg(self) -> Tuple[dict, IQVDocument]:
         """
-           prepare data and return as db_data  
+           prepare data and return as db_data
         """
         db_data = self._prepare_db_data()
         return db_data, self.iqv_document
-    
-    def get_norm_cpt(self,host,port,index) -> dict:
+
+    def upsert_redact_data(self, session, doc_id, iqv_json_data):
+        try:
+            with session() as session:
+                obj = session.query(ProtocolSummaryEntities).filter(ProtocolSummaryEntities.aidocId == doc_id).first()
+                if obj:
+                    obj.iqvdataSummaryEntities = iqv_json_data
+                    obj.source = "LM"
+                    obj.runId = obj.runId + 1
+                else:
+                    obj = ProtocolSummaryEntities()
+                    obj.aidocId = doc_id
+                    obj.runId = 0
+                    obj.source = "LM"
+                    obj.iqvdataSummaryEntities = iqv_json_data
+                    obj.isActive = True
+                    session.add(obj)
+                session.commit()
+        except Exception as exc:
+            logger.exception(f"Exception received in adding redact data to DB: {exc}")
+
+    def get_norm_cpt(self, host, port, index, session) -> dict:
         """
         customized reading for mcra attributes
         """
-        cpt_iqvdata = cpt_extractor.CPTExtractor(self.iqv_document,self.imagebinaries,self.profile_details, self.entity_profile_genre)
+        cpt_iqvdata = cpt_extractor.CPTExtractor(self.iqv_document, self.imagebinaries, self.profile_details,
+                                                 self.entity_profile_genre)
         display_df, search_df, _, _ = cpt_iqvdata.get_cpt_iqvdata()
+        display_df = display_df[["section_level", "CPT_section", "type", "content", "font_info", "level_1_CPT_section",
+                                 "file_section", "file_section_num", "file_section_level", "seq_num"]]
         display_dict = display_df.to_dict(orient=self.dict_orient_type)
-        db_data, _= ei.ingest_doc_elastic(self.iqv_document, search_df)
-        status=ei.save_elastic_doc(host,port,index,db_data)
+        db_data, summary_redact_entities = ei.ingest_doc_elastic(self.iqv_document, search_df)
+        status = ei.save_elastic_doc(host, port, index, db_data)
+        json_data = json.dumps(json.dumps(summary_redact_entities))
+        self.upsert_redact_data(session, self.iqv_document.doc_id, json_data)
         if not status:
             raise GenericMessageException("Failed to ingest doc to elastic")
-
+        metadata_fields = dict()
         try:
-            metadata_fields = dict()
             for key in ModuleConfig.GENERAL.es_metadata_mapping:
                 metadata_fields[ModuleConfig.GENERAL.es_metadata_mapping[key]] = db_data.get(key, '')
-            metadata_fields['accuracy'] = ''         
+            metadata_fields['accuracy'] = ''
         except Exception as exc:
             logger.exception(f"Exception received in building metadata_fields step: {exc}")
-        display_dict['metadata']=metadata_fields
+        display_dict['metadata'] = metadata_fields
         return display_dict
-
 
     def _prepare_db_data(self):
         """
@@ -73,6 +97,7 @@ class PrepareUpdateData:
         db_data['normalized_soa'] = self.empty_json
 
         # Elastic search ingestion
+        display_df = None
         try:
             cpt_iqvdata = cpt_extractor.CPTExtractor(iqv_document,
                                                      self.imagebinaries,
@@ -91,8 +116,8 @@ class PrepareUpdateData:
             logger.exception(f"Exception received in Elastic search ingestion step: {exc}")
 
         # Collect additional metadata fields (for downstream applications)
+        metadata_fields = dict()
         try:
-            metadata_fields = dict()
             for key in ModuleConfig.GENERAL.es_metadata_mapping:
                 metadata_fields[ModuleConfig.GENERAL.es_metadata_mapping[key]] = db_data.get(key, '')
 
@@ -154,4 +179,4 @@ class PrepareUpdateData:
                         soa_json_data = json.load(f)
                         return soa_json_data
         except Exception as e:
-            logger.error("No Normalized SOA Json path")
+            logger.error("No Normalized SOA Json path, Reason {}".format(str(e)))
