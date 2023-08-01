@@ -1,4 +1,3 @@
-
 from mq_service import MicroServiceWrapper, ExecutionContext, Config
 from multiprocessing import Process
 from .common import GenericException
@@ -121,10 +120,10 @@ class ElasticIngestion(ExecutionContext):
                                              protocol_view_redaction.profile_details,
                                              protocol_view_redaction.entity_profile_genre)
         mcra_dict = finalized_iqvxml.get_norm_cpt(
-            self.elastic_host, self.elastic_port, self.elastic_index)
+            self.elastic_host, self.elastic_port, self.elastic_index, self.SessionLocal)
         mcra_dict['columns'] = ["section_level", "CPT_section", "type", "content", "font_info",
                                 "level_1_CPT_section", "file_section", "file_section_num", "file_section_level", "seq_num"]
-        protocol_data_str = str(json.dumps(mcra_dict))
+        protocol_data_str = str(json.dumps(json.dumps(mcra_dict)))
         self.update_data_to_tables(
             aidoc_id,protocol_data_str,mapped_meta_fields,accordians)
         return msg_data
