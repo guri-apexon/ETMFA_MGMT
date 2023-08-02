@@ -47,7 +47,7 @@ def after_request_callback(response):
     extra_val = {'request_type': f"{request.method}",
                  'api_endpoint': f"{request.path}"}
     if response.status_code != 200:
-        api_logger.error(msg="API Metrics exception",
+        api_logger.info(msg="API Metrics exception",
                          extra=extra_val)
     else:
         api_logger.info(msg="API Metrics",
