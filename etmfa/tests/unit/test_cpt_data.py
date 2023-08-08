@@ -61,6 +61,6 @@ def test_user_metrics(new_app_context, doc_id, user_id, results, comments):
                     UserMetrics.aidoc_id == doc_id,
                     UserMetrics.user_type == user.user_type,
                     UserMetrics.document_version == protocol_obj.versionNumber).first()
+                user_metrics.viewed_count = 1
 
-                db_context.session.delete(user_metrics)
                 db_context.session.commit()
