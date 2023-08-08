@@ -90,15 +90,6 @@ def update_doc_resource_by_id(aidoc_id, resource):
     return resource
 
 
-def check_work_flow_name(work_flow_name, work_flow_list):
-    if not work_flow_name:
-        if work_flow_list:
-            work_flow_name = work_flow_list[0]['work_flow_name']
-        else:
-            work_flow_name = DEFAULT_WORKFLOW_NAME
-    return work_flow_name
-
-
 def create_doc_processing_status(work_flow_id, doc_id, doc_uid, work_flow_name, doc_file_path, protocol_name):
     session = db_context.session
     status = WorkFlowStatus(
