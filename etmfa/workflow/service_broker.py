@@ -116,6 +116,7 @@ class RabbitMqBroker(ServiceBroker):
             self.config.message_broker_address, self.config.exchange_name)
         msg_obj_list= msg_obj if isinstance(msg_obj,list) else [msg_obj]
         for msg_obj in msg_obj_list:
+            self.logger.debug(f'message received on {queue_name} is : ', msg_obj)
             pub.send_msg(msg_obj, queue_name)
 
     def send_msg_list(self, service_msg_map, service_queue_map):
