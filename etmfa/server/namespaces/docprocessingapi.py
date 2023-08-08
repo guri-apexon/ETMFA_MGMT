@@ -95,6 +95,7 @@ from flask import jsonify
 from etmfa.workflow.wf_manager import WorkFlowManager
 from ...consts.constants import DEFAULT_WORKFLOW_NAME
 from etmfa.workflow import WorkFlowParamMissing
+from datetime import datetime
 logger = logging.getLogger(consts.LOGGING_NAME)
 
 INVALID_USER_INPUT = 'Invalid user input(s) received: {}'
@@ -151,7 +152,9 @@ def register_custom_flows(work_flow_list, work_flow_name, _id, doc_id):
                                                            "doc_id": doc_id},
                                                           MsqType.ADD_CUSTOM_WORKFLOW.value)
         else:
-            work_flow_name = DEFAULT_WORKFLOW_NAME
+            curr_dt = datetime.now()
+            timestamp = int(round(curr_dt.timestamp()))
+            work_flow_name = DEFAULT_WORKFLOW_NAME + "_"+str(timestamp)
             message, response_status = wf_client.send_msg(work_flow_name, _id, "",
                                                           {"work_flow_list": work_flow_list,
                                                            "doc_id": doc_id},
