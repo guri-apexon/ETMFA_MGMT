@@ -356,6 +356,8 @@ build-svt:
     refs:
       - /^pd-release/*/
       - develop
+      - develop-2.0.1
+      - develop-2.1
     variables:
       - $ENVIRONMENT== "svt"
 
